@@ -52,25 +52,22 @@ Cette commande va :
 
 ### Option B : Déploiement automatique (recommandé)
 
-Le déploiement automatique via GitHub Actions est déjà configuré.
+Le déploiement automatique via GitHub Actions est configuré pour pousser sur la branche `gh-pages`.
 
 **Configuration GitHub Pages** :
 
 1. **Aller dans Settings > Pages** de votre repository
-2. **Source** : Sélectionner "GitHub Actions"
-3. **Sauvegarder**
+2. **Source** : Sélectionner "Deploy from a branch"
+3. **Branch** : Sélectionner `gh-pages` et `/ (root)`
+4. **Sauvegarder**
 
 À chaque push sur la branche `main`, le site sera automatiquement :
 - Construit
-- Testé
-- Déployé sur `https://benaja-bendo.github.io/Le-creuset/`
+- Le contenu du dossier `dist` sera poussé sur la branche `gh-pages`
+- GitHub Pages déploiera cette branche
 
 **Workflow** :
-Le fichier `.github/workflows/deploy.yml` contient le pipeline CI/CD qui :
-- S'exécute à chaque push sur `main`
-- Installe les dépendances avec pnpm
-- Build le projet
-- Déploie sur GitHub Pages
+Le fichier `.github/workflows/deploy.yml` utilise l'action `JamesIves/github-pages-deploy-action` pour gérer le déploiement sans configuration complexe.
 
 ## Vérification post-déploiement
 
