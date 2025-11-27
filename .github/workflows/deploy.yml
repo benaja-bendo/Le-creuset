@@ -40,14 +40,10 @@ jobs:
           version: 8
           
       - name: Install dependencies
-        run: |
-          cd site
-          pnpm install
+        run: pnpm install --frozen-lockfile
           
       - name: Build
-        run: |
-          cd site
-          pnpm run build
+        run: pnpm run build
           
       - name: Setup Pages
         uses: actions/configure-pages@v4
@@ -57,7 +53,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './site/dist'
+          path: './dist'
 
   # Job de déploiement
   deploy:
