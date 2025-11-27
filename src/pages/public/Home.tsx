@@ -1,106 +1,172 @@
-import { ArrowRight, CheckCircle2, Factory, Hammer, ShieldCheck } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Flame, Layers, Printer, Upload } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import fonteImg from '../../assets/fonte.png';
+import impressionImg from '../../assets/impression-3d.png';
+import moulageImg from '../../assets/moulage.png';
+
+const Button = ({ children, variant = 'primary', onClick, className = '' }: any) => {
+  const baseStyle = "px-8 py-4 transition-all duration-300 font-semibold tracking-widest text-sm uppercase flex items-center justify-center gap-2";
+  const variants: any = {
+    primary: "bg-primary-400 text-secondary-900 hover:bg-primary-500 hover:-translate-y-1 shadow-lg",
+    outline: "border border-primary-400 text-primary-400 hover:bg-primary-400 hover:text-secondary-900",
+  };
+  return (
+    <button onClick={onClick} className={`${baseStyle} ${variants[variant]} ${className}`}>
+      {children}
+    </button>
+  );
+};
+
+const SectionTitle = ({ title, subtitle }: { title: string, subtitle: string }) => (
+  <div className="mb-16 text-center">
+    <span className="text-primary-400 text-xs font-bold tracking-[0.2em] uppercase mb-4 block">
+      {subtitle}
+    </span>
+    <h2 className="text-4xl md:text-5xl font-serif text-white mb-6">
+      {title}
+    </h2>
+    <div className="w-20 h-0.5 bg-primary-400 mx-auto"></div>
+  </div>
+);
 
 export default function Home() {
+  const navigate = useNavigate();
+
   return (
-    <div className="space-y-20 pb-20">
+    <div className="bg-secondary-900">
       {/* Hero Section */}
-      <section className="relative bg-secondary-900 text-white py-32 overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1565619624098-e659884d3c36?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-20"></div>
-        <div className="absolute inset-0 bg-gradient-to-r from-secondary-900 via-secondary-900/80 to-transparent"></div>
-        
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="max-w-3xl space-y-6 animate-in fade-in slide-in-from-bottom-10 duration-700">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-900/30 border border-primary-700 text-primary-400 text-sm font-medium">
-              <span className="w-2 h-2 rounded-full bg-primary-500 animate-pulse"></span>
-              Leader en Fonderie Industrielle
-            </div>
-            <h1 className="text-5xl md:text-7xl font-bold leading-tight">
-              L'Art de la <span className="text-primary-500">Fonderie</span><br />
-              au Service de l'Industrie
-            </h1>
-            <p className="text-xl text-secondary-300 max-w-2xl leading-relaxed">
-              De la conception 3D à la pièce finie, nous maîtrisons chaque étape pour donner vie à vos projets les plus complexes avec une précision inégalée.
-            </p>
-            <div className="flex flex-wrap gap-4 pt-4">
-              <Link 
-                to="/contact" 
-                className="px-8 py-4 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-primary-900/20 flex items-center gap-2"
-              >
-                Demander un Devis <ArrowRight size={20} />
-              </Link>
-              <Link 
-                to="/services" 
-                className="px-8 py-4 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white font-semibold rounded-lg transition-all border border-white/10"
-              >
-                Nos Services
-              </Link>
-            </div>
-          </div>
+      <div className="relative h-screen flex items-center justify-center overflow-hidden">
+        {/* Background Image with Overlay */}
+        <div className="absolute inset-0 z-0">
+          <img 
+            src="https://images.unsplash.com/photo-1601121141461-9d6647bca1ed?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80" 
+            alt="Atelier de fonderie" 
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-secondary-900"></div>
         </div>
-      </section>
 
-      {/* Features Section */}
-      <section className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 -mt-20 relative z-20">
-          {[
-            { icon: Factory, title: "Production Industrielle", desc: "Capacité de production de la pièce unique à la grande série." },
-            { icon: Hammer, title: "Savoir-faire Artisanal", desc: "Une équipe d'experts passionnés par le travail du métal." },
-            { icon: ShieldCheck, title: "Qualité Certifiée", desc: "Contrôle rigoureux et respect des normes ISO 9001." },
-          ].map((feature, idx) => (
-            <div key={idx} className="bg-white p-8 rounded-xl shadow-xl border border-secondary-100 hover:shadow-2xl transition-shadow group">
-              <div className="w-14 h-14 bg-primary-50 rounded-lg flex items-center justify-center text-primary-600 mb-6 group-hover:bg-primary-600 group-hover:text-white transition-colors">
-                <feature.icon size={32} />
+        <div className="relative z-10 text-center px-6 max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-10 duration-1000">
+          <h1 className="text-5xl md:text-7xl font-serif text-white mb-8 leading-tight">
+            L'Art de la Fonderie <br />
+            <span className="text-primary-400 italic">& La Précision du Bijou</span>
+          </h1>
+          <p className="text-secondary-200 text-lg md:text-xl mb-12 font-light max-w-2xl mx-auto leading-relaxed tracking-wide">
+            De la matière brute à l'éclat final. Nous façonnons vos idées les plus précieuses avec une expertise industrielle et une âme d'artisan.
+          </p>
+          <div className="flex flex-col md:flex-row gap-6 justify-center">
+            <Button onClick={() => navigate('/quote')}>
+              <div className="flex items-center gap-2">
+                <Upload size={18} />
+                <span>Déposer un fichier 3D</span>
               </div>
-              <h3 className="text-xl font-bold text-secondary-900 mb-3">{feature.title}</h3>
-              <p className="text-secondary-600 leading-relaxed">{feature.desc}</p>
-            </div>
-          ))}
+            </Button>
+            <Button variant="outline" onClick={() => navigate('/fonte')}>Découvrir nos services</Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Target Audience Section */}
+      <section className="py-24 bg-secondary-900 border-b border-secondary-800">
+        <div className="container mx-auto px-6 text-center">
+          <h3 className="text-secondary-400 text-sm uppercase tracking-[0.2em] mb-12">Nous travaillons pour</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+            {[
+              { title: "Artisans Bijoutiers", desc: "Des fontes précises respectant votre travail de cire." },
+              { title: "Créateurs Indépendants", desc: "Accompagnement technique du fichier 3D au métal." },
+              { title: "Entreprises", desc: "Production de série et externalisation de qualité." }
+            ].map((target, i) => (
+              <div key={i} className="p-8 hover:bg-secondary-800 transition-all duration-500 rounded-sm group border border-transparent hover:border-primary-900">
+                <div className="w-3 h-3 bg-primary-400 mx-auto mb-6 rounded-full group-hover:scale-150 transition-transform shadow-[0_0_15px_rgba(212,175,55,0.5)]"></div>
+                <h4 className="text-white text-xl font-serif mb-4">{target.title}</h4>
+                <p className="text-secondary-400 text-sm leading-relaxed">{target.desc}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* About Section */}
-      <section className="container mx-auto px-4">
-        <div className="flex flex-col md:flex-row items-center gap-16">
-          <div className="w-full md:w-1/2 relative">
-            <div className="aspect-square rounded-2xl overflow-hidden shadow-2xl">
-              <img 
-                src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=2070&auto=format&fit=crop" 
-                alt="Atelier de fonderie" 
-                className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
-              />
+      {/* Services Overview */}
+      <section className="py-32 bg-secondary-900">
+        <div className="container mx-auto px-6">
+          <SectionTitle title="Nos Savoir-Faire" subtitle="Expertise" />
+          <div className="grid md:grid-cols-3 gap-8">
+            
+            {/* Impression 3D */}
+            <div 
+              onClick={() => navigate('/impression')}
+              className="group relative h-[500px] bg-secondary-800 cursor-pointer overflow-hidden border border-secondary-800 hover:border-primary-400/50 transition-all duration-500"
+            >
+              <div className="absolute inset-0 z-0">
+                <img 
+                  src={impressionImg} 
+                  alt="Impression 3D" 
+                  className="w-full h-full object-cover opacity-60 group-hover:opacity-40 group-hover:scale-110 transition-all duration-700"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-secondary-900 via-transparent to-transparent"></div>
+              </div>
+              
+              <div className="absolute inset-0 flex flex-col justify-end p-8 z-10">
+                <div className="mb-auto pt-8 opacity-0 group-hover:opacity-100 transition-all duration-500 -translate-y-4 group-hover:translate-y-0">
+                  <Printer size={32} className="text-primary-400 mb-4" />
+                </div>
+                <h3 className="text-3xl font-serif text-white mb-3 group-hover:text-primary-400 transition-colors">Impression 3D</h3>
+                <p className="text-secondary-300 text-sm leading-relaxed opacity-80 group-hover:opacity-100">
+                  Prototypage et cires calcinables haute résolution pour une précision micrométrique.
+                </p>
+              </div>
             </div>
-            <div className="absolute -bottom-6 -right-6 bg-white p-6 rounded-xl shadow-xl border border-secondary-100 max-w-xs hidden md:block">
-              <p className="text-4xl font-bold text-primary-600 mb-1">35+</p>
-              <p className="text-sm font-medium text-secondary-600">Années d'expérience dans la fonderie de précision</p>
+
+            {/* Moulage */}
+            <div 
+              onClick={() => navigate('/moulage')}
+              className="group relative h-[500px] bg-secondary-800 cursor-pointer overflow-hidden border border-secondary-800 hover:border-primary-400/50 transition-all duration-500"
+            >
+              <div className="absolute inset-0 z-0">
+                <img 
+                  src={moulageImg} 
+                  alt="Moulage" 
+                  className="w-full h-full object-cover opacity-60 group-hover:opacity-40 group-hover:scale-110 transition-all duration-700"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-secondary-900 via-transparent to-transparent"></div>
+              </div>
+              
+              <div className="absolute inset-0 flex flex-col justify-end p-8 z-10">
+                <div className="mb-auto pt-8 opacity-0 group-hover:opacity-100 transition-all duration-500 -translate-y-4 group-hover:translate-y-0">
+                  <Layers size={32} className="text-primary-400 mb-4" />
+                </div>
+                <h3 className="text-3xl font-serif text-white mb-3 group-hover:text-primary-400 transition-colors">Moulage</h3>
+                <p className="text-secondary-300 text-sm leading-relaxed opacity-80 group-hover:opacity-100">
+                  Duplication précise via moules silicone ou caoutchouc pour vos séries.
+                </p>
+              </div>
             </div>
-          </div>
-          <div className="w-full md:w-1/2 space-y-6">
-            <h2 className="text-3xl md:text-4xl font-bold text-secondary-900">
-              Une expertise reconnue dans le <span className="text-primary-600">modelage industriel</span>
-            </h2>
-            <p className="text-secondary-600 text-lg leading-relaxed">
-              Notre fonderie allie tradition et innovation technologique. Nous disposons d'un bureau d'études intégré équipé des derniers logiciels de CAO/DAO pour concevoir vos outillages avec une précision millimétrique.
-            </p>
-            <ul className="space-y-4 pt-4">
-              {[
-                "Conception et réalisation de modèles",
-                "Fonderie aluminium et alliages légers",
-                "Usinage et finition de précision",
-                "Traitements de surface"
-              ].map((item, idx) => (
-                <li key={idx} className="flex items-center gap-3 text-secondary-700 font-medium">
-                  <CheckCircle2 size={20} className="text-primary-500" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-            <div className="pt-6">
-              <Link to="/services" className="text-primary-600 font-semibold hover:text-primary-700 flex items-center gap-2 group">
-                Découvrir notre savoir-faire 
-                <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-              </Link>
+
+            {/* Fonte */}
+            <div 
+              onClick={() => navigate('/fonte')}
+              className="group relative h-[500px] bg-secondary-800 cursor-pointer overflow-hidden border border-secondary-800 hover:border-primary-400/50 transition-all duration-500"
+            >
+              <div className="absolute inset-0 z-0">
+                <img 
+                  src={fonteImg} 
+                  alt="Fonte" 
+                  className="w-full h-full object-cover opacity-60 group-hover:opacity-40 group-hover:scale-110 transition-all duration-700"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-secondary-900 via-transparent to-transparent"></div>
+              </div>
+              
+              <div className="absolute inset-0 flex flex-col justify-end p-8 z-10">
+                <div className="mb-auto pt-8 opacity-0 group-hover:opacity-100 transition-all duration-500 -translate-y-4 group-hover:translate-y-0">
+                  <Flame size={32} className="text-primary-400 mb-4" />
+                </div>
+                <h3 className="text-3xl font-serif text-white mb-3 group-hover:text-primary-400 transition-colors">Fonte à cire perdue</h3>
+                <p className="text-secondary-300 text-sm leading-relaxed opacity-80 group-hover:opacity-100">
+                  Or, Argent, Bronze et Laiton. Maîtrise de la fusion pour des pièces uniques.
+                </p>
+              </div>
             </div>
+
           </div>
         </div>
       </section>

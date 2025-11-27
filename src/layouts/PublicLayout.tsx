@@ -1,106 +1,175 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Flame, Menu, X, Phone, Mail, MapPin, Facebook, Linkedin, Instagram } from 'lucide-react';
-import { useState } from 'react';
+import { Hammer, Menu, X, Instagram, Linkedin, User } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { clsx } from 'clsx';
+
+const CustomLogo = ({ className = "", size = 48 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 200 150"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    {/* Creuset */}
+    <path
+      d="M50 30 L150 30 L135 120 L65 120 Z"
+      fill="url(#bronzeGradient)"
+      stroke="#78350f"
+      strokeWidth="2"
+    />
+    {/* Métal en fusion */}
+    <path
+      d="M70 40 Q100 60, 100 90 T100 130 L100 140 L90 140 Z"
+      fill="url(#goldGradient)"
+    />
+    <path
+      d="M130 40 Q100 60, 100 90 T100 130 L100 140 L110 140 Z"
+      fill="url(#goldGradient)"
+    />
+    <circle cx="100" cy="35" r="15" fill="url(#goldGradient)" />
+    {/* Bague et Diamant */}
+    <path
+      d="M80 90 Q100 70, 120 90 T100 115 Z"
+      fill="none"
+      stroke="url(#goldGradient)"
+      strokeWidth="3"
+    />
+    <path
+      d="M95 70 L105 70 L100 85 Z"
+      fill="none"
+      stroke="url(#goldGradient)"
+      strokeWidth="2"
+    />
+    <path
+      d="M95 65 L105 65 L100 50 Z"
+      fill="url(#diamondGradient)"
+      stroke="white"
+      strokeWidth="1"
+    />
+    
+    {/* Définition des dégradés */}
+    <defs>
+      <linearGradient id="bronzeGradient" x1="50" y1="30" x2="150" y2="120" gradientUnits="userSpaceOnUse">
+        <stop stopColor="#a16207" />
+        <stop offset="1" stopColor="#78350f" />
+      </linearGradient>
+      <linearGradient id="goldGradient" x1="70" y1="35" x2="130" y2="140" gradientUnits="userSpaceOnUse">
+        <stop stopColor="#f59e0b" />
+        <stop offset="0.5" stopColor="#d97706" />
+        <stop offset="1" stopColor="#b45309" />
+      </linearGradient>
+      <linearGradient id="diamondGradient" x1="95" y1="65" x2="100" y2="50" gradientUnits="userSpaceOnUse">
+        <stop stopColor="white" />
+        <stop offset="1" stopColor="#e5e7eb" />
+      </linearGradient>
+    </defs>
+  </svg>
+);
 
 export default function PublicLayout() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 50);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    setIsMenuOpen(false);
+  }, [location.pathname]);
 
   const isActive = (path: string) => location.pathname === path;
 
   const navLinks = [
     { name: 'Accueil', path: '/' },
-    { name: 'Services', path: '/services' },
+    { name: 'Devis en ligne', path: '/quote' },
+    { name: 'Fonte', path: '/fonte' },
+    { name: 'Impression', path: '/impression' },
+    { name: 'Moulage', path: '/moulage' },
     { name: 'Contact', path: '/contact' },
   ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-white font-sans text-secondary-900">
-      {/* Top Bar */}
-      <div className="bg-secondary-900 text-secondary-300 py-2 text-sm hidden md:block">
-        <div className="container mx-auto px-4 flex justify-between items-center">
-          <div className="flex space-x-6">
-            <span className="flex items-center gap-2"><Phone size={14} className="text-primary-500" /> +33 1 23 45 67 89</span>
-            <span className="flex items-center gap-2"><Mail size={14} className="text-primary-500" /> contact@fonderie-industrielle.fr</span>
-          </div>
-          <div className="flex space-x-4">
-            <a href="#" className="hover:text-primary-400 transition-colors"><Linkedin size={16} /></a>
-            <a href="#" className="hover:text-primary-400 transition-colors"><Facebook size={16} /></a>
-            <a href="#" className="hover:text-primary-400 transition-colors"><Instagram size={16} /></a>
-          </div>
-        </div>
-      </div>
-
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-secondary-100 shadow-sm">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <Link to="/" className="flex items-center gap-2 group">
-            <div className="bg-primary-600 p-2 rounded-lg text-white group-hover:bg-primary-700 transition-colors">
-              <Flame size={24} fill="currentColor" />
+    <div className="min-h-screen flex flex-col bg-secondary-950 font-sans text-secondary-100 selection:bg-primary-900 selection:text-white">
+      
+      {/* Navigation */}
+      <nav className={clsx(
+        "fixed w-full z-50 transition-all duration-500 border-b",
+        scrolled ? "bg-secondary-950/95 backdrop-blur-md border-secondary-900 py-4 shadow-xl" : "bg-transparent border-transparent py-6"
+      )}>
+        <div className="container mx-auto px-6 flex justify-between items-center">
+          {/* Logo */}
+          <Link to="/" className="flex items-center gap-2 cursor-pointer z-50 group">
+            <div className="w-8 h-8 bg-primary-600 rounded-sm flex items-center justify-center text-secondary-950 group-hover:bg-primary-500 transition-colors">
+              <CustomLogo size={48} />
             </div>
-            <span className="text-xl font-bold tracking-tight text-secondary-900">
-              FONDERIE<span className="text-primary-600">IND</span>
+            <span className="text-2xl font-serif font-bold tracking-wide text-white">
+              LE CREUSET
             </span>
           </Link>
 
-          {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-8">
-            {navLinks.map((link) => (
-              <Link
+          {/* Desktop Menu */}
+          <div className="hidden md:flex items-center gap-8">
+            {navLinks.map(link => (
+              <Link 
                 key={link.path}
                 to={link.path}
                 className={clsx(
-                  "text-sm font-medium transition-colors hover:text-primary-600",
-                  isActive(link.path) ? "text-primary-600" : "text-secondary-600"
+                  "text-xs uppercase tracking-widest hover:text-primary-500 transition-colors",
+                  isActive(link.path) ? "text-primary-500 font-bold" : "text-secondary-300"
                 )}
               >
                 {link.name}
               </Link>
             ))}
-            <Link
+            <Link 
               to="/client"
-              className="ml-4 px-5 py-2.5 bg-secondary-900 text-white text-sm font-medium rounded-full hover:bg-secondary-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+              className="flex items-center gap-2 px-4 py-2 border border-secondary-700 rounded-sm hover:border-primary-600 hover:text-primary-500 transition-all text-xs uppercase tracking-wider"
             >
-              Espace Client
+              <User size={14} />
+              <span>Espace Client</span>
             </Link>
-          </nav>
+          </div>
 
           {/* Mobile Menu Button */}
-          <button
-            className="md:hidden p-2 text-secondary-600 hover:text-primary-600 transition-colors"
+          <button 
+            className="md:hidden text-white z-50 hover:text-primary-500 transition-colors"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
           >
-            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            {isMenuOpen ? <X size={28} /> : <Menu size={28} />}
           </button>
         </div>
 
-        {/* Mobile Nav */}
+        {/* Mobile Menu Overlay */}
         {isMenuOpen && (
-          <div className="md:hidden absolute top-full left-0 w-full bg-white border-b border-secondary-100 shadow-lg py-4 px-4 flex flex-col gap-4 animate-in slide-in-from-top-5">
-            {navLinks.map((link) => (
-              <Link
+          <div className="fixed inset-0 bg-secondary-950 z-40 flex flex-col items-center justify-center space-y-8 md:hidden animate-in fade-in duration-300">
+            {navLinks.map(link => (
+              <Link 
                 key={link.path}
                 to={link.path}
                 className={clsx(
-                  "text-base font-medium py-2 border-b border-secondary-50",
-                  isActive(link.path) ? "text-primary-600" : "text-secondary-600"
+                  "text-2xl font-serif hover:text-primary-500 transition-colors",
+                  isActive(link.path) ? "text-primary-500" : "text-white"
                 )}
-                onClick={() => setIsMenuOpen(false)}
               >
                 {link.name}
               </Link>
             ))}
-            <Link
+            <Link 
               to="/client"
-              className="mt-2 px-5 py-3 bg-secondary-900 text-white text-center font-medium rounded-lg hover:bg-secondary-800"
-              onClick={() => setIsMenuOpen(false)}
+              className="mt-8 px-8 py-3 border border-secondary-700 text-primary-500 hover:bg-secondary-900"
             >
               Espace Client
             </Link>
           </div>
         )}
-      </header>
+      </nav>
 
       {/* Main Content */}
       <main className="flex-grow">
@@ -108,59 +177,57 @@ export default function PublicLayout() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-secondary-900 text-secondary-300 py-12 border-t border-secondary-800">
-        <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8">
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 text-white">
-              <Flame size={20} className="text-primary-500" fill="currentColor" />
-              <span className="text-lg font-bold">FONDERIE<span className="text-primary-500">IND</span></span>
+      <footer className="bg-secondary-950 border-t border-secondary-900 pt-16 pb-8">
+        <div className="container mx-auto px-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+            <div>
+              <div className="flex items-center gap-2 mb-6">
+                <div className="w-6 h-6 bg-secondary-800 rounded-sm flex items-center justify-center text-primary-600">
+                  <Hammer size={14} />
+                </div>
+                <span className="text-lg font-serif font-bold text-white">LE CREUSET</span>
+              </div>
+              <p className="text-secondary-500 text-sm leading-relaxed">
+                L'excellence de la fonderie d'art et de bijouterie. 
+                Nous accompagnons les créateurs de l'idée à l'objet.
+              </p>
             </div>
-            <p className="text-sm text-secondary-400 leading-relaxed">
-              Excellence en fonderie industrielle, conception et modelage depuis 1985.
-              Précision et qualité pour vos projets les plus exigeants.
-            </p>
+            
+            <div>
+              <h4 className="text-white font-serif mb-4">Services</h4>
+              <ul className="space-y-2 text-sm text-secondary-400">
+                <li><Link to="/fonte" className="hover:text-primary-500 transition-colors">Fonte cire perdue</Link></li>
+                <li><Link to="/impression" className="hover:text-primary-500 transition-colors">Impression 3D</Link></li>
+                <li><Link to="/moulage" className="hover:text-primary-500 transition-colors">Moulage</Link></li>
+                <li><Link to="/contact" className="hover:text-primary-500 transition-colors">Devis sur mesure</Link></li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="text-white font-serif mb-4">Légal</h4>
+              <ul className="space-y-2 text-sm text-secondary-400">
+                <li><a href="#" className="hover:text-primary-500 transition-colors">Mentions Légales</a></li>
+                <li><a href="#" className="hover:text-primary-500 transition-colors">CGV</a></li>
+                <li><a href="#" className="hover:text-primary-500 transition-colors">Politique de confidentialité</a></li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="text-white font-serif mb-4">Suivez-nous</h4>
+              <div className="flex gap-4">
+                <a href="#" className="w-10 h-10 bg-secondary-900 flex items-center justify-center text-secondary-400 hover:bg-primary-600 hover:text-white transition-all rounded-sm">
+                  <Instagram size={18} />
+                </a>
+                <a href="#" className="w-10 h-10 bg-secondary-900 flex items-center justify-center text-secondary-400 hover:bg-primary-600 hover:text-white transition-all rounded-sm">
+                  <Linkedin size={18} />
+                </a>
+              </div>
+            </div>
           </div>
           
-          <div>
-            <h3 className="text-white font-semibold mb-4">Navigation</h3>
-            <ul className="space-y-2 text-sm">
-              <li><Link to="/" className="hover:text-primary-400 transition-colors">Accueil</Link></li>
-              <li><Link to="/services" className="hover:text-primary-400 transition-colors">Nos Services</Link></li>
-              <li><Link to="/contact" className="hover:text-primary-400 transition-colors">Contact</Link></li>
-              <li><Link to="/client" className="hover:text-primary-400 transition-colors">Espace Client</Link></li>
-            </ul>
+          <div className="border-t border-secondary-900 pt-8 text-center text-xs text-secondary-600">
+            &copy; {new Date().getFullYear()} Le Creuset. Tous droits réservés.
           </div>
-
-          <div>
-            <h3 className="text-white font-semibold mb-4">Services</h3>
-            <ul className="space-y-2 text-sm">
-              <li><a href="#" className="hover:text-primary-400 transition-colors">Conception 3D</a></li>
-              <li><a href="#" className="hover:text-primary-400 transition-colors">Modelage</a></li>
-              <li><a href="#" className="hover:text-primary-400 transition-colors">Fonderie Aluminium</a></li>
-              <li><a href="#" className="hover:text-primary-400 transition-colors">Usinage de Précision</a></li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="text-white font-semibold mb-4">Contact</h3>
-            <ul className="space-y-3 text-sm">
-              <li className="flex items-start gap-3">
-                <MapPin size={16} className="text-primary-500 mt-0.5" />
-                <span>123 Zone Industrielle Nord<br />69000 Lyon, France</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <Phone size={16} className="text-primary-500" />
-                <span>+33 1 23 45 67 89</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <Mail size={16} className="text-primary-500" />
-                <span>contact@fonderie-industrielle.fr</span>
-              </li>
-            </ul>
-          </div>
-        </div>
-        <div className="container mx-auto px-4 mt-12 pt-8 border-t border-secondary-800 text-center text-xs text-secondary-500">
-          &copy; {new Date().getFullYear()} Fonderie Industrielle. Tous droits réservés.
         </div>
       </footer>
     </div>

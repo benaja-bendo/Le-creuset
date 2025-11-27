@@ -1,113 +1,78 @@
-import { Mail, MapPin, Phone, Send } from 'lucide-react';
+import { Mail, MapPin, Phone } from 'lucide-react';
+
+const SectionTitle = ({ title, subtitle }: { title: string, subtitle: string }) => (
+  <div className="mb-12 text-center">
+    <span className="text-primary-500 text-xs font-bold tracking-widest uppercase mb-2 block">
+      {subtitle}
+    </span>
+    <h2 className="text-3xl md:text-4xl font-serif text-white">
+      {title}
+    </h2>
+    <div className="w-16 h-0.5 bg-primary-600 mx-auto mt-6"></div>
+  </div>
+);
+
+const Button = ({ children, className = '' }: any) => (
+  <button className={`px-6 py-3 bg-primary-600 text-white hover:bg-primary-700 hover:shadow-lg hover:shadow-primary-900/20 transition-all duration-300 font-medium tracking-wide text-sm uppercase flex items-center justify-center gap-2 rounded-sm ${className}`}>
+    {children}
+  </button>
+);
 
 export default function Contact() {
   return (
-    <div className="py-20">
-      <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
-          {/* Contact Info */}
-          <div>
-            <h1 className="text-4xl font-bold text-secondary-900 mb-6">Parlons de votre projet</h1>
-            <p className="text-xl text-secondary-600 mb-12 leading-relaxed">
-              Notre équipe technique est à votre disposition pour étudier vos besoins et vous proposer les solutions les plus adaptées.
-            </p>
-
-            <div className="space-y-8">
-              <div className="flex items-start gap-6">
-                <div className="w-12 h-12 bg-primary-50 rounded-lg flex items-center justify-center text-primary-600 shrink-0">
-                  <MapPin size={24} />
-                </div>
+    <div className="pt-24 pb-16 min-h-screen bg-secondary-950">
+      <div className="container mx-auto px-6">
+        <SectionTitle title="Contactez-nous" subtitle="Un projet ? Une question ?" />
+        
+        <div className="grid md:grid-cols-2 gap-12 max-w-5xl mx-auto">
+          <div className="space-y-8">
+            <div>
+              <h3 className="text-2xl font-serif text-white mb-4">Nos Coordonnées</h3>
+              <p className="text-secondary-400 mb-6 leading-relaxed">
+                Notre atelier est à votre disposition pour étudier vos projets de fonderie, moulage et impression 3D.
+              </p>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="flex items-start gap-4">
+                <MapPin className="text-primary-600 mt-1" size={20} />
                 <div>
-                  <h3 className="text-lg font-bold text-secondary-900 mb-1">Notre Atelier</h3>
-                  <p className="text-secondary-600">
-                    123 Zone Industrielle Nord<br />
-                    69000 Lyon, France
-                  </p>
+                  <h4 className="text-white font-medium">L'Atelier Le Creuset</h4>
+                  <p className="text-secondary-500">12 Rue des Fondeurs<br/>75003 Paris, France</p>
                 </div>
               </div>
-
-              <div className="flex items-start gap-6">
-                <div className="w-12 h-12 bg-primary-50 rounded-lg flex items-center justify-center text-primary-600 shrink-0">
-                  <Phone size={24} />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-secondary-900 mb-1">Téléphone</h3>
-                  <p className="text-secondary-600">
-                    +33 1 23 45 67 89
-                  </p>
-                  <p className="text-sm text-secondary-400 mt-1">Du Lundi au Vendredi, 8h-18h</p>
-                </div>
+              <div className="flex items-center gap-4">
+                <Phone className="text-primary-600" size={20} />
+                <p className="text-secondary-400">+33 1 23 45 67 89</p>
               </div>
-
-              <div className="flex items-start gap-6">
-                <div className="w-12 h-12 bg-primary-50 rounded-lg flex items-center justify-center text-primary-600 shrink-0">
-                  <Mail size={24} />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-secondary-900 mb-1">Email</h3>
-                  <p className="text-secondary-600">
-                    contact@fonderie-industrielle.fr
-                  </p>
-                  <p className="text-sm text-secondary-400 mt-1">Réponse sous 24h</p>
-                </div>
+              <div className="flex items-center gap-4">
+                <Mail className="text-primary-600" size={20} />
+                <p className="text-secondary-400">contact@le-creuset-atelier.com</p>
               </div>
             </div>
           </div>
 
-          {/* Contact Form */}
-          <div className="bg-white p-8 rounded-2xl shadow-lg border border-secondary-100">
-            <h2 className="text-2xl font-bold text-secondary-900 mb-6">Envoyez-nous un message</h2>
-            <form className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="firstname" className="block text-sm font-medium text-secondary-700 mb-2">Prénom</label>
-                  <input 
-                    type="text" 
-                    id="firstname" 
-                    className="w-full px-4 py-3 rounded-lg border border-secondary-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-all"
-                    placeholder="Jean"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="lastname" className="block text-sm font-medium text-secondary-700 mb-2">Nom</label>
-                  <input 
-                    type="text" 
-                    id="lastname" 
-                    className="w-full px-4 py-3 rounded-lg border border-secondary-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-all"
-                    placeholder="Dupont"
-                  />
-                </div>
-              </div>
-
+          <form className="bg-secondary-900 p-8 border border-secondary-800 rounded-sm shadow-xl">
+            <div className="grid md:grid-cols-2 gap-6 mb-6">
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-secondary-700 mb-2">Email professionnel</label>
-                <input 
-                  type="email" 
-                  id="email" 
-                  className="w-full px-4 py-3 rounded-lg border border-secondary-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-all"
-                  placeholder="jean.dupont@entreprise.com"
-                />
+                <label className="block text-xs text-secondary-500 uppercase mb-2">Nom</label>
+                <input className="w-full bg-secondary-950 border border-secondary-800 text-white p-3 focus:border-primary-600 outline-none transition-colors rounded-sm" />
               </div>
-
               <div>
-                <label htmlFor="message" className="block text-sm font-medium text-secondary-700 mb-2">Votre projet</label>
-                <textarea 
-                  id="message" 
-                  rows={4}
-                  className="w-full px-4 py-3 rounded-lg border border-secondary-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-all resize-none"
-                  placeholder="Décrivez votre besoin..."
-                ></textarea>
+                <label className="block text-xs text-secondary-500 uppercase mb-2">Société</label>
+                <input className="w-full bg-secondary-950 border border-secondary-800 text-white p-3 focus:border-primary-600 outline-none transition-colors rounded-sm" />
               </div>
-
-              <button 
-                type="submit" 
-                className="w-full py-4 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2"
-              >
-                <Send size={20} />
-                Envoyer ma demande
-              </button>
-            </form>
-          </div>
+            </div>
+            <div className="mb-6">
+              <label className="block text-xs text-secondary-500 uppercase mb-2">Email</label>
+              <input type="email" className="w-full bg-secondary-950 border border-secondary-800 text-white p-3 focus:border-primary-600 outline-none transition-colors rounded-sm" />
+            </div>
+            <div className="mb-6">
+              <label className="block text-xs text-secondary-500 uppercase mb-2">Message</label>
+              <textarea rows={4} className="w-full bg-secondary-950 border border-secondary-800 text-white p-3 focus:border-primary-600 outline-none transition-colors rounded-sm"></textarea>
+            </div>
+            <Button className="w-full">Envoyer le message</Button>
+          </form>
         </div>
       </div>
     </div>
