@@ -5,6 +5,7 @@ import Home from './pages/public/Home';
 import Contact from './pages/public/Contact';
 import Quote from './pages/public/Quote';
 import ServiceDetail from './pages/public/ServiceDetail';
+import Services from './pages/public/Services';
 import Dashboard from './pages/client/Dashboard';
 import { Flame, Printer, Layers } from 'lucide-react';
 
@@ -25,6 +26,10 @@ const router = createBrowserRouter([
       {
         path: 'quote',
         element: <Quote />,
+      },
+      {
+        path: 'services',
+        element: <Services />,
       },
       {
         path: 'fonte',
