@@ -52,7 +52,7 @@ Cette commande va :
 
 ### Option B : Déploiement automatique (recommandé)
 
-Le déploiement automatique via GitHub Actions est configuré pour utiliser la méthode standard.
+Le déploiement automatique via GitHub Actions est configuré avec pnpm.
 
 **Configuration GitHub Pages** :
 
@@ -61,13 +61,13 @@ Le déploiement automatique via GitHub Actions est configuré pour utiliser la m
 3. **Sauvegarder**
 
 À chaque push sur la branche `main`, le site sera automatiquement :
-- Construit avec npm
+- Construit avec pnpm
 - Déployé sur `https://benaja-bendo.github.io/Le-creuset/`
 
 **Workflow** :
-Le fichier `.github/workflows/deploy.yml` contient le pipeline CI/CD standard qui :
+Le fichier `.github/workflows/deploy.yml` contient le pipeline CI/CD qui :
 - S'exécute à chaque push sur `main`
-- Installe les dépendances avec `npm`
+- Installe les dépendances avec `pnpm`
 - Build le projet
 - Déploie sur GitHub Pages via l'action officielle
 
