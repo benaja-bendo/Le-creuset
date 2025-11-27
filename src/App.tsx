@@ -1,11 +1,15 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import PublicLayout from './layouts/PublicLayout';
 import ClientLayout from './layouts/ClientLayout';
+import LegalLayout from './layouts/LegalLayout';
 import Home from './pages/public/Home';
 import Contact from './pages/public/Contact';
 import Quote from './pages/public/Quote';
 import ServiceDetail from './pages/public/ServiceDetail';
 import Services from './pages/public/Services';
+import MentionsLegales from './pages/public/MentionsLegales';
+import CGV from './pages/public/CGV';
+import PrivacyPolicy from './pages/public/PrivacyPolicy';
 import Dashboard from './pages/client/Dashboard';
 import { Flame, Printer, Layers } from 'lucide-react';
 
@@ -80,6 +84,24 @@ const router = createBrowserRouter([
         path: 'contact',
         element: <Contact />,
       },
+      {
+        path: 'legal',
+        element: <LegalLayout />,
+        children: [
+          {
+            path: 'mentions-legales',
+            element: <MentionsLegales />,
+          },
+          {
+            path: 'cgv',
+            element: <CGV />,
+          },
+          {
+            path: 'privacy',
+            element: <PrivacyPolicy />,
+          },
+        ],
+      },
     ],
   },
   {
@@ -100,7 +122,9 @@ const router = createBrowserRouter([
       },
     ],
   },
-]);
+], {
+  basename: import.meta.env.BASE_URL
+});
 
 function App() {
   return <RouterProvider router={router} />;

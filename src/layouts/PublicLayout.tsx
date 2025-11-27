@@ -204,9 +204,9 @@ export default function PublicLayout() {
             <div>
               <h4 className="text-white font-serif mb-4">Légal</h4>
               <ul className="space-y-2 text-sm text-secondary-400">
-                <li><a href="#" className="hover:text-primary-500 transition-colors">Mentions Légales</a></li>
-                <li><a href="#" className="hover:text-primary-500 transition-colors">CGV</a></li>
-                <li><a href="#" className="hover:text-primary-500 transition-colors">Politique de confidentialité</a></li>
+                <li><Link to="/legal/mentions-legales" className="hover:text-primary-500 transition-colors">Mentions Légales</Link></li>
+                <li><Link to="/legal/cgv" className="hover:text-primary-500 transition-colors">CGV</Link></li>
+                <li><Link to="/legal/privacy" className="hover:text-primary-500 transition-colors">Politique de confidentialité</Link></li>
               </ul>
             </div>
 
