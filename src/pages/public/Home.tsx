@@ -58,7 +58,7 @@ export default function Home() {
             <Button onClick={() => navigate('/quote')}>
               <div className="flex items-center gap-2">
                 <Upload size={18} />
-                <span>Déposer un fichier 3D</span>
+                <span>Dévis en ligne</span>
               </div>
             </Button>
             <Button variant="outline" onClick={() => navigate('/fonte')}>Découvrir nos services</Button>
