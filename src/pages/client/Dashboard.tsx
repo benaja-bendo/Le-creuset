@@ -1,11 +1,12 @@
 import { Activity, Box, Clock, DollarSign, FileText, TrendingUp, Users, ClipboardList } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 /**
  * Tableau de bord avec rendu conditionnel (CLIENT/ADMIN)
  */
 export default function Dashboard() {
-  const { isAdmin, isClient } = useAuth();
+  const { isClient } = useAuth();
   const stats = [
     { label: "Commandes en cours", value: "12", icon: Box, color: "text-blue-600", bg: "bg-blue-50" },
     { label: "Devis en attente", value: "3", icon: FileText, color: "text-orange-600", bg: "bg-orange-50" },
@@ -52,7 +53,7 @@ export default function Dashboard() {
           <div className="lg:col-span-2 bg-white rounded-xl border border-secondary-200 shadow-sm overflow-hidden">
             <div className="p-6 border-b border-secondary-100 flex justify-between items-center">
               <h2 className="text-lg font-bold text-secondary-900">Commandes Récentes</h2>
-              <button className="text-sm text-primary-600 font-medium hover:text-primary-700">Voir tout</button>
+              <Link to="/client/orders" className="text-sm text-primary-600 font-medium hover:text-primary-700">Voir tout</Link>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm text-left">
@@ -122,9 +123,9 @@ export default function Dashboard() {
                 ))}
               </div>
               <div className="mt-8 pt-6 border-t border-secondary-100">
-                <button className="w-full py-3 bg-secondary-900 text-white rounded-lg font-medium hover:bg-secondary-800 transition-colors">
+                <Link to="/client/quote" className="block w-full py-3 bg-secondary-900 text-white rounded-lg font-medium hover:bg-secondary-800 transition-colors text-center">
                   Nouvelle Demande
-                </button>
+                </Link>
               </div>
             </>
           ) : (
@@ -133,15 +134,17 @@ export default function Dashboard() {
                 <Users size={18} className="text-secondary-700" />
                 <div>
                   <p className="text-sm font-medium text-secondary-900">Utilisateurs en attente de validation</p>
-                  <p className="text-xs text-secondary-500">3 comptes à vérifier</p>
+                  <p className="text-xs text-secondary-500">Consulter</p>
                 </div>
+                <Link to="/client/admin/users" className="ml-auto text-sm text-primary-600 hover:underline">Ouvrir</Link>
               </div>
               <div className="flex items-center gap-3 p-4 bg-secondary-50 border border-secondary-200 rounded-lg">
                 <ClipboardList size={18} className="text-secondary-700" />
                 <div>
                   <p className="text-sm font-medium text-secondary-900">Comptes poids négatifs</p>
-                  <p className="text-xs text-secondary-500">2 alertes à traiter</p>
+                  <p className="text-xs text-secondary-500">Module en cours</p>
                 </div>
+                <Link to="/client/admin/weights" className="ml-auto text-sm text-primary-600 hover:underline">Ouvrir</Link>
               </div>
             </div>
           )}

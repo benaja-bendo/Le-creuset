@@ -9,8 +9,12 @@ import Services from './pages/public/Services';
 import MentionsLegales from './pages/public/MentionsLegales';
 import CGV from './pages/public/CGV';
 import PrivacyPolicy from './pages/public/PrivacyPolicy';
+import Login from './pages/public/Login';
+import Register from './pages/public/Register';
 import Dashboard from './pages/client/Dashboard';
-import ClientQuote from './pages/client/Quote';
+import ClientQuote from './pages/client/Quote.tsx';
+import UsersPending from './pages/admin/UsersPending';
+import Weights from './pages/admin/Weights';
 import { Flame, Printer, Layers } from 'lucide-react';
 
 // Import Assets
@@ -26,6 +30,14 @@ const router = createBrowserRouter([
       {
         index: true,
         element: <Home />,
+      },
+      {
+        path: 'login',
+        element: <Login />,
+      },
+      {
+        path: 'register',
+        element: <Register />,
       },
       {
         path: 'services',
@@ -119,6 +131,14 @@ const router = createBrowserRouter([
       {
         path: 'settings',
         element: <div className="p-8 text-center text-secondary-500">Page Paramètres en construction</div>,
+      },
+      {
+        path: 'admin/users',
+        element: <UsersPending />,
+      },
+      {
+        path: 'admin/weights',
+        element: <Weights />,
       },
     ],
   },

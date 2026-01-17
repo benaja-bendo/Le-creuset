@@ -1,4 +1,4 @@
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   FileText, 
@@ -10,7 +10,7 @@ import {
   X,
   ChevronRight
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { clsx } from 'clsx';
 import { useAuth } from '../context/AuthContext';
 
@@ -21,9 +21,13 @@ import { useAuth } from '../context/AuthContext';
 export default function ClientLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const location = useLocation();
+  const navigate = useNavigate();
   const { user, isAdmin, isClient, isActive } = useAuth();
 
   const isPathActive = (path: string) => location.pathname === path;
+  useEffect(() => {
+    if (!user) navigate('/login');
+  }, [user, navigate]);
 
   const menuItems = [
     { name: 'Tableau de bord', path: '/client', icon: LayoutDashboard },
@@ -125,7 +129,14 @@ export default function ClientLayout() {
         {/* Page Content */}
         <main className="flex-1 p-4 lg:p-8 overflow-y-auto">
           <div className="max-w-6xl mx-auto">
-            {!isActive ? (
+            {!user ? (
+              <div className="p-8 bg-secondary-50 border border-secondary-200 rounded-lg text-secondary-900">
+                <h2 className="text-xl font-bold mb-2">Connexion requise</h2>
+                <p className="text-sm">
+                  Veuillez <Link to="/login" className="text-primary-600 underline">vous connecter</Link> pour accéder à votre espace client.
+                </p>
+              </div>
+            ) : !isActive ? (
               <div className="p-8 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-900">
                 <h2 className="text-xl font-bold mb-2">Compte en vérification</h2>
                 <p className="text-sm">
