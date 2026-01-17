@@ -55,10 +55,10 @@ export default function Home() {
             De la matière brute à l'éclat final. Nous façonnons vos idées les plus précieuses avec une expertise industrielle et une âme d'artisan.
           </p>
           <div className="flex flex-col md:flex-row gap-6 justify-center">
-            <Button onClick={() => navigate('/quote')}>
+            <Button onClick={() => navigate('/client')}>
               <div className="flex items-center gap-2">
                 <Upload size={18} />
-                <span>Dévis en ligne</span>
+                <span>Devis dans l'espace client</span>
               </div>
             </Button>
             <Button variant="outline" onClick={() => navigate('/fonte')}>Découvrir nos services</Button>

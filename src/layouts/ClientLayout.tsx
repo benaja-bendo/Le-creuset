@@ -12,17 +12,28 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { clsx } from 'clsx';
+import { useAuth } from '../context/AuthContext';
 
+/**
+ * Mise en page principale de l’espace client avec menu latéral,
+ * en-tête et rendu conditionnel selon le statut/role utilisateur.
+ */
 export default function ClientLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const location = useLocation();
+  const { user, isAdmin, isClient, isActive } = useAuth();
 
-  const isActive = (path: string) => location.pathname === path;
+  const isPathActive = (path: string) => location.pathname === path;
 
   const menuItems = [
     { name: 'Tableau de bord', path: '/client', icon: LayoutDashboard },
+    ...(isClient ? [{ name: 'Devis STL', path: '/client/quote', icon: FileText }] : []),
     { name: 'Mes Commandes', path: '/client/orders', icon: FileText },
     { name: 'Paramètres', path: '/client/settings', icon: Settings },
+    ...(isAdmin ? [
+      { name: 'Utilisateurs', path: '/client/admin/users', icon: User },
+      { name: 'Comptes Poids', path: '/client/admin/weights', icon: FileText },
+    ] : []),
   ];
 
   return (
@@ -47,11 +58,11 @@ export default function ClientLayout() {
           <div className="p-4">
             <div className="flex items-center gap-3 p-3 bg-secondary-800/50 rounded-lg mb-6">
               <div className="w-10 h-10 rounded-full bg-primary-600 flex items-center justify-center text-white font-bold">
-                JD
+                {(user?.email || 'U').slice(0,2).toUpperCase()}
               </div>
               <div>
-                <p className="text-sm font-medium">Jean Dupont</p>
-                <p className="text-xs text-secondary-400">Client Premium</p>
+                <p className="text-sm font-medium">{user?.companyName || 'Compte Pro'}</p>
+                <p className="text-xs text-secondary-400">{isAdmin ? 'Administrateur' : 'Client'}</p>
               </div>
             </div>
 
@@ -62,14 +73,14 @@ export default function ClientLayout() {
                   to={item.path}
                   className={clsx(
                     "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                    isActive(item.path) 
+                    isPathActive(item.path) 
                       ? "bg-primary-600 text-white shadow-md" 
                       : "text-secondary-400 hover:bg-secondary-800 hover:text-white"
                   )}
                 >
                   <item.icon size={18} />
                   {item.name}
-                  {isActive(item.path) && <ChevronRight size={14} className="ml-auto" />}
+                  {isPathActive(item.path) && <ChevronRight size={14} className="ml-auto" />}
                 </Link>
               ))}
             </nav>
@@ -114,7 +125,16 @@ export default function ClientLayout() {
         {/* Page Content */}
         <main className="flex-1 p-4 lg:p-8 overflow-y-auto">
           <div className="max-w-6xl mx-auto">
-            <Outlet />
+            {!isActive ? (
+              <div className="p-8 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-900">
+                <h2 className="text-xl font-bold mb-2">Compte en vérification</h2>
+                <p className="text-sm">
+                  Votre compte est en cours de validation par nos équipes. Vous serez notifié par email dès qu'il sera activé.
+                </p>
+              </div>
+            ) : (
+              <Outlet />
+            )}
           </div>
         </main>
       </div>

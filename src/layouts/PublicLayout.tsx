@@ -89,7 +89,6 @@ export default function PublicLayout() {
   const navLinks = [
     { name: 'Accueil', path: '/' },
     { name: 'Nos Services', path: '/services' },
-    { name: 'Devis en ligne', path: '/quote' },
     { name: 'Contact', path: '/contact' },
   ];
 

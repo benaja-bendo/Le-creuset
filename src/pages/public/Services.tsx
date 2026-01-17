@@ -344,10 +344,10 @@ export default function Services() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link 
-              to="/quote" 
+              to="/client" 
               className="px-8 py-3 rounded-full bg-white text-primary-600 font-medium hover:bg-secondary-100 transition-colors inline-block"
             >
-              Demander un devis
+              Demander un devis (Espace client)
             </Link>
             <Link 
               to="/contact" 

@@ -4,13 +4,13 @@ import ClientLayout from './layouts/ClientLayout';
 import LegalLayout from './layouts/LegalLayout';
 import Home from './pages/public/Home';
 import Contact from './pages/public/Contact';
-import Quote from './pages/public/Quote';
 import ServiceDetail from './pages/public/ServiceDetail';
 import Services from './pages/public/Services';
 import MentionsLegales from './pages/public/MentionsLegales';
 import CGV from './pages/public/CGV';
 import PrivacyPolicy from './pages/public/PrivacyPolicy';
 import Dashboard from './pages/client/Dashboard';
+import ClientQuote from './pages/client/Quote';
 import { Flame, Printer, Layers } from 'lucide-react';
 
 // Import Assets
@@ -26,10 +26,6 @@ const router = createBrowserRouter([
       {
         index: true,
         element: <Home />,
-      },
-      {
-        path: 'quote',
-        element: <Quote />,
       },
       {
         path: 'services',
@@ -111,6 +107,10 @@ const router = createBrowserRouter([
       {
         index: true,
         element: <Dashboard />,
+      },
+      {
+        path: 'quote',
+        element: <ClientQuote />,
       },
       {
         path: 'orders',
