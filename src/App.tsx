@@ -21,6 +21,10 @@ import Profile from './pages/client/Profile';
 import UsersPending from './pages/admin/UsersPending';
 import Weights from './pages/admin/Weights';
 import AdminOrders from './pages/admin/Orders';
+import AdminInvoices from './pages/admin/Invoices';
+import AdminOrderDetail from './pages/admin/OrderDetail';
+import MyInvoices from './pages/client/MyInvoices';
+import OrderDetail from './pages/client/OrderDetail';
 import ProtectedRoute from './components/ProtectedRoute';
 import { Flame, Printer, Layers } from 'lucide-react';
 
@@ -154,6 +158,14 @@ const router = createBrowserRouter([
         element: <Profile />,
       },
       {
+        path: 'invoices',
+        element: <MyInvoices />,
+      },
+      {
+        path: 'orders/:id',
+        element: <OrderDetail />,
+      },
+      {
         path: 'admin/users',
         element: (
           <ProtectedRoute allowedRoles={['ADMIN']}>
@@ -174,6 +186,22 @@ const router = createBrowserRouter([
         element: (
           <ProtectedRoute allowedRoles={['ADMIN']}>
             <AdminOrders />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'admin/invoices',
+        element: (
+          <ProtectedRoute allowedRoles={['ADMIN']}>
+            <AdminInvoices />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'admin/orders/:id',
+        element: (
+          <ProtectedRoute allowedRoles={['ADMIN']}>
+            <AdminOrderDetail />
           </ProtectedRoute>
         ),
       },

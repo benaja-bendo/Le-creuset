@@ -42,6 +42,7 @@ export default function ClientLayout() {
     { name: 'Tableau de bord', path: '/client', icon: LayoutDashboard },
     { name: 'Devis STL', path: '/client/quote', icon: FileText },
     { name: 'Mes Commandes', path: '/client/orders', icon: ShoppingCart },
+    { name: 'Mes Factures', path: '/client/invoices', icon: FileText },
     { name: 'Ma Bibliothèque', path: '/client/molds', icon: Layers },
   ];
 
@@ -50,6 +51,7 @@ export default function ClientLayout() {
     { name: 'Utilisateurs', path: '/client/admin/users', icon: Users },
     { name: 'Comptes Poids', path: '/client/admin/weights', icon: Scale },
     { name: 'Commandes', path: '/client/admin/orders', icon: Package },
+    { name: 'Factures', path: '/client/admin/invoices', icon: FileText },
   ];
 
   const menuItems = isAdmin ? adminMenuItems : clientMenuItems;
