@@ -20,14 +20,17 @@ Ouvrir http://localhost:5173/
 ## Routes principales
 - Public: `/`, `/services`, `/login`, `/register`, `/contact`, `/legal/*`
 - Client: `/client` (dashboard), `/client/quote`, `/client/orders`, `/client/settings`
+- Admin: `/client/admin/users` (validation comptes), `/client/admin/weights` (placeholder)
 
 Accès au client sécurisé:
 - Non connecté → redirection vers `/login`
 - Statut `PENDING` → accès bloqué avec message explicite
+- Statut `REJECTED` → message de refus et aucune fonctionnalité accessible
 
 ## Authentification
-- Connexion: POST `/auth/login` → stocke un token local et met à jour le user
+- Connexion: POST `/auth/login` → accepte `PENDING`, refuse `REJECTED`, token local + user
 - Inscription: POST `/auth/register` → crée un compte `PENDING`, email à l’admin
+- Déconnexion: bouton dans l’espace client → appel `POST /auth/logout`, nettoyage local et redirection `/login`
 
 ## Design
 - Formulaires pro (labels, aides, placeholders)

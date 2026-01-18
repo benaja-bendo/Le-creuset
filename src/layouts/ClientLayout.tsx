@@ -22,7 +22,7 @@ export default function ClientLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, isAdmin, isClient, isActive } = useAuth();
+  const { user, isAdmin, isClient, isActive, logout } = useAuth();
 
   const isPathActive = (path: string) => location.pathname === path;
   useEffect(() => {
@@ -91,13 +91,17 @@ export default function ClientLayout() {
           </div>
 
           <div className="mt-auto p-4 border-t border-secondary-800">
-            <Link 
-              to="/" 
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-secondary-400 hover:bg-red-900/20 hover:text-red-400 transition-colors"
+            <button 
+              onClick={() => { 
+                fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
+                logout();
+                navigate('/login');
+              }}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-secondary-400 hover:bg-red-900/20 hover:text-red-400 transition-colors"
             >
               <LogOut size={18} />
               Déconnexion
-            </Link>
+            </button>
           </div>
         </div>
       </aside>
@@ -114,15 +118,18 @@ export default function ClientLayout() {
           </button>
 
           <div className="flex items-center gap-4 ml-auto">
-            <button className="p-2 text-secondary-400 hover:text-primary-600 hover:bg-primary-50 rounded-full transition-colors relative">
-              <Bell size={20} />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-            </button>
-            <div className="h-8 w-px bg-secondary-200 mx-2"></div>
-            <button className="flex items-center gap-2 text-sm font-medium text-secondary-700 hover:text-secondary-900">
-              <User size={18} />
-              <span className="hidden sm:inline">Mon Compte</span>
-            </button>
+            {user && (
+              <>
+                <button className="p-2 text-secondary-400 hover:text-primary-600 hover:bg-primary-50 rounded-full transition-colors" aria-label="Notifications">
+                  <Bell size={20} />
+                </button>
+                <div className="h-8 w-px bg-secondary-200 mx-2" aria-hidden="true"></div>
+                <Link to="/client/settings" className="flex items-center gap-2 text-sm font-medium text-secondary-700 hover:text-secondary-900">
+                  <User size={18} />
+                  <span className="hidden sm:inline">Mon Compte</span>
+                </Link>
+              </>
+            )}
           </div>
         </header>
 
@@ -134,6 +141,13 @@ export default function ClientLayout() {
                 <h2 className="text-xl font-bold mb-2">Connexion requise</h2>
                 <p className="text-sm">
                   Veuillez <Link to="/login" className="text-primary-600 underline">vous connecter</Link> pour accéder à votre espace client.
+                </p>
+              </div>
+            ) : user.status === 'REJECTED' ? (
+              <div className="p-8 bg-red-50 border border-red-200 rounded-lg text-red-900">
+                <h2 className="text-xl font-bold mb-2">Compte refusé</h2>
+                <p className="text-sm">
+                  Votre demande a été refusée. Pour toute question, contactez le support.
                 </p>
               </div>
             ) : !isActive ? (

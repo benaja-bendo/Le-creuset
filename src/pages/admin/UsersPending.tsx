@@ -34,6 +34,10 @@ export default function UsersPending() {
 
   const updateStatus = async (id: string, status: 'ACTIVE' | 'REJECTED') => {
     try {
+      const ok = status === 'ACTIVE' 
+        ? window.confirm('Confirmer la validation de ce compte ?')
+        : window.confirm('Confirmer le rejet et suppression de ce compte ?');
+      if (!ok) return;
       await patchJSON(`/users/${id}/status`, { status });
       setUsers((prev) => prev.filter((u) => u.id !== id));
     } catch (e) {
