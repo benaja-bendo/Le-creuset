@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { 
   FileText, 
   Upload, 
@@ -46,9 +47,14 @@ export default function AdminInvoices() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialOrderId = searchParams.get('orderId');
 
   useEffect(() => {
     loadData();
+    if (initialOrderId) {
+      setShowUploadModal(true);
+    }
   }, []);
 
   const loadData = async () => {
@@ -128,7 +134,7 @@ export default function AdminInvoices() {
           placeholder="Rechercher par numéro, client..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-11 pr-4 py-3 border border-secondary-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+          className="w-full pl-11 pr-4 py-3 border border-secondary-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 text-secondary-900"
         />
       </div>
 
@@ -235,10 +241,15 @@ export default function AdminInvoices() {
       {showUploadModal && (
         <UploadInvoiceModal 
           orders={orders} 
-          onClose={() => setShowUploadModal(false)} 
+          initialOrderId={initialOrderId}
+          onClose={() => {
+            setShowUploadModal(false);
+            if (initialOrderId) setSearchParams({}); // Clear param after close
+          }} 
           onSuccess={(inv) => {
             setInvoices(prev => [inv, ...prev]);
             setShowUploadModal(false);
+            if (initialOrderId) setSearchParams({});
           }}
         />
       )}
@@ -249,16 +260,18 @@ export default function AdminInvoices() {
 // Upload Modal Component
 function UploadInvoiceModal({ 
   orders, 
+  initialOrderId,
   onClose, 
   onSuccess 
 }: { 
   orders: Order[]; 
+  initialOrderId?: string | null;
   onClose: () => void; 
   onSuccess: (inv: Invoice) => void;
 }) {
   const [form, setForm] = useState({
     invoiceNumber: '',
-    orderId: '',
+    orderId: initialOrderId || '',
     amount: '',
     notes: '',
   });
@@ -325,7 +338,7 @@ function UploadInvoiceModal({
               type="text"
               value={form.invoiceNumber}
               onChange={e => setForm({ ...form, invoiceNumber: e.target.value })}
-              className="w-full px-4 py-2.5 border border-secondary-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-full px-4 py-2.5 border border-secondary-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-secondary-900"
               placeholder="FAC-2024-001"
               required
             />
@@ -338,7 +351,7 @@ function UploadInvoiceModal({
             <select
               value={form.orderId}
               onChange={e => setForm({ ...form, orderId: e.target.value })}
-              className="w-full px-4 py-2.5 border border-secondary-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-full px-4 py-2.5 border border-secondary-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-secondary-900"
               required
             >
               <option value="">Sélectionner une commande</option>
@@ -359,7 +372,7 @@ function UploadInvoiceModal({
               step="0.01"
               value={form.amount}
               onChange={e => setForm({ ...form, amount: e.target.value })}
-              className="w-full px-4 py-2.5 border border-secondary-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-full px-4 py-2.5 border border-secondary-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-secondary-900"
               placeholder="0.00"
             />
           </div>
@@ -399,7 +412,7 @@ function UploadInvoiceModal({
             <textarea
               value={form.notes}
               onChange={e => setForm({ ...form, notes: e.target.value })}
-              className="w-full px-4 py-2.5 border border-secondary-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+              className="w-full px-4 py-2.5 border border-secondary-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none text-secondary-900"
               rows={2}
               placeholder="Notes internes..."
             />

@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { getJSON, postJSON, BASE_URL, uploadFile } from '../../api/client';
 import STLViewer from '../../components/STLViewer';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
 
 type Order = {
   id: string;
@@ -187,20 +188,25 @@ export default function AdminOrderDetail() {
             
             return (
               <div key={status.key} className="flex flex-col items-center">
-                <div className={`
-                  w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all
-                  ${isCompleted 
-                    ? 'bg-primary-500 border-primary-500 text-white' 
-                    : 'bg-white border-secondary-300 text-secondary-400'
-                  }
-                  ${isCurrent ? 'ring-4 ring-primary-100' : ''}
-                `}>
-                  {isCompleted && idx < currentStatusIndex ? (
-                    <CheckCircle size={20} />
-                  ) : (
-                    <Icon size={18} />
-                  )}
-                </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className={`
+                      w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all cursor-help
+                      ${isCompleted 
+                        ? 'bg-primary-500 border-primary-500 text-white' 
+                        : 'bg-white border-secondary-300 text-secondary-400'
+                      }
+                      ${isCurrent ? 'ring-4 ring-primary-100' : ''}
+                    `}>
+                      {isCompleted && idx < currentStatusIndex ? (
+                        <CheckCircle size={20} />
+                      ) : (
+                        <Icon size={18} />
+                      )}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>{status.label}</TooltipContent>
+                </Tooltip>
                 <span className={`text-xs mt-2 font-medium ${isCurrent ? 'text-primary-600' : 'text-secondary-500'}`}>
                   {status.label}
                 </span>
@@ -282,10 +288,19 @@ export default function AdminOrderDetail() {
 
       {/* Invoices Section */}
       <div className="bg-white rounded-xl border border-secondary-200 p-6">
-        <h3 className="font-semibold text-secondary-900 mb-4 flex items-center gap-2">
-          <FileText size={18} className="text-primary-500" />
-          Factures ({order.invoices.length})
-        </h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-secondary-900 flex items-center gap-2">
+            <FileText size={18} className="text-primary-500" />
+            Factures ({order.invoices.length})
+          </h3>
+          <Link
+            to={`/client/admin/invoices?orderId=${order.id}`}
+            className="text-sm font-medium text-primary-600 hover:text-primary-700 flex items-center gap-1 bg-primary-50 px-3 py-1.5 rounded-lg transition-colors"
+          >
+            <Upload size={14} />
+            Ajouter une facture
+          </Link>
+        </div>
 
         {order.invoices.length === 0 ? (
           <div className="text-center py-8 text-secondary-400">
@@ -307,20 +322,31 @@ export default function AdminOrderDetail() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setPreviewUrl(resolveUrl(invoice.fileUrl))}
-                    className="p-2 text-primary-600 hover:bg-primary-100 rounded-lg"
-                  >
-                    <Eye size={18} />
-                  </button>
-                  <a
-                    href={resolveUrl(invoice.fileUrl)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="p-2 text-secondary-600 hover:bg-secondary-200 rounded-lg"
-                  >
-                    <Download size={18} />
-                  </a>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => setPreviewUrl(resolveUrl(invoice.fileUrl))}
+                        className="p-2 text-primary-600 hover:bg-primary-100 rounded-lg"
+                      >
+                        <Eye size={18} />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>Aperçu rapide</TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <a
+                        href={resolveUrl(invoice.fileUrl)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="p-2 text-secondary-600 hover:bg-secondary-200 rounded-lg"
+                      >
+                        <Download size={18} />
+                      </a>
+                    </TooltipTrigger>
+                    <TooltipContent>Télécharger PDF</TooltipContent>
+                  </Tooltip>
                 </div>
               </div>
             ))}
@@ -448,7 +474,7 @@ function CloseOrderModal({
               type="text"
               value={form.invoiceNumber}
               onChange={e => setForm({ ...form, invoiceNumber: e.target.value })}
-              className="w-full px-4 py-2.5 border border-secondary-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-full px-4 py-2.5 border border-secondary-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-secondary-900"
               placeholder="FAC-2024-001"
               required
             />
@@ -495,7 +521,7 @@ function CloseOrderModal({
                 step="0.01"
                 value={form.finalAmount}
                 onChange={e => setForm({ ...form, finalAmount: e.target.value })}
-                className="w-full pl-10 pr-4 py-2.5 border border-secondary-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full pl-10 pr-4 py-2.5 border border-secondary-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-secondary-900"
                 placeholder="0.00"
               />
             </div>
@@ -529,7 +555,7 @@ function CloseOrderModal({
                       step="0.001"
                       value={form.finalWeight}
                       onChange={e => setForm({ ...form, finalWeight: e.target.value })}
-                      className="w-full pl-10 pr-4 py-2.5 border border-secondary-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      className="w-full pl-10 pr-4 py-2.5 border border-secondary-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-secondary-900"
                       placeholder="10.400"
                     />
                   </div>
@@ -541,7 +567,7 @@ function CloseOrderModal({
                   <select
                     value={form.metalType}
                     onChange={e => setForm({ ...form, metalType: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-secondary-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="w-full px-4 py-2.5 border border-secondary-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-secondary-900"
                   >
                     {METAL_TYPES.map(m => (
                       <option key={m.value} value={m.value}>{m.label}</option>

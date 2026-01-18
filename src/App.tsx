@@ -211,8 +211,14 @@ const router = createBrowserRouter([
   basename: import.meta.env.BASE_URL
 });
 
+import { TooltipProvider } from './components/ui/tooltip';
+
 function App() {
-  return <RouterProvider router={router} />;
+  return (
+    <TooltipProvider>
+      <RouterProvider router={router} />
+    </TooltipProvider>
+  );
 }
 
 export default App;

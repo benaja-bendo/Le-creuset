@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getJSON, patchJSON, API_URL } from '../../api/client';
 import { CheckCircle2, XCircle, FileSignature, Users, UserPlus, UserCheck, Mail, Phone, Clock, Search } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
 
 type User = {
   id: string;
@@ -195,38 +196,60 @@ export default function UsersManagement() {
                         </div>
                         
                         <div className="flex items-center gap-3 pt-2">
-                          <a 
-                            className="px-3 py-1.5 bg-primary-50 text-sm text-primary-700 rounded-lg hover:bg-primary-100 flex items-center gap-1.5 transition-colors" 
-                            href={resolveUrl(u.kbisFileUrl)} 
-                            target="_blank" 
-                            rel="noreferrer"
-                          >
-                            <FileSignature size={14} /> KBIS
-                          </a>
-                          <a 
-                            className="px-3 py-1.5 bg-primary-50 text-sm text-primary-700 rounded-lg hover:bg-primary-100 flex items-center gap-1.5 transition-colors" 
-                            href={resolveUrl(u.customsFileUrl)} 
-                            target="_blank" 
-                            rel="noreferrer"
-                          >
-                            <FileSignature size={14} /> Douanes
-                          </a>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <a 
+                                className="px-3 py-1.5 bg-primary-50 text-sm text-primary-700 rounded-lg hover:bg-primary-100 flex items-center gap-1.5 transition-colors" 
+                                href={resolveUrl(u.kbisFileUrl)} 
+                                target="_blank" 
+                                rel="noreferrer"
+                              >
+                                <FileSignature size={14} /> KBIS
+                              </a>
+                            </TooltipTrigger>
+                            <TooltipContent>Consulter l'extrait KBIS</TooltipContent>
+                          </Tooltip>
+
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <a 
+                                className="px-3 py-1.5 bg-primary-50 text-sm text-primary-700 rounded-lg hover:bg-primary-100 flex items-center gap-1.5 transition-colors" 
+                                href={resolveUrl(u.customsFileUrl)} 
+                                target="_blank" 
+                                rel="noreferrer"
+                              >
+                                <FileSignature size={14} /> Douanes
+                              </a>
+                            </TooltipTrigger>
+                            <TooltipContent>Consulter l'attestation douane</TooltipContent>
+                          </Tooltip>
                         </div>
                       </div>
                       
                       <div className="p-4 border-t border-secondary-100 flex justify-end gap-3 bg-secondary-50/50">
-                        <button
-                          onClick={() => updateStatus(u.id, 'REJECTED')}
-                          className="px-4 py-2 text-red-600 font-medium hover:bg-red-50 rounded-lg transition-colors flex items-center gap-2"
-                        >
-                          <XCircle size={16} /> Rejeter
-                        </button>
-                        <button
-                          onClick={() => updateStatus(u.id, 'ACTIVE')}
-                          className="px-5 py-2 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 shadow-sm transition-colors flex items-center gap-2"
-                        >
-                          <CheckCircle2 size={16} /> Valider
-                        </button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              onClick={() => updateStatus(u.id, 'REJECTED')}
+                              className="px-4 py-2 text-red-600 font-medium hover:bg-red-50 rounded-lg transition-colors flex items-center gap-2"
+                            >
+                              <XCircle size={16} /> Rejeter
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>Refuser et supprimer la demande</TooltipContent>
+                        </Tooltip>
+
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              onClick={() => updateStatus(u.id, 'ACTIVE')}
+                              className="px-5 py-2 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 shadow-sm transition-colors flex items-center gap-2"
+                            >
+                              <CheckCircle2 size={16} /> Valider
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>Accepter l'accès professionnel</TooltipContent>
+                        </Tooltip>
                       </div>
                     </div>
                   ))}
@@ -247,7 +270,7 @@ export default function UsersManagement() {
                     placeholder="Rechercher par nom, email ou entreprise..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-11 pr-4 py-3 border border-secondary-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="w-full pl-11 pr-4 py-3 border border-secondary-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-secondary-900"
                   />
                 </div>
               </div>

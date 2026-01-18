@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { getJSON, patchJSON } from '../../api/client';
-import { Box, AlertCircle, Loader2, Download, Package, Flame, Send } from 'lucide-react';
+import { Box, AlertCircle, Loader2, Download, Package, Flame, Send, Eye, FilePlus } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
 
 type Order = {
   id: string;
@@ -95,7 +97,7 @@ export default function AdminOrders() {
         </div>
       )}
 
-      <div className="bg-white rounded-xl border border-secondary-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border border-secondary-200 shadow-sm overflow-hidden text-secondary-900">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -103,7 +105,7 @@ export default function AdminOrders() {
                 <th className="px-6 py-4 text-xs font-bold text-secondary-500 uppercase tracking-widest">Client</th>
                 <th className="px-6 py-4 text-xs font-bold text-secondary-500 uppercase tracking-widest">Détails Pièce</th>
                 <th className="px-6 py-4 text-xs font-bold text-secondary-500 uppercase tracking-widest">Statut Actuel</th>
-                <th className="px-6 py-4 text-xs font-bold text-secondary-500 uppercase tracking-widest">Actions de Production</th>
+                <th className="px-6 py-4 text-xs font-bold text-secondary-500 uppercase tracking-widest text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-secondary-100">
@@ -130,45 +132,87 @@ export default function AdminOrders() {
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-end gap-2">
                       {updatingId === order.id ? (
                         <Loader2 className="animate-spin text-primary-500" size={20} />
                       ) : (
                         <>
-                          <button 
-                            onClick={() => handleUpdateStatus(order.id, 'TIRAGE_OK')}
-                            className={`p-2 rounded-lg transition-all ${order.status === 'TIRAGE_OK' ? 'bg-blue-600 text-white shadow-lg' : 'bg-secondary-100 text-secondary-400 hover:bg-blue-50 hover:text-blue-600'}`}
-                            title="Marquer comme tiré (Cire OK)"
-                          >
-                            <Package size={18} />
-                          </button>
-                          <button 
-                            onClick={() => handleUpdateStatus(order.id, 'FONDU')}
-                            className={`p-2 rounded-lg transition-all ${order.status === 'FONDU' ? 'bg-purple-600 text-white shadow-lg' : 'bg-secondary-100 text-secondary-400 hover:bg-purple-50 hover:text-purple-600'}`}
-                            title="Marquer comme fondu"
-                          >
-                            <Flame size={18} />
-                          </button>
-                          <button 
-                            onClick={() => handleUpdateStatus(order.id, 'EXPEDIE')}
-                            className={`p-2 rounded-lg transition-all ${order.status === 'EXPEDIE' ? 'bg-green-600 text-white shadow-lg' : 'bg-secondary-100 text-secondary-400 hover:bg-green-50 hover:text-green-600'}`}
-                            title="Marquer comme expédié"
-                          >
-                            <Send size={18} />
-                          </button>
-                          
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Link 
+                                to={`/client/admin/orders/${order.id}`}
+                                className="p-2 bg-primary-100 text-primary-700 rounded-lg hover:bg-primary-200 transition-colors"
+                              >
+                                <Eye size={18} />
+                              </Link>
+                            </TooltipTrigger>
+                            <TooltipContent>Détails de la commande</TooltipContent>
+                          </Tooltip>
+
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Link 
+                                to={`/client/admin/invoices?orderId=${order.id}`}
+                                className="p-2 bg-secondary-100 text-secondary-600 rounded-lg hover:bg-secondary-200 transition-colors"
+                              >
+                                <FilePlus size={18} />
+                              </Link>
+                            </TooltipTrigger>
+                            <TooltipContent>Ajouter une facture</TooltipContent>
+                          </Tooltip>
+
                           <div className="h-6 w-px bg-secondary-200 mx-1"></div>
+
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button 
+                                onClick={() => handleUpdateStatus(order.id, 'TIRAGE_OK')}
+                                className={`p-2 rounded-lg transition-all ${order.status === 'TIRAGE_OK' ? 'bg-blue-600 text-white shadow-lg' : 'bg-secondary-100 text-secondary-400 hover:bg-blue-50 hover:text-blue-600'}`}
+                              >
+                                <Package size={18} />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>Marquer comme Tiré (Cire OK)</TooltipContent>
+                          </Tooltip>
+
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button 
+                                onClick={() => handleUpdateStatus(order.id, 'FONDU')}
+                                className={`p-2 rounded-lg transition-all ${order.status === 'FONDU' ? 'bg-purple-600 text-white shadow-lg' : 'bg-secondary-100 text-secondary-400 hover:bg-purple-50 hover:text-purple-600'}`}
+                              >
+                                <Flame size={18} />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>Marquer comme Fondu</TooltipContent>
+                          </Tooltip>
+
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button 
+                                onClick={() => handleUpdateStatus(order.id, 'EXPEDIE')}
+                                className={`p-2 rounded-lg transition-all ${order.status === 'EXPEDIE' ? 'bg-green-600 text-white shadow-lg' : 'bg-secondary-100 text-secondary-400 hover:bg-green-50 hover:text-green-600'}`}
+                              >
+                                <Send size={18} />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>Clôturer (Expédier)</TooltipContent>
+                          </Tooltip>
                           
                           {order.stlFileUrl && (
-                            <a 
-                              href={order.stlFileUrl} 
-                              target="_blank" 
-                              rel="noreferrer"
-                              className="p-2 bg-secondary-900 text-white rounded-lg hover:bg-secondary-800 shadow-sm"
-                              title="Télécharger le fichier STL"
-                            >
-                              <Download size={18} />
-                            </a>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <a 
+                                  href={order.stlFileUrl} 
+                                  target="_blank" 
+                                  rel="noreferrer"
+                                  className="p-2 bg-secondary-900 text-white rounded-lg hover:bg-secondary-800 shadow-sm"
+                                >
+                                  <Download size={18} />
+                                </a>
+                              </TooltipTrigger>
+                              <TooltipContent>Télécharger le fichier STL</TooltipContent>
+                            </Tooltip>
                           )}
                         </>
                       )}

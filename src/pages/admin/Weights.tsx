@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getJSON, postJSON } from '../../api/client';
 import { Plus, Search, User, History, ArrowUpRight, ArrowDownLeft, Loader2, AlertCircle } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
 
 type MetalAccount = {
   id: string;
@@ -93,7 +94,7 @@ export default function Weights() {
             placeholder="Rechercher un client ou métal..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-10 pr-4 py-2 bg-white border border-secondary-200 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none w-full md:w-80 shadow-sm"
+            className="pl-10 pr-4 py-2 bg-white border border-secondary-200 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none w-full md:w-80 shadow-sm text-secondary-900"
           />
         </div>
       </div>
@@ -146,15 +147,20 @@ export default function Weights() {
                       <History size={14} /> {acc.lastUpdate ? new Date(acc.lastUpdate).toLocaleDateString() : '-'}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button
-                        onClick={() => {
-                          setSelectedAccount(acc);
-                          setShowModal(true);
-                        }}
-                        className="px-3 py-1.5 bg-primary-600 text-white rounded-md text-xs font-medium hover:bg-primary-700 transition-colors inline-flex items-center gap-1.5 shadow-sm"
-                      >
-                        <Plus size={14} /> Mouvement
-                      </button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            onClick={() => {
+                              setSelectedAccount(acc);
+                              setShowModal(true);
+                            }}
+                            className="px-3 py-1.5 bg-primary-600 text-white rounded-md text-xs font-medium hover:bg-primary-700 transition-colors inline-flex items-center gap-1.5 shadow-sm"
+                          >
+                            <Plus size={14} /> Mouvement
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent>Enregistrer un mouvement de métal</TooltipContent>
+                      </Tooltip>
                     </td>
                   </tr>
                 ))
@@ -209,7 +215,7 @@ export default function Weights() {
                   value={txForm.amount}
                   onChange={(e) => setTxForm({ ...txForm, amount: e.target.value })}
                   placeholder="0.00"
-                  className="w-full px-4 py-2 bg-secondary-50 border border-secondary-200 rounded-lg outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-4 py-2 bg-secondary-50 border border-secondary-200 rounded-lg outline-none focus:ring-2 focus:ring-primary-500 text-secondary-900"
                 />
               </div>
 
@@ -221,7 +227,7 @@ export default function Weights() {
                   value={txForm.label}
                   onChange={(e) => setTxForm({ ...txForm, label: e.target.value })}
                   placeholder="Ex: Apport métal, Sortie production #123..."
-                  className="w-full px-4 py-2 bg-secondary-50 border border-secondary-200 rounded-lg outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-4 py-2 bg-secondary-50 border border-secondary-200 rounded-lg outline-none focus:ring-2 focus:ring-primary-500 text-secondary-900"
                 />
               </div>
 
@@ -232,7 +238,7 @@ export default function Weights() {
                   required
                   value={txForm.date}
                   onChange={(e) => setTxForm({ ...txForm, date: e.target.value })}
-                  className="w-full px-4 py-2 bg-secondary-50 border border-secondary-200 rounded-lg outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-4 py-2 bg-secondary-50 border border-secondary-200 rounded-lg outline-none focus:ring-2 focus:ring-primary-500 text-secondary-900"
                 />
               </div>
 

@@ -38,4 +38,11 @@
   h1, h2, h3, h4, h5, h6 {
     @apply font-serif;
   }
+  input, select, textarea {
+    @apply text-secondary-900;
+  }
+  /* Ensure inputs on dark backgrounds still work if they have specific classes */
+  .bg-secondary-950 input, .bg-secondary-900 input {
+    @apply text-white;
+  }
 }
