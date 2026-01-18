@@ -40,6 +40,7 @@ export default function ClientLayout() {
   // Menu items selon le rôle
   const clientMenuItems = [
     { name: 'Tableau de bord', path: '/client', icon: LayoutDashboard },
+    { name: 'Mon Compte Poids', path: '/client/weight-account', icon: Scale },
     { name: 'Devis STL', path: '/client/quote', icon: FileText },
     { name: 'Mes Commandes', path: '/client/orders', icon: ShoppingCart },
     { name: 'Mes Factures', path: '/client/invoices', icon: FileText },

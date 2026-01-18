@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getJSON, patchJSON, API_URL } from '../../api/client';
+import { Link } from 'react-router-dom';
 import { CheckCircle2, XCircle, FileSignature, Users, UserPlus, UserCheck, Mail, Phone, Clock, Search } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
 
@@ -322,9 +323,12 @@ export default function UsersManagement() {
                             {new Date(user.createdAt).toLocaleDateString('fr-FR')}
                           </td>
                           <td className="px-4 py-4">
-                            <button className="text-primary-600 hover:text-primary-700 text-sm font-medium">
+                            <Link 
+                              to={`/client/admin/users/${user.id}`}
+                              className="text-primary-600 hover:text-primary-700 text-sm font-medium"
+                            >
                               Voir profil
-                            </button>
+                            </Link>
                           </td>
                         </tr>
                       ))}
