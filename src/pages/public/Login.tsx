@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
+import Alert from '../../components/Alert';
+import { Loader2 } from 'lucide-react';
 
 /**
  * Page de connexion simple (email/mot de passe)
@@ -62,13 +64,21 @@ export default function Login() {
                   required
                 />
               </div>
-              {error && <div className="text-sm text-red-400">{error}</div>}
+              {error && <Alert type="error" message={error} onClose={() => setError(null)} />}
+              
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-all font-medium disabled:opacity-50"
               >
-                {loading ? 'Connexion…' : 'Se connecter'}
+                {loading ? (
+                  <>
+                    <Loader2 className="animate-spin" size={18} />
+                    <span>Connexion…</span>
+                  </>
+                ) : (
+                  'Se connecter'
+                )}
               </button>
               <p className="text-sm text-secondary-400 text-center">
                 Pas encore de compte ? <Link to="/register" className="text-primary-500 hover:underline">Demander un accès</Link>

@@ -11,10 +11,17 @@ import CGV from './pages/public/CGV';
 import PrivacyPolicy from './pages/public/PrivacyPolicy';
 import Login from './pages/public/Login';
 import Register from './pages/public/Register';
+import WaitingApproval from './pages/public/WaitingApproval';
+import ErrorPage from './pages/public/ErrorPage';
 import Dashboard from './pages/client/Dashboard';
-import ClientQuote from './pages/client/Quote.tsx';
+import ClientQuote from './pages/client/Quote';
+import Orders from './pages/client/Orders';
+import Molds from './pages/client/Molds';
+import Profile from './pages/client/Profile';
 import UsersPending from './pages/admin/UsersPending';
 import Weights from './pages/admin/Weights';
+import AdminOrders from './pages/admin/Orders';
+import ProtectedRoute from './components/ProtectedRoute';
 import { Flame, Printer, Layers } from 'lucide-react';
 
 // Import Assets
@@ -26,6 +33,7 @@ const router = createBrowserRouter([
   {
     path: '/',
     element: <PublicLayout />,
+    errorElement: <ErrorPage />,
     children: [
       {
         index: true,
@@ -38,6 +46,10 @@ const router = createBrowserRouter([
       {
         path: 'register',
         element: <Register />,
+      },
+      {
+        path: 'waiting-approval',
+        element: <WaitingApproval />,
       },
       {
         path: 'services',
@@ -114,7 +126,12 @@ const router = createBrowserRouter([
   },
   {
     path: '/client',
-    element: <ClientLayout />,
+    element: (
+      <ProtectedRoute>
+        <ClientLayout />
+      </ProtectedRoute>
+    ),
+    errorElement: <ErrorPage />,
     children: [
       {
         index: true,
@@ -126,19 +143,39 @@ const router = createBrowserRouter([
       },
       {
         path: 'orders',
-        element: <div className="p-8 text-center text-secondary-500">Page Commandes en construction</div>,
+        element: <Orders />,
+      },
+      {
+        path: 'molds',
+        element: <Molds />,
       },
       {
         path: 'settings',
-        element: <div className="p-8 text-center text-secondary-500">Page Paramètres en construction</div>,
+        element: <Profile />,
       },
       {
         path: 'admin/users',
-        element: <UsersPending />,
+        element: (
+          <ProtectedRoute allowedRoles={['ADMIN']}>
+            <UsersPending />
+          </ProtectedRoute>
+        ),
       },
       {
         path: 'admin/weights',
-        element: <Weights />,
+        element: (
+          <ProtectedRoute allowedRoles={['ADMIN']}>
+            <Weights />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'admin/orders',
+        element: (
+          <ProtectedRoute allowedRoles={['ADMIN']}>
+            <AdminOrders />
+          </ProtectedRoute>
+        ),
       },
     ],
   },

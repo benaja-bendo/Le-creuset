@@ -1,5 +1,5 @@
-import { createContext, useContext, useMemo, useState } from 'react';
-import { postJSON } from '../api/client';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { postJSON, getJSON, setToken, removeToken, getToken } from '../api/client';
 
 export type UserRole = 'ADMIN' | 'CLIENT';
 export type UserStatus = 'PENDING' | 'ACTIVE' | 'REJECTED';
@@ -18,6 +18,7 @@ type AuthContextValue = {
   isAdmin: boolean;
   isClient: boolean;
   isActive: boolean;
+  loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
 };
@@ -26,18 +27,34 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  /**
-   * Mémo des helpers de role/statut pour le rendu conditionnel
-   */
+  // Restaurer la session au chargement
+  useEffect(() => {
+    const restoreSession = async () => {
+      const token = getToken();
+      if (token) {
+        try {
+          const u = await getJSON<AuthUser>('/auth/me');
+          setUser(u);
+        } catch (err) {
+          console.error('Session restoration failed', err);
+          removeToken();
+        }
+      }
+      setLoading(false);
+    };
+    restoreSession();
+  }, []);
+
   const value = useMemo<AuthContextValue>(() => {
     const login = async (email: string, password: string) => {
       const resp = await postJSON<{ token: string; user: AuthUser }>('/auth/login', { email, password });
-      localStorage.setItem('token', resp.token);
+      setToken(resp.token);
       setUser(resp.user);
     };
     const logout = () => {
-      localStorage.removeItem('token');
+      removeToken();
       setUser(null);
     };
     return {
@@ -46,17 +63,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isAdmin: user?.role === 'ADMIN',
       isClient: user?.role === 'CLIENT',
       isActive: user?.status === 'ACTIVE',
+      loading,
       login,
       logout,
     };
-  }, [user]);
+  }, [user, loading]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-/**
- * Hook d’accès au contexte d’authentification
- */
 export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error('useAuth must be used within AuthProvider');

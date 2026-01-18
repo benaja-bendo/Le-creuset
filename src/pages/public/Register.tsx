@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import { postJSON } from '../../api/client';
+import { postJSON, uploadFile } from '../../api/client';
 import { Link, useNavigate } from 'react-router-dom';
+import Alert from '../../components/Alert';
+import { Loader2 } from 'lucide-react';
 
 /**
  * Page d’inscription (soumission de dossier) avec statut PENDING
@@ -17,6 +19,7 @@ export default function Register() {
     customsFileUrl: '',
     name: '',
   });
+  const [files, setFiles] = useState<{ kbis?: File; customs?: File }>({});
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -25,14 +28,38 @@ export default function Register() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setFiles({ ...files, [e.target.name]: e.target.files[0] });
+    }
+  };
+
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
+
     try {
-      await postJSON('/auth/register', form);
-      setSuccess('Votre compte est créé et en attente de validation.');
-      setTimeout(() => navigate('/login'), 1200);
+      if (!files.kbis || !files.customs) {
+        throw new Error('Veuillez fournir tous les documents obligatoires (KBIS et Douanes)');
+      }
+
+      // 1. Upload des fichiers
+      const [kbisRes, customsRes] = await Promise.all([
+        uploadFile(files.kbis),
+        uploadFile(files.customs)
+      ]);
+
+      // 2. Inscription avec les URLs retournées
+      await postJSON('/auth/register', {
+        ...form,
+        kbisFileUrl: kbisRes.url,
+        customsFileUrl: customsRes.url,
+      });
+
+      setSuccess('Votre dossier a été soumis avec succès et est en attente de validation.');
+      setTimeout(() => navigate('/login'), 2000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de l’inscription');
     } finally {
@@ -74,7 +101,6 @@ export default function Register() {
                     placeholder="••••••••"
                     required
                   />
-                  <p className="text-xs text-secondary-500 mt-1">8 caractères minimum.</p>
                 </div>
               </div>
 
@@ -133,39 +159,47 @@ export default function Register() {
 
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-secondary-300 mb-2">Lien KBIS (PDF)</label>
+                  <label className="block text-sm text-secondary-300 mb-2">Extrait KBIS (PDF)</label>
                   <input
-                    type="url"
-                    name="kbisFileUrl"
-                    value={form.kbisFileUrl}
-                    onChange={onChange}
-                    className="w-full px-3 py-2 rounded-md bg-secondary-950 border border-secondary-800 text-white focus:outline-none focus:ring-2 focus:ring-primary-600"
-                    placeholder="https://…"
+                    type="file"
+                    name="kbis"
+                    onChange={onFileChange}
+                    accept="application/pdf"
+                    className="w-full px-3 py-1.5 rounded-md bg-secondary-950 border border-secondary-800 text-sm text-secondary-400 file:mr-4 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-primary-900 file:text-primary-300 hover:file:bg-primary-800 cursor-pointer"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-secondary-300 mb-2">Lien document Douanes (PDF)</label>
+                  <label className="block text-sm text-secondary-300 mb-2">Déclaration Douanes (PDF)</label>
                   <input
-                    type="url"
-                    name="customsFileUrl"
-                    value={form.customsFileUrl}
-                    onChange={onChange}
-                    className="w-full px-3 py-2 rounded-md bg-secondary-950 border border-secondary-800 text-white focus:outline-none focus:ring-2 focus:ring-primary-600"
-                    placeholder="https://…"
+                    type="file"
+                    name="customs"
+                    onChange={onFileChange}
+                    accept="application/pdf"
+                    className="w-full px-3 py-1.5 rounded-md bg-secondary-950 border border-secondary-800 text-sm text-secondary-400 file:mr-4 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-primary-900 file:text-primary-300 hover:file:bg-primary-800 cursor-pointer"
                     required
                   />
                 </div>
               </div>
 
-              {error && <div className="text-sm text-red-400">{error}</div>}
-              {success && <div className="text-sm text-green-400">{success}</div>}
+              <div className="space-y-4">
+                {error && <Alert type="error" message={error} onClose={() => setError(null)} />}
+                {success && <Alert type="success" message={success} />}
+              </div>
+
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-all font-medium disabled:opacity-50"
               >
-                {loading ? 'Envoi…' : 'Soumettre le dossier'}
+                {loading ? (
+                  <>
+                    <Loader2 className="animate-spin" size={18} />
+                    <span>Traitement en cours…</span>
+                  </>
+                ) : (
+                  'Soumettre le dossier'
+                )}
               </button>
               <p className="text-sm text-secondary-400 text-center">
                 Vous avez déjà un compte ? <Link to="/login" className="text-primary-500 hover:underline">Se connecter</Link>
@@ -175,17 +209,6 @@ export default function Register() {
           <div className="hidden lg:block">
             <div className="rounded-lg overflow-hidden border border-secondary-800">
               <img src="/hero-register.jpg" alt="Accès pro" className="w-full h-80 object-cover" />
-            </div>
-            <div className="mt-6 grid grid-cols-3 gap-4">
-              <div className="p-4 bg-secondary-900 border border-secondary-800 rounded-lg">
-                <p className="text-sm text-secondary-300">Validation rapide</p>
-              </div>
-              <div className="p-4 bg-secondary-900 border border-secondary-800 rounded-lg">
-                <p className="text-sm text-secondary-300">Interface dédiée</p>
-              </div>
-              <div className="p-4 bg-secondary-900 border border-secondary-800 rounded-lg">
-                <p className="text-sm text-secondary-300">Support prioritaire</p>
-              </div>
             </div>
           </div>
         </div>
