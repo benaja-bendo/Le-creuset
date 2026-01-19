@@ -1,43 +1,42 @@
-# Frontend – Espace Client Pro
+# Le Creuset - Frontend
 
-Application React + TypeScript + Vite pour l’espace professionnel (devis STL, commandes, documents).
+Application React + TypeScript gérant l'interface utilisateur (Espace Client et Administration).
 
-## Prérequis
-- Node.js 18+ et pnpm
-- API backend démarrée sur http://localhost:3000/api
+## Développement Local
 
-## Démarrer en local
-```bash
-pnpm install
-pnpm dev
-```
-Ouvrir http://localhost:5173/
+1.  Installer les dépendances :
+    ```bash
+    pnpm install
+    ```
+2.  Lancer le serveur de développement :
+    ```bash
+    pnpm dev
+    ```
 
-## Configuration
-- VITE_API_URL: URL de l’API (par défaut http://localhost:3000/api)
-- BASE_URL: géré par Vite, base de déploiement (vite.config.ts)
+## Architecture de Déploiement
 
-## Routes principales
-- Public: `/`, `/services`, `/login`, `/register`, `/contact`, `/legal/*`
-- Client: `/client` (dashboard), `/client/quote`, `/client/orders`, `/client/settings`
-- Admin: `/client/admin/users` (validation comptes), `/client/admin/weights` (placeholder)
+Le déploiement est entièrement automatisé via **GitHub Actions**.
 
-Accès au client sécurisé:
-- Non connecté → redirection vers `/login`
-- Statut `PENDING` → accès bloqué avec message explicite
-- Statut `REJECTED` → message de refus et aucune fonctionnalité accessible
+### Pipeline CI/CD (`.github/workflows/deploy.yml`)
 
-## Authentification
-- Connexion: POST `/auth/login` → accepte `PENDING`, refuse `REJECTED`, token local + user
-- Inscription: POST `/auth/register` → crée un compte `PENDING`, email à l’admin
-- Déconnexion: bouton dans l’espace client → appel `POST /auth/logout`, nettoyage local et redirection `/login`
+À chaque `push` sur la branche `main` :
 
-## Design
-- Formulaires pro (labels, aides, placeholders)
-- Réactivité et accessibilité (focus, contrastes)
+1.  **Build** : L'image Docker est construite en utilisant un Dockerfile multi-stage (Node pour le build -> Nginx Alpine pour le run).
+2.  **Push** : L'image est poussée sur le registre de conteneurs GitHub (GHCR).
+3.  **Deploy** :
+    *   Connexion SSH au VPS de production.
+    *   Authentification auprès de GHCR.
+    *   Pull de la nouvelle image (`docker compose pull front`).
+    *   Redémarrage du conteneur sans interruption de service (`docker compose up -d front`).
 
-## Build
-```bash
-pnpm build
-```
-Le `base` de déploiement est défini dans `vite.config.ts` (par défaut `/Le-creuset/` en build).
+### Configuration Production
+
+*   **Serveur Web** : Nginx (via l'image Docker).
+*   **Routing** : Géré par Traefik (sur le VPS) qui redirige le trafic vers ce conteneur.
+*   **Variables d'environnement** : Injectées lors du build (ex: `VITE_API_URL`).
+
+## Ajouter des variables d'environnement
+
+Si vous ajoutez une nouvelle variable dans `.env` :
+1.  Ajoutez-la dans le `Dockerfile` (section `ARG` et `ENV`).
+2.  Si c'est un secret, ajoutez-la dans les `Secrets` du dépôt GitHub.
