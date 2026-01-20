@@ -66,6 +66,9 @@ jobs:
             # Login to GHCR (if needed on VPS for private packages)
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
+            # Create/Update .env file
+            echo "${{ secrets.ENV_FILE }}" > .env
+            
             # Pull new image for front only
             docker compose pull front
             
