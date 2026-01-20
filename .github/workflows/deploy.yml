@@ -69,6 +69,15 @@ jobs:
             # Create/Update .env file
             echo "${{ secrets.ENV_FILE }}" > .env
             
+            # Validate .env file
+            if ! grep -q "DOMAIN_NAME=" .env; then
+              echo "Error: DOMAIN_NAME is missing in .env file (from ENV_FILE secret)"
+              exit 1
+            fi
+
+            # Define image name
+            export IMAGE_FRONT=ghcr.io/${{ env.REPO_LC }}:latest
+            
             # Pull new image for front only
             docker compose pull front
             
