@@ -4,6 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
 export default defineConfig(({ command }) => ({
-  base: command === 'build' ? '/Le-creuset/' : '/',
+  // base: command === 'build' ? '/Le-creuset/' : '/',
+  base: '/',
   plugins: [react(), tailwindcss()],
 }));
