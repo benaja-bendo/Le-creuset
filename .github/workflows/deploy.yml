@@ -68,52 +68,36 @@ jobs:
           passphrase: ${{ secrets.VPS_PASSPHRASE }}
           envs: ENV_FILE,REPO_LC
           script: |
-            cd /opt/le-creuset
+            # Création du dossier dédié
+            mkdir -p /opt/apps/frontend
+            cd /opt/apps/frontend
             
-            # Login to GHCR (if needed on VPS for private packages)
+            # Login Docker
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            
-            # Create/Update .env file only if secret is set
-            if [ -n "$ENV_FILE" ]; then
-              echo "$ENV_FILE" > .env
-              echo "Updated .env from secrets"
-            else
-              echo "Secret ENV_FILE is empty. Checking for existing .env..."
-              if [ -f .env ]; then
-                echo "Using existing .env file on server."
-              else
-                echo "Error: No .env file found and ENV_FILE secret is empty."
-                exit 1
-              fi
-            fi
-            
-            # Validate .env file
-            required_vars="DOMAIN_NAME POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB MINIO_ROOT_USER MINIO_ROOT_PASSWORD"
-            missing_vars=""
-            for var in $required_vars; do
-              if ! grep -q "$var=" .env; then
-                missing_vars="$missing_vars $var"
-              fi
-            done
-            
-            if [ -n "$missing_vars" ]; then
-              echo "Error: Missing required variables in .env file:$missing_vars"
-              echo "Please check your ENV_FILE secret."
-              exit 1
-            fi
 
-            # Define image name
-            export IMAGE_FRONT=ghcr.io/$REPO_LC:front-latest
+            # Création du docker-compose.yml à la volée
+            cat <<EOF > docker-compose.yml
+            services:
+              front:
+                image: ghcr.io/$REPO_LC:front-latest
+                container_name: lecreuset-front
+                restart: always
+                networks:
+                  - lecreuset_network
+                labels:
+                  - "traefik.enable=true"
+                  - "traefik.http.routers.front.rule=Host(\`lecreuset.benaja-bendo.fr\`)"
+                  - "traefik.http.routers.front.entrypoints=websecure"
+                  - "traefik.http.routers.front.tls.certresolver=myresolver"
+                  - "traefik.http.services.front.loadbalancer.server.port=80"
+            networks:
+              lecreuset_network:
+                external: true
+            EOF
             
-            # Pull new image for front only
-            docker compose pull front
+            # Déploiement
+            docker compose pull
+            docker compose up -d
             
-            # Restart front service
-            docker compose up -d front
-            
-            # Debug: Check running containers
-            docker compose ps
-            docker ps
-            
-            # Cleanup
+            # Nettoyage
             docker image prune -f
