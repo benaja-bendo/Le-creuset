@@ -9,3 +9,9 @@ services:
     ports:
       - "8080:80"
     restart: unless-stopped
+    networks:
+      - proxy
+
+networks:
+  proxy:
+    external: true
