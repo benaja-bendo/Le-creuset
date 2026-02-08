@@ -5,7 +5,9 @@ COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY . .
 ARG VITE_API_URL
+ARG VITE_DOMAIN_NAME
 ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_DOMAIN_NAME=$VITE_DOMAIN_NAME
 RUN pnpm build
 
 FROM nginx:1.27-alpine

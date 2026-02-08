@@ -48,6 +48,9 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            VITE_API_URL=https://api.lecreuset.benaja-bendo.fr
+            VITE_DOMAIN_NAME=lecreuset.benaja-bendo.fr
 
   deploy:
     runs-on: ubuntu-latest
@@ -59,14 +62,12 @@ jobs:
 
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.0.3
-        env:
-          ENV_FILE: ${{ secrets.ENV_FILE }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_KEY }}
           passphrase: ${{ secrets.VPS_PASSPHRASE }}
-          envs: ENV_FILE,REPO_LC
+          envs: REPO_LC
           script: |
             # Création du dossier dédié
             mkdir -p /opt/apps/frontend
