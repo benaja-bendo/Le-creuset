@@ -69,6 +69,28 @@ jobs:
           passphrase: ${{ secrets.VPS_PASSPHRASE }}
           envs: REPO_LC
           script: |
+            # Debugging info
+            echo "User: $(whoami)"
+            echo "Groups: $(groups)"
+            ls -ld /opt/apps || echo "/opt/apps does not exist"
+            
+            # Vérification des pré-requis
+            if ! groups | grep -q "docker"; then
+              echo "Error: User is not in the 'docker' group."
+              exit 1
+            fi
+
+            if [ ! -w "/opt/apps" ] && [ ! -w "/opt/apps/frontend" ]; then
+               # Si /opt/apps n'existe pas ou n'est pas inscriptible, on tente de le créer si on a les droits (sudo manquant souvent)
+               # Sinon on échoue avec un message clair
+               if [ ! -d "/opt/apps" ]; then
+                 echo "Error: /opt/apps directory does not exist. Please run Ansible playbook."
+                 exit 1
+               fi
+               echo "Error: No write permission on /opt/apps. Please run Ansible playbook."
+               exit 1
+            fi
+
             # Création du dossier dédié
             mkdir -p /opt/apps/frontend
             cd /opt/apps/frontend
