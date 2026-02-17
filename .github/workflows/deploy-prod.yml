@@ -57,7 +57,7 @@ jobs:
     steps:
       - name: Lowercase Repo Name
         run: |
-        echo "REPO_LC=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
+          echo "REPO_LC=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
 
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.0.3
