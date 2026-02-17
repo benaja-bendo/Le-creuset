@@ -49,9 +49,10 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
-            VITE_API_URL=https://api.lecreuset.benaja-bendo.fr
-            VITE_DOMAIN_NAME=lecreuset.benaja-bendo.fr
-
+            VITE_API_URL=api.dev.lagrenaille.fr
+            VITE_DOMAIN_NAME=dev.lagrenaille.fr
+            
+            
   deploy:
     runs-on: ubuntu-latest
     needs: build-and-push
