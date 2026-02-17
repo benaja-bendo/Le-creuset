@@ -48,7 +48,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
-            VITE_API_URL=https://api.dev.lagrenaille.fr
+            VITE_API_URL=https://api.dev.lagrenaille.fr/api
             VITE_DOMAIN_NAME=dev.lagrenaille.fr
 
   deploy:
