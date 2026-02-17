@@ -1,0 +1,17 @@
+services:
+  front-dev:
+    image: ghcr.io/benajabendo/le-creuset-front:front-dev
+    container_name: lecreuset-front-dev
+    restart: always
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.front-dev.rule=Host(`dev.lecreuset.benaja-bendo.fr`)"
+      - "traefik.http.routers.front-dev.entrypoints=websecure"
+      - "traefik.http.routers.front-dev.tls.certresolver=myresolver"
+      - "traefik.http.services.front-dev.loadbalancer.server.port=80"
+
+networks:
+  proxy:
+    external: true

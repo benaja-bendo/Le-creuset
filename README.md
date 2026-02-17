@@ -36,6 +36,11 @@ Le déploiement est entièrement automatisé via **GitHub Actions**.
 *   **Variables d'environnement** : Injectées lors du build (ex: `VITE_API_URL`).
      *   `VITE_API_URL` : URL de l'API backend (ex: `http://localhost:3000`).
      *   `VITE_DOMAIN_NAME` : Nom de domaine de l'application (ex: `le-creuset.fr`).
+ *   `VPS_HOST` : Adresse IP du VPS (ex: `128.65.195.180`).
+ *   `VPS_USER` : Utilisateur SSH sur le VPS (ex: `root`).
+ *   `VPS_KEY` : Clé SSH privée pour l'authentification (`cat ~/.ssh/id_rsa`).
+ *   `VPS_PASSPHRASE` : Phrase de passe de la clé SSH privée (ex: `123456`).
+ *   `VITE_VPS_DOMAIN_NAME` : Nom de domaine du VPS (ex: `dev.lagrenaille.fr`).
 
 ## Ajouter des variables d'environnement
 
