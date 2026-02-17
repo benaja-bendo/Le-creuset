@@ -1,0 +1,130 @@
+name: Deploy Front Prod
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=front-prod
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            VITE_API_URL=https://api.lagrenaille.fr
+            VITE_DOMAIN_NAME=lagrenaille.fr
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    steps:
+      - name: Lowercase Repo Name
+        run: |
+          echo "REPO_LC=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
+
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_KEY }}
+          passphrase: ${{ secrets.VPS_PASSPHRASE }}
+          envs: REPO_LC
+          script: |
+            # Vérification des pré-requis
+            if ! groups | grep -q "docker"; then
+              echo "Error: User is not in the 'docker' group."
+              exit 1
+            fi
+
+            APP_DIR="/opt/apps/frontend-prod"
+
+            if [ ! -w "/opt/apps" ] && [ ! -w "$APP_DIR" ]; then
+               if [ ! -d "/opt/apps" ]; then
+                 echo "Error: /opt/apps directory does not exist."
+                 exit 1
+               fi
+               # Si le dossier app n'existe pas encore, on vérifie /opt/apps
+               if [ ! -d "$APP_DIR" ]; then
+                   if [ ! -w "/opt/apps" ]; then
+                       echo "Error: No write permission on /opt/apps."
+                       exit 1
+                   fi
+               else
+                   if [ ! -w "$APP_DIR" ]; then
+                       echo "Error: No write permission on $APP_DIR."
+                       exit 1
+                   fi
+               fi
+            fi
+
+            # Création du dossier dédié
+            mkdir -p $APP_DIR
+            cd $APP_DIR
+            
+            # Login Docker
+            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            # Création du docker-compose.yml à la volée
+            cat <<EOF > docker-compose.yml
+            services:
+              front-prod:
+                image: ghcr.io/$REPO_LC:front-prod
+                container_name: lecreuset-front-prod
+                restart: always
+                networks:
+                  - proxy
+                labels:
+                  - "traefik.enable=true"
+                  - "traefik.http.routers.front-prod.rule=Host(\`lagrenaille.fr\`)"
+                  - "traefik.http.routers.front-prod.entrypoints=websecure"
+                  - "traefik.http.routers.front-prod.tls.certresolver=myresolver"
+                  - "traefik.http.services.front-prod.loadbalancer.server.port=80"
+            networks:
+              proxy:
+                external: true
+            EOF
+            
+            # Déploiement
+            docker compose pull
+            docker compose up -d
+            
+            # Nettoyage
+            docker image prune -f

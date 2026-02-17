@@ -1,13 +1,12 @@
-name: Deploy Front
+name: Deploy Front Dev
 
 on:
   push:
     branches:
-      - main
+      - develop
 
 env:
   REGISTRY: ghcr.io
-  # Assumes the repo name matches the image name expected in docker-compose
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
@@ -34,7 +33,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=raw,value=front-latest
+            type=raw,value=front-dev
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -49,10 +48,9 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
-            VITE_API_URL=api.dev.lagrenaille.fr
+            VITE_API_URL=https://api.dev.lagrenaille.fr/api
             VITE_DOMAIN_NAME=dev.lagrenaille.fr
-            
-            
+
   deploy:
     runs-on: ubuntu-latest
     needs: build-and-push
@@ -70,31 +68,35 @@ jobs:
           passphrase: ${{ secrets.VPS_PASSPHRASE }}
           envs: REPO_LC
           script: |
-            # Debugging info
-            echo "User: $(whoami)"
-            echo "Groups: $(groups)"
-            ls -ld /opt/apps || echo "/opt/apps does not exist"
-            
             # Vérification des pré-requis
             if ! groups | grep -q "docker"; then
               echo "Error: User is not in the 'docker' group."
               exit 1
             fi
 
-            if [ ! -w "/opt/apps" ] && [ ! -w "/opt/apps/frontend" ]; then
-               # Si /opt/apps n'existe pas ou n'est pas inscriptible, on tente de le créer si on a les droits (sudo manquant souvent)
-               # Sinon on échoue avec un message clair
+            APP_DIR="/opt/apps/frontend-dev"
+
+            if [ ! -w "/opt/apps" ] && [ ! -w "$APP_DIR" ]; then
                if [ ! -d "/opt/apps" ]; then
-                 echo "Error: /opt/apps directory does not exist. Please run Ansible playbook."
+                 echo "Error: /opt/apps directory does not exist."
                  exit 1
                fi
-               echo "Error: No write permission on /opt/apps. Please run Ansible playbook."
-               exit 1
+               if [ ! -d "$APP_DIR" ]; then
+                   if [ ! -w "/opt/apps" ]; then
+                       echo "Error: No write permission on /opt/apps."
+                       exit 1
+                   fi
+               else
+                   if [ ! -w "$APP_DIR" ]; then
+                       echo "Error: No write permission on $APP_DIR."
+                       exit 1
+                   fi
+               fi
             fi
 
             # Création du dossier dédié
-            mkdir -p /opt/apps/frontend
-            cd /opt/apps/frontend
+            mkdir -p $APP_DIR
+            cd $APP_DIR
             
             # Login Docker
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
@@ -102,18 +104,20 @@ jobs:
             # Création du docker-compose.yml à la volée
             cat <<EOF > docker-compose.yml
             services:
-              front:
-                image: ghcr.io/$REPO_LC:front-latest
-                container_name: lecreuset-front
+              front-dev:
+                image: ghcr.io/$REPO_LC:front-dev
+                container_name: lecreuset-front-dev
                 restart: always
                 networks:
                   - proxy
                 labels:
                   - "traefik.enable=true"
-                  - "traefik.http.routers.front.rule=Host(\`lecreuset.benaja-bendo.fr\`)"
-                  - "traefik.http.routers.front.entrypoints=websecure"
-                  - "traefik.http.routers.front.tls.certresolver=myresolver"
-                  - "traefik.http.services.front.loadbalancer.server.port=80"
+                  - "traefik.http.routers.front-dev.rule=Host(\`dev.lagrenaille.fr\`)"
+                  - "traefik.http.routers.front-dev.entrypoints=websecure"
+                  - "traefik.http.routers.front-dev.tls.certresolver=myresolver"
+                  - "traefik.http.services.front-dev.loadbalancer.server.port=80"
+                  # Protection Basic Auth optionnelle pour la dev (à activer si besoin)
+                  # - "traefik.http.routers.front-dev.middlewares=authtraefik" 
             networks:
               proxy:
                 external: true
