@@ -48,8 +48,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
-            VITE_API_URL=https://api.dev.lecreuset.benaja-bendo.fr
-            VITE_DOMAIN_NAME=dev.lecreuset.benaja-bendo.fr
+            VITE_API_URL=https://api.dev.lagrenaille.fr
+            VITE_DOMAIN_NAME=dev.lagrenaille.fr
 
   deploy:
     runs-on: ubuntu-latest
@@ -112,7 +112,7 @@ jobs:
                   - proxy
                 labels:
                   - "traefik.enable=true"
-                  - "traefik.http.routers.front-dev.rule=Host(\`dev.lecreuset.benaja-bendo.fr\`)"
+                  - "traefik.http.routers.front-dev.rule=Host(\`dev.lagrenaille.fr\`)"
                   - "traefik.http.routers.front-dev.entrypoints=websecure"
                   - "traefik.http.routers.front-dev.tls.certresolver=myresolver"
                   - "traefik.http.services.front-dev.loadbalancer.server.port=80"
