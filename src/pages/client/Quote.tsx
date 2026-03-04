@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { RefreshCw, Upload, X, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Upload, X, CheckCircle, AlertCircle, Loader2, Info } from 'lucide-react';
 import { uploadFile, postJSON, BASE_URL } from '../../api/client';
 import { useNavigate } from 'react-router-dom';
 import STLViewer from '../../components/STLViewer';
@@ -33,11 +33,18 @@ const SectionTitle = ({ title, subtitle }: { title: string, subtitle: string }) 
 
 // Configuration des matériaux avec densité pour le calcul du poids
 const MATERIALS = [
-  { id: 'or-jaune', label: 'Or Jaune 18k', color: 'bg-yellow-500', pricePerGram: 60, density: 19.3 },
-  { id: 'or-rose', label: 'Or Rose 18k', color: 'bg-pink-400', pricePerGram: 60, density: 18.5 },
-  { id: 'argent', label: 'Argent 925', color: 'bg-gray-300', pricePerGram: 1.5, density: 10.5 },
-  { id: 'bronze', label: 'Bronze', color: 'bg-orange-700', pricePerGram: 0.3, density: 8.7 },
-  { id: 'resine', label: 'Proto Résine', color: 'bg-blue-500', pricePerGram: 0.2, density: 1.2 },
+  { id: 'OR_JAUNE_375', label: 'Or Jaune 375 (9k)', color: 'bg-yellow-200', pricePerGram: 25, density: 11.0, isService: false },
+  { id: 'OR_JAUNE_750', label: 'Or Jaune 750 (18k)', color: 'bg-yellow-500', pricePerGram: 60, density: 15.0, isService: false },
+  { id: 'OR_ROSE_375', label: 'Or Rose 375 (9k)', color: 'bg-pink-300', pricePerGram: 25, density: 11.0, isService: false },
+  { id: 'OR_ROSE_750', label: 'Or Rose 750 (18k)', color: 'bg-pink-400', pricePerGram: 60, density: 15.0, isService: false },
+  { id: 'OR_GRIS_375', label: 'Or Gris 375 (9k)', color: 'bg-gray-300', pricePerGram: 25, density: 11.0, isService: false },
+  { id: 'OR_GRIS_750', label: 'Or Gris 750 (18k)', color: 'bg-gray-400', pricePerGram: 60, density: 15.0, isService: false },
+  { id: 'OR_GRIS_750_PALLADIE_13', label: 'Or Gris 750 (Palladié 13%)', color: 'bg-gray-200', pricePerGram: 70, density: 15.5, isService: false },
+  { id: 'OR_ROUGE_750', label: 'Or Rouge 750 (18k)', color: 'bg-red-400', pricePerGram: 60, density: 15.0, isService: false },
+  { id: 'PLATINE_950', label: 'Platine 950', color: 'bg-slate-300', pricePerGram: 45, density: 21.0, isService: false },
+  { id: 'ARGENT_925', label: 'Argent 925', color: 'bg-gray-100', pricePerGram: 1.5, density: 10.4, isService: false },
+  { id: 'PROTO_VISUEL', label: 'Prototype Visuel', color: 'bg-blue-300', pricePerGram: 0, density: 1.2, isService: true },
+  { id: 'IMPRESSION_CIRE', label: 'Impression Cire', color: 'bg-orange-300', pricePerGram: 0, density: 1.0, isService: true },
 ];
 
 export default function Quote() {
@@ -46,8 +53,7 @@ export default function Quote() {
   
   const [step, setStep] = useState(1);
   const [fileData, setFileData] = useState<{name: string, url: string, objectName: string} | null>(null);
-  const [material, setMaterial] = useState('or-jaune');
-  const [finish, setFinish] = useState('poli');
+  const [material, setMaterial] = useState('OR_JAUNE_750');
   const [quantity, setQuantity] = useState(1);
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -55,6 +61,9 @@ export default function Quote() {
   const [success, setSuccess] = useState(false);
   const [modelVolume, setModelVolume] = useState<number | null>(null);
   const [modelDimensions, setModelDimensions] = useState<{ x: number; y: number; z: number } | null>(null);
+  
+  // Modal Confirm State
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -91,19 +100,30 @@ export default function Quote() {
     const mat = MATERIALS.find(m => m.id === material);
     if (!mat || !modelVolume) return null;
 
+    if (mat.isService) {
+        // Prix fixe simplifié pour les services par volume
+        const serviceBasePrice = mat.id === 'PROTO_VISUEL' ? 30 : 40;
+        return Math.round(serviceBasePrice * quantity + (modelVolume * 2));
+    }
+
     const weight = modelVolume * mat.density; // grammes
     const materialCost = weight * mat.pricePerGram;
     const laborCost = 50; // Forfait main d'œuvre
-    const finishCost = finish === 'poli' ? 40 : 0;
     
-    return Math.round((materialCost + laborCost + finishCost) * quantity);
+    return Math.round((materialCost + laborCost) * quantity);
   };
 
   const getEstimatedWeight = () => {
     const mat = MATERIALS.find(m => m.id === material);
-    if (!mat || !modelVolume) return null;
+    if (!mat || !modelVolume || mat.isService) return null;
     return (modelVolume * mat.density).toFixed(1);
   };
+
+  const selectedMaterial = MATERIALS.find(m => m.id === material);
+
+  const handleConfirmOrder = () => {
+     setShowConfirmModal(true);
+  }
 
   const handleSubmitOrder = async () => {
     if (!fileData) return;
@@ -114,12 +134,15 @@ export default function Quote() {
       await postJSON('/orders', {
         stlFileUrl: fileData.url,
         estimatedPrice: price,
-        notes: `Matière: ${material}, Finition: ${finish}, Quantité: ${quantity}, Volume: ${modelVolume?.toFixed(2)}cm³`
+        materialType: material,
+        notes: `Quantité: ${quantity}, Volume: ${modelVolume?.toFixed(2)}cm³`
       });
+      setShowConfirmModal(false);
       setSuccess(true);
       setTimeout(() => navigate('/client'), 3000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de la commande');
+      setShowConfirmModal(false);
     } finally {
       setIsSubmitting(false);
     }
@@ -138,9 +161,9 @@ export default function Quote() {
         <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6">
           <CheckCircle size={40} />
         </div>
-        <h2 className="text-3xl font-serif text-secondary-900 mb-4">Commande Confirmée</h2>
+        <h2 className="text-3xl font-serif text-secondary-900 mb-4">Demande Envoyée</h2>
         <p className="text-secondary-600 max-w-md mx-auto">
-          Votre demande de production a bien été enregistrée. Elle est désormais visible dans votre tableau de bord sous le statut "EN ATTENTE".
+          Votre intention de commande a bien été prise en compte. Notre équipe va examiner votre fichier et revenir vers vous avec un prix ajusté si nécessaire.
         </p>
         <p className="text-secondary-400 text-sm mt-8 animate-pulse text-balance">Redirection vers le tableau de bord...</p>
       </div>
@@ -159,6 +182,71 @@ export default function Quote() {
           <AlertCircle size={20} />
           <p>{error}</p>
         </div>
+      )}
+
+      {/* MODAL DE CONFIRMATION */}
+      {showConfirmModal && (
+         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-secondary-950/60 backdrop-blur-sm" onClick={() => setShowConfirmModal(false)}>
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+               <div className="p-6 border-b border-secondary-100 flex items-center justify-between bg-secondary-50/50">
+                  <h3 className="font-bold text-lg text-secondary-900 font-serif">Valider votre demande</h3>
+                  <button onClick={() => setShowConfirmModal(false)} className="text-secondary-400 hover:text-secondary-700">
+                     <X size={20} />
+                  </button>
+               </div>
+               
+               <div className="p-6 space-y-6">
+                  <div className="bg-blue-50 text-blue-800 p-4 rounded-xl flex gap-3 text-sm border border-blue-100">
+                     <Info size={20} className="shrink-0 text-blue-600" />
+                     <p>En validant ce formulaire, vous émettrez une intention de commande. <strong>Aucun paiement n'est requis immédiatement.</strong> Un expert vérifiera la conception 3D et le tirage sera validé manuellement.</p>
+                  </div>
+
+                  <div className="space-y-4">
+                     <h4 className="font-bold text-secondary-900 text-sm uppercase tracking-widest border-b border-secondary-100 pb-2">Récapitulatif</h4>
+                     
+                     <div className="flex justify-between items-center text-sm">
+                        <span className="text-secondary-500">Matière / Service</span>
+                        <span className="font-bold text-secondary-900">{selectedMaterial?.label}</span>
+                     </div>
+                     <div className="flex justify-between items-center text-sm">
+                        <span className="text-secondary-500">Fichier</span>
+                        <span className="font-mono text-xs text-secondary-900 bg-secondary-100 px-2 py-1 rounded">{fileData?.name}</span>
+                     </div>
+                     <div className="flex justify-between items-center text-sm">
+                        <span className="text-secondary-500">Quantité</span>
+                        <span className="font-bold text-secondary-900">{quantity} pièce(s)</span>
+                     </div>
+                     {weight && (
+                        <div className="flex justify-between items-center text-sm">
+                           <span className="text-secondary-500">Masse estimée unitaire</span>
+                           <span className="font-bold text-secondary-900">~{weight}g</span>
+                        </div>
+                     )}
+                     
+                     <div className="pt-4 mt-2 border-t border-secondary-100 flex justify-between items-center">
+                        <span className="font-bold text-secondary-900">Montant Estimé</span>
+                        <span className="text-2xl font-serif text-primary-600 font-bold">{price} €</span>
+                     </div>
+                  </div>
+               </div>
+
+               <div className="p-6 border-t border-secondary-100 bg-secondary-50/50 flex justify-end gap-3">
+                  <button 
+                     onClick={() => setShowConfirmModal(false)}
+                     className="px-5 py-2.5 text-secondary-600 font-medium hover:bg-white rounded-xl transition-colors border border-transparent hover:border-secondary-200"
+                  >
+                     Annuler
+                  </button>
+                  <button 
+                     onClick={handleSubmitOrder}
+                     disabled={isSubmitting}
+                     className="px-6 py-2.5 bg-secondary-900 hover:bg-black text-white font-bold rounded-xl shadow-md disabled:opacity-50 flex items-center gap-2 transition-transform active:scale-95"
+                  >
+                     {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : 'Confirmer la demande'}
+                  </button>
+               </div>
+            </div>
+         </div>
       )}
 
       <div className="bg-white border border-secondary-200 rounded-sm overflow-hidden flex flex-col md:flex-row min-h-[560px] shadow-sm">
@@ -201,7 +289,7 @@ export default function Quote() {
                 fileUrl={fileData?.url || null}
                 fileName={fileData?.name || null}
                 materialType={material}
-                finishType={finish}
+                finishType="poli" // Backward comp
                 onVolumeCalculated={handleVolumeCalculated}
               />
               <button 
@@ -215,52 +303,29 @@ export default function Quote() {
           )}
         </div>
 
-        <div className="w-full md:w-1/3 p-8 bg-white flex flex-col">
-          <div className="mb-8">
+        <div className="w-full md:w-1/3 p-4 md:p-8 bg-white flex flex-col overflow-y-auto max-h-[800px]">
+          <div className="mb-6">
             <h3 className="text-primary-600 text-xs font-bold tracking-widest uppercase mb-6 flex items-center gap-2">
               <div className="h-px w-4 bg-primary-600"></div>
               Configuration
             </h3>
             
             <div className="mb-6">
-              <label className="block text-xs font-bold text-secondary-500 uppercase tracking-wider mb-3">Matériau de fonte</label>
-              <div className="grid grid-cols-2 gap-3">
+              <label className="block text-xs font-bold text-secondary-500 uppercase tracking-wider mb-3">Matériau / Service</label>
+              <div className="grid grid-cols-1 gap-2">
                 {MATERIALS.map((m) => (
                   <button
                     key={m.id}
                     onClick={() => setMaterial(m.id)}
-                    className={`p-3 rounded-md border text-left transition-all flex items-center gap-3 ${
+                    className={`p-2 xl:p-3 rounded-md border text-left transition-all flex items-center gap-3 ${
                       material === m.id 
                       ? 'border-primary-600 bg-primary-50 text-secondary-900 ring-1 ring-primary-500/50' 
                       : 'border-secondary-200 text-secondary-600 hover:border-secondary-300 bg-white'
                     } ${step === 1 ? 'opacity-40 cursor-not-allowed' : ''}`}
                     disabled={step === 1}
                   >
-                    <div className={`w-3 h-3 rounded-full ${m.color} shadow-sm shrink-0`}></div>
-                    <span className="text-[10px] font-bold uppercase tracking-tight truncate">{m.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="mb-6">
-              <label className="block text-xs font-bold text-secondary-500 uppercase tracking-wider mb-3">Finition</label>
-              <div className="flex gap-2">
-                {[
-                  { id: 'brut', label: 'Brut de fonte' },
-                  { id: 'poli', label: 'Poli miroir' },
-                ].map((f) => (
-                  <button
-                    key={f.id}
-                    onClick={() => setFinish(f.id)}
-                    className={`flex-1 py-3 px-2 rounded-md border text-[10px] font-bold uppercase tracking-wider transition-all ${
-                      finish === f.id 
-                      ? 'border-primary-600 bg-primary-50 text-secondary-900' 
-                      : 'border-secondary-200 text-secondary-600 hover:border-secondary-300 bg-white'
-                    } ${step === 1 ? 'opacity-40 cursor-not-allowed' : ''}`}
-                    disabled={step === 1}
-                  >
-                    {f.label}
+                    <div className={`w-3 h-3 rounded-full ${m.color} shadow-sm shrink-0 border border-black/10`}></div>
+                    <span className="text-[10px] xl:text-xs font-bold uppercase tracking-tight truncate">{m.label}</span>
                   </button>
                 ))}
               </div>
@@ -294,7 +359,7 @@ export default function Quote() {
                   </div>
                   {weight && (
                     <div className="flex justify-between">
-                      <span className="text-secondary-500">Poids estimé:</span>
+                      <span className="text-secondary-500">Masse estimée:</span>
                       <span className="font-medium text-secondary-900">~{weight}g</span>
                     </div>
                   )}
@@ -327,13 +392,13 @@ export default function Quote() {
               variant="primary" 
               className="w-full py-4 shadow-xl shadow-primary-900/10" 
               disabled={step === 1 || isSubmitting || price === null}
-              onClick={handleSubmitOrder}
+              onClick={handleConfirmOrder}
             >
-              {isSubmitting ? <Loader2 className="animate-spin" size={20} /> : 'Commander cette pièce'}
+              Envoyer la demande
             </Button>
-            <div className="flex items-center justify-center gap-2 mt-4 text-[10px] text-secondary-400 uppercase font-bold tracking-tighter">
-              <RefreshCw size={12} className="text-primary-500" />
-              Délai de fabrication : 5 à 7 jours
+            <div className="flex items-center justify-center gap-2 mt-4 text-[10px] text-secondary-400 uppercase font-bold tracking-tighter text-center leading-tight">
+              <AlertCircle size={12} className="text-primary-500 shrink-0" />
+              Validation et examen gratuit.
             </div>
           </div>
         </div>

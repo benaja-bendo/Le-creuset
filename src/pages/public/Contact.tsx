@@ -37,7 +37,7 @@ export default function Contact() {
               <div className="flex items-start gap-4">
                 <MapPin className="text-primary-600 mt-1" size={20} />
                 <div>
-                  <h4 className="text-white font-medium">L'Atelier Le Creuset</h4>
+                  <h4 className="text-white font-medium">L'Atelier La Grenaille</h4>
                   <p className="text-secondary-500">12 Rue des Fondeurs<br/>75003 Paris, France</p>
                 </div>
               </div>

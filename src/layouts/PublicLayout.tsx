@@ -107,7 +107,7 @@ export default function PublicLayout() {
               <CustomLogo size={48} />
             </div>
             <span className="text-2xl font-serif font-bold tracking-wide text-white">
-              LE CREUSET
+              LA GRENAILLE
             </span>
           </Link>
 
@@ -182,7 +182,7 @@ export default function PublicLayout() {
                 <div className="w-6 h-6 bg-secondary-800 rounded-sm flex items-center justify-center text-primary-600">
                   <Hammer size={14} />
                 </div>
-                <span className="text-lg font-serif font-bold text-white">LE CREUSET</span>
+                <span className="text-lg font-serif font-bold text-white">LA GRENAILLE</span>
               </div>
               <p className="text-secondary-500 text-sm leading-relaxed">
                 L'excellence de la fonderie d'art et de bijouterie. 
@@ -223,7 +223,7 @@ export default function PublicLayout() {
           </div>
           
           <div className="border-t border-secondary-900 pt-8 text-center text-xs text-secondary-600">
-            &copy; {new Date().getFullYear()} Le Creuset. Tous droits réservés.
+            &copy; {new Date().getFullYear()} La Grenaille. Tous droits réservés.
           </div>
         </div>
       </footer>

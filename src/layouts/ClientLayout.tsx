@@ -76,7 +76,7 @@ export default function ClientLayout() {
                 </div>
                 <div>
                   <h1 className="text-lg font-bold tracking-wide text-white">
-                    LE CREUSET
+                    LA GRENAILLE
                   </h1>
                   <p className="text-[10px] tracking-widest uppercase text-primary-400 font-medium">
                     espace pro

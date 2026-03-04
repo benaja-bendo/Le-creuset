@@ -2,7 +2,7 @@ export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/ap
 // Base URL sans /api pour les URLs de fichiers retournées par l'API
 export const BASE_URL = API_URL.replace(/\/api$/, '');
 
-const TOKEN_KEY = 'lecreuset_token';
+const TOKEN_KEY = 'lagrenaille_token';
 
 export const getToken = () => localStorage.getItem(TOKEN_KEY);
 export const setToken = (token: string) => localStorage.setItem(TOKEN_KEY, token);

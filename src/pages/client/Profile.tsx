@@ -293,9 +293,11 @@ export default function Profile() {
             <Tab active={activeTab === 'security'} onClick={() => setActiveTab('security')}>
               <span className="flex items-center gap-2"><Lock size={16} /> Sécurité</span>
             </Tab>
-            <Tab active={activeTab === 'documents'} onClick={() => setActiveTab('documents')}>
-              <span className="flex items-center gap-2"><FileText size={16} /> Documents</span>
-            </Tab>
+            {profile?.role !== 'ADMIN' && (
+              <Tab active={activeTab === 'documents'} onClick={() => setActiveTab('documents')}>
+                <span className="flex items-center gap-2"><FileText size={16} /> Documents</span>
+              </Tab>
+            )}
           </div>
         </div>
 
@@ -509,16 +511,17 @@ export default function Profile() {
                 </div>
               </div>
 
-              {/* Account Info */}
-              <div className="mt-8 p-4 bg-primary-50 rounded-lg border border-primary-200">
-                <h5 className="font-medium text-primary-900 mb-2">Informations du compte</h5>
-                <div className="text-sm text-primary-700 space-y-1">
-                  <p>Compte créé le : <strong>{profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString('fr-FR') : '-'}</strong></p>
-                  <p>Dernière mise à jour : <strong>{profile?.updatedAt ? new Date(profile.updatedAt).toLocaleDateString('fr-FR') : '-'}</strong></p>
-                </div>
-              </div>
             </div>
           )}
+          
+          {/* Account Info */}
+          <div className="mt-8 p-4 bg-primary-50 rounded-lg border border-primary-200">
+            <h5 className="font-medium text-primary-900 mb-2">Informations du compte</h5>
+            <div className="text-sm text-primary-700 space-y-1">
+              <p>Compte créé le : <strong>{profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString('fr-FR') : '-'}</strong></p>
+              <p>Dernière mise à jour : <strong>{profile?.updatedAt ? new Date(profile.updatedAt).toLocaleDateString('fr-FR') : '-'}</strong></p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -320,7 +320,7 @@ export default function Services() {
               Pourquoi Nous Choisir
             </h2>
             <p className="text-secondary-400">
-              L'engagement Le Creuset pour votre réussite
+              L'engagement La Grenaille pour votre réussite
             </p>
           </div>
 
