@@ -82,8 +82,8 @@ export default function WeightGauges({ accounts }: WeightGaugesProps) {
         <div className="p-4 bg-red-50 text-red-800 rounded-xl border border-red-200 flex gap-3 text-sm">
            <AlertCircle className="shrink-0 mt-0.5 text-red-600" size={18} />
            <div>
-              <p className="font-bold mb-1">Attention, vous avez un solde de métal négatif.</p>
-              <p>Ceci indique que nous vous avons avancé du métal de notre propre stock lors de vos dernières commandes. Veuillez prévoir un apport pour régulariser votre compte.</p>
+              <p className="font-bold mb-1">⚠️ Veuillez régulariser votre compte poids</p>
+              <p>Votre solde de métal est négatif. Ceci indique que nous vous avons avancé du métal de notre propre stock lors de vos dernières commandes. Veuillez prévoir un apport pour régulariser votre compte.</p>
            </div>
         </div>
       )}

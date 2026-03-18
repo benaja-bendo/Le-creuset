@@ -2,6 +2,14 @@ export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/ap
 // Base URL sans /api pour les URLs de fichiers retournées par l'API
 export const BASE_URL = API_URL.replace(/\/api$/, '');
 
+export const resolveUrl = (url: string | null | undefined) => {
+  if (!url) return '';
+  if (url.startsWith('http')) return url;
+  // Ensure we don't double slash
+  const path = url.startsWith('/') ? url : `/${url}`;
+  return `${BASE_URL}${path}`;
+};
+
 const TOKEN_KEY = 'lagrenaille_token';
 
 export const getToken = () => localStorage.getItem(TOKEN_KEY);
@@ -99,5 +107,18 @@ export async function uploadFile(file: File): Promise<{ url: string; objectName:
     throw new Error(err.message || `Upload échoué : ${res.status}`);
   }
 
+  return res.json();
+}
+
+export async function deleteJSON<T>(path: string): Promise<T> {
+  const res = await fetch(`${API_URL}${path}`, {
+    method: 'DELETE',
+    headers: getHeaders(),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    if (res.status === 401) removeToken();
+    throw new Error(parseApiError(err));
+  }
   return res.json();
 }

@@ -261,15 +261,20 @@ export default function Weights() {
                      return (
                         <div key={acc.id} className={`p-3 rounded-xl border flex flex-col justify-between
                             ${isNegative ? 'bg-red-50 border-red-200' : getMetalColor(acc.metalType)}`}>
-                            <span className="text-[10px] font-bold uppercase tracking-wider opacity-70 mb-1">
+                            <span className={`text-[10px] font-bold uppercase tracking-wider mb-1 ${isNegative ? 'text-red-700' : 'opacity-70'}`}>
                                 {getMetalName(acc.metalType)}
                             </span>
                             <div className="flex items-baseline gap-1 mt-auto">
                                 <span className={`text-xl font-black tracking-tighter ${isNegative ? 'text-red-700' : ''}`}>
                                   {acc.balance.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
                                 </span>
-                                <span className="text-xs font-bold opacity-60">g</span>
+                                <span className={`text-xs font-bold ${isNegative ? 'text-red-500' : 'opacity-60'}`}>g</span>
                             </div>
+                            {isNegative && (
+                              <p className="text-[9px] font-bold text-red-600 mt-1.5 leading-tight">
+                                ⚠️ Veuillez régulariser votre compte poids
+                              </p>
+                            )}
                         </div>
                      )
                   })}

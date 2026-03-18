@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getJSON, patchJSON, postJSON } from '../../api/client';
-import { Box, AlertCircle, Loader2, Download, Package, Flame, Send, Eye, FilePlus, Layers, Plus } from 'lucide-react';
+import { getJSON, patchJSON, postJSON, deleteJSON } from '../../api/client';
+import { Box, AlertCircle, Loader2, Download, Package, Flame, Send, Eye, FilePlus, Layers, Plus, Trash2, X } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
 
 type Order = {
@@ -43,9 +43,11 @@ export default function AdminOrders() {
   const [manualForm, setManualForm] = useState({
     userId: '',
     materialType: 'OR_750_JAUNE',
-    estimatedPrice: '',
     notes: ''
   });
+
+  // Status filter
+  const [statusFilter, setStatusFilter] = useState<string>('');
 
   const materialOptions = [
     { value: 'OR_750_JAUNE', label: 'Or Jaune 750' },
@@ -58,8 +60,8 @@ export default function AdminOrders() {
     { value: 'OR_750_ROUGE', label: 'Or Rouge 750' },
     { value: 'ARGENT_925', label: 'Argent 925' },
     { value: 'PLATINE_950', label: 'Platine 950' },
-    { value: 'PROTOTYPE_LAITON', label: 'Prototype Laiton' },
-    { value: 'IMPRESSION_CIRE', label: 'Impression Cire Seule' }
+    { value: 'LAITON', label: 'Laiton' },
+    { value: 'PROTOTYPE_RESINE', label: 'Prototype Résine' }
   ];
 
   useEffect(() => {
@@ -166,6 +168,16 @@ export default function AdminOrders() {
     }
   };
 
+  const handleDeleteOrder = async (orderId: string) => {
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cette commande ? Cette action est irréversible.')) return;
+    try {
+      await deleteJSON(`/orders/${orderId}`);
+      setOrders(orders.filter(o => o.id !== orderId));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Erreur lors de la suppression');
+    }
+  };
+
   const handleCreateManualOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!manualForm.userId || !manualForm.materialType) return;
@@ -174,22 +186,31 @@ export default function AdminOrders() {
     try {
       await postJSON('/orders/manual', {
         ...manualForm,
-        estimatedPrice: manualForm.estimatedPrice ? parseFloat(manualForm.estimatedPrice) : undefined
       });
       setShowManualModal(false);
       setManualForm({
         userId: '',
         materialType: 'OR_750_JAUNE',
-        estimatedPrice: '',
         notes: ''
       });
-      await fetchData(); // Refresh list
+      await fetchData();
     } catch (e: any) {
       alert(e.message || "Erreur lors de la création de la commande.");
     } finally {
       setIsSubmittingManual(false);
     }
   };
+
+  // Filter & sort orders: status filter + completed/invoiced at end
+  const filteredOrders = orders
+    .filter(o => !statusFilter || o.status === statusFilter)
+    .sort((a, b) => {
+      const aFinished = a.status === 'EXPEDIE' && !!a.invoiceGroupId;
+      const bFinished = b.status === 'EXPEDIE' && !!b.invoiceGroupId;
+      if (aFinished && !bFinished) return 1;
+      if (!aFinished && bFinished) return -1;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
 
 
   if (loading) {
@@ -207,7 +228,30 @@ export default function AdminOrders() {
           <h1 className="text-2xl font-bold text-secondary-900 font-serif">Gestion des Commandes</h1>
           <p className="text-secondary-500">Création manuelle, suivi global de la production et mise à jour des statuts.</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-3 items-end">
+            {/* Status Filter */}
+            <div className="relative">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="appearance-none px-4 py-2.5 pr-8 bg-white border border-secondary-200 rounded-lg text-sm font-medium text-secondary-700 focus:ring-2 focus:ring-primary-500 outline-none cursor-pointer"
+              >
+                <option value="">Tous les statuts</option>
+                <option value="EN_ATTENTE">Attente</option>
+                <option value="TIRAGE_OK">Cires OK</option>
+                <option value="FONDU">Fondu</option>
+                <option value="EXPEDIE">Expédié</option>
+              </select>
+              {statusFilter && (
+                <button 
+                  onClick={() => setStatusFilter('')}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-secondary-400 hover:text-secondary-700 transition-colors"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
             {selectedOrders.size > 0 && (
                 <button
                 onClick={handleGroupOrders}
@@ -275,17 +319,6 @@ export default function AdminOrders() {
                   </select>
                </div>
 
-               <div>
-                  <label className="block text-sm font-medium text-secondary-700 mb-1">Prix Estimé (€)</label>
-                  <input 
-                     type="number"
-                     step="0.01"
-                     value={manualForm.estimatedPrice}
-                     onChange={e => setManualForm({...manualForm, estimatedPrice: e.target.value})}
-                     placeholder="Ex: 150.00"
-                     className="w-full px-4 py-2.5 bg-white border border-secondary-200 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none text-secondary-900"
-                  />
-               </div>
 
                <div>
                   <label className="block text-sm font-medium text-secondary-700 mb-1">Notes internes / Description</label>
@@ -327,7 +360,7 @@ export default function AdminOrders() {
               </tr>
             </thead>
             <tbody className="divide-y divide-secondary-100">
-              {orders.map((order) => {
+              {filteredOrders.map((order) => {
                   const isGrouped = !!order.invoiceGroupId;
                   const isSelected = selectedOrders.has(order.id);
                   const isManual = !order.stlFileUrl;
@@ -402,6 +435,18 @@ export default function AdminOrders() {
                           )}
 
                           <div className="h-6 w-px bg-secondary-200 mx-1"></div>
+
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button 
+                                onClick={() => handleDeleteOrder(order.id)}
+                                className="p-2 bg-secondary-100 text-secondary-400 rounded-lg hover:bg-red-50 hover:text-red-600 transition-all"
+                              >
+                                <Trash2 size={18} />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>Supprimer la commande</TooltipContent>
+                          </Tooltip>
 
                           <Tooltip>
                             <TooltipTrigger asChild>

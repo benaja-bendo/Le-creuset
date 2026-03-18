@@ -25,6 +25,7 @@ const MATERIAL_CONFIG: Record<string, { color: number; metalness: number; densit
   'PLATINE_950': { color: 0xE5E4E2, metalness: 1.0, density: 21.0 },
   'PALLADIUM': { color: 0xCED0DD, metalness: 1.0, density: 12.0 },
   'ARGENT_925': { color: 0xC0C0C0, metalness: 1.0, density: 10.4 },
+  'LAITON': { color: 0xCDA434, metalness: 0.8, density: 8.5 },
   'PROTO_VISUEL': { color: 0x3b82f6, metalness: 0.1, density: 1.2, isService: true },
   'IMPRESSION_CIRE': { color: 0xFF5733, metalness: 0.0, density: 1.0, isService: true },
 };
@@ -87,7 +88,7 @@ export default function STLViewer({ fileUrl, fileName, materialType, finishType,
 
     // Scène
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xf1f5f9);
+    scene.background = new THREE.Color(0xfafafa);
     sceneRef.current = scene;
 
     // Caméra
@@ -107,7 +108,7 @@ export default function STLViewer({ fileUrl, fileName, materialType, finishType,
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.0;
+    renderer.toneMappingExposure = 1.5;
     containerRef.current.innerHTML = '';
     containerRef.current.appendChild(renderer.domElement);
     rendererRef.current = renderer;
@@ -127,19 +128,19 @@ export default function STLViewer({ fileUrl, fileName, materialType, finishType,
     controlsRef.current = controls;
 
     // Lumières
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
     scene.add(ambientLight);
 
-    const keyLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    const keyLight = new THREE.DirectionalLight(0xffffff, 1.2);
     keyLight.position.set(50, 100, 80);
     keyLight.castShadow = true;
     scene.add(keyLight);
 
-    const fillLight = new THREE.DirectionalLight(0xffffff, 0.4);
+    const fillLight = new THREE.DirectionalLight(0xffffff, 0.8);
     fillLight.position.set(-50, 50, -30);
     scene.add(fillLight);
 
-    const rimLight = new THREE.DirectionalLight(0xffaf7b, 0.3);
+    const rimLight = new THREE.DirectionalLight(0xffaf7b, 0.4);
     rimLight.position.set(0, -50, -50);
     scene.add(rimLight);
 

@@ -1,7 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
-import { Upload, X, CheckCircle, AlertCircle, Loader2, Info } from 'lucide-react';
-import { uploadFile, postJSON, BASE_URL } from '../../api/client';
-import { useNavigate } from 'react-router-dom';
+import { Upload, X, AlertCircle, Loader2 } from 'lucide-react';
+import { uploadFile, BASE_URL } from '../../api/client';
 import STLViewer from '../../components/STLViewer';
 
 // Composant bouton (client)
@@ -43,12 +42,12 @@ const MATERIALS = [
   { id: 'OR_ROUGE_750', label: 'Or Rouge 750 (18k)', color: 'bg-red-400', pricePerGram: 60, density: 15.0, isService: false },
   { id: 'PLATINE_950', label: 'Platine 950', color: 'bg-slate-300', pricePerGram: 45, density: 21.0, isService: false },
   { id: 'ARGENT_925', label: 'Argent 925', color: 'bg-gray-100', pricePerGram: 1.5, density: 10.4, isService: false },
+  { id: 'LAITON', label: 'Laiton', color: 'bg-amber-300', pricePerGram: 0.5, density: 8.5, isService: false },
   { id: 'PROTO_VISUEL', label: 'Prototype Visuel', color: 'bg-blue-300', pricePerGram: 0, density: 1.2, isService: true },
-  { id: 'IMPRESSION_CIRE', label: 'Impression Cire', color: 'bg-orange-300', pricePerGram: 0, density: 1.0, isService: true },
+  { id: 'IMPRESSION_CIRE', label: 'Prototype Résine', color: 'bg-orange-300', pricePerGram: 0, density: 1.0, isService: true },
 ];
 
 export default function Quote() {
-  const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [step, setStep] = useState(1);
@@ -56,14 +55,9 @@ export default function Quote() {
   const [material, setMaterial] = useState('OR_JAUNE_750');
   const [quantity, setQuantity] = useState(1);
   const [isUploading, setIsUploading] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
   const [modelVolume, setModelVolume] = useState<number | null>(null);
   const [modelDimensions, setModelDimensions] = useState<{ x: number; y: number; z: number } | null>(null);
-  
-  // Modal Confirm State
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -119,34 +113,6 @@ export default function Quote() {
     return (modelVolume * mat.density).toFixed(1);
   };
 
-  const selectedMaterial = MATERIALS.find(m => m.id === material);
-
-  const handleConfirmOrder = () => {
-     setShowConfirmModal(true);
-  }
-
-  const handleSubmitOrder = async () => {
-    if (!fileData) return;
-    setIsSubmitting(true);
-    setError(null);
-    try {
-      const price = calculatePrice();
-      await postJSON('/orders', {
-        stlFileUrl: fileData.url,
-        estimatedPrice: price,
-        materialType: material,
-        notes: `Quantité: ${quantity}, Volume: ${modelVolume?.toFixed(2)}cm³`
-      });
-      setShowConfirmModal(false);
-      setSuccess(true);
-      setTimeout(() => navigate('/client'), 3000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de la commande');
-      setShowConfirmModal(false);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   const handleRemoveFile = () => {
     setStep(1);
@@ -155,20 +121,6 @@ export default function Quote() {
     setModelDimensions(null);
   };
 
-  if (success) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[500px] bg-white rounded-xl border border-secondary-200 shadow-sm p-12 text-center">
-        <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6">
-          <CheckCircle size={40} />
-        </div>
-        <h2 className="text-3xl font-serif text-secondary-900 mb-4">Demande Envoyée</h2>
-        <p className="text-secondary-600 max-w-md mx-auto">
-          Votre intention de commande a bien été prise en compte. Notre équipe va examiner votre fichier et revenir vers vous avec un prix ajusté si nécessaire.
-        </p>
-        <p className="text-secondary-400 text-sm mt-8 animate-pulse text-balance">Redirection vers le tableau de bord...</p>
-      </div>
-    );
-  }
 
   const price = calculatePrice();
   const weight = getEstimatedWeight();
@@ -181,72 +133,7 @@ export default function Quote() {
         <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-center gap-2 mb-4">
           <AlertCircle size={20} />
           <p>{error}</p>
-        </div>
-      )}
-
-      {/* MODAL DE CONFIRMATION */}
-      {showConfirmModal && (
-         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-secondary-950/60 backdrop-blur-sm" onClick={() => setShowConfirmModal(false)}>
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
-               <div className="p-6 border-b border-secondary-100 flex items-center justify-between bg-secondary-50/50">
-                  <h3 className="font-bold text-lg text-secondary-900 font-serif">Valider votre demande</h3>
-                  <button onClick={() => setShowConfirmModal(false)} className="text-secondary-400 hover:text-secondary-700">
-                     <X size={20} />
-                  </button>
-               </div>
-               
-               <div className="p-6 space-y-6">
-                  <div className="bg-blue-50 text-blue-800 p-4 rounded-xl flex gap-3 text-sm border border-blue-100">
-                     <Info size={20} className="shrink-0 text-blue-600" />
-                     <p>En validant ce formulaire, vous émettrez une intention de commande. <strong>Aucun paiement n'est requis immédiatement.</strong> Un expert vérifiera la conception 3D et le tirage sera validé manuellement.</p>
-                  </div>
-
-                  <div className="space-y-4">
-                     <h4 className="font-bold text-secondary-900 text-sm uppercase tracking-widest border-b border-secondary-100 pb-2">Récapitulatif</h4>
-                     
-                     <div className="flex justify-between items-center text-sm">
-                        <span className="text-secondary-500">Matière / Service</span>
-                        <span className="font-bold text-secondary-900">{selectedMaterial?.label}</span>
-                     </div>
-                     <div className="flex justify-between items-center text-sm">
-                        <span className="text-secondary-500">Fichier</span>
-                        <span className="font-mono text-xs text-secondary-900 bg-secondary-100 px-2 py-1 rounded">{fileData?.name}</span>
-                     </div>
-                     <div className="flex justify-between items-center text-sm">
-                        <span className="text-secondary-500">Quantité</span>
-                        <span className="font-bold text-secondary-900">{quantity} pièce(s)</span>
-                     </div>
-                     {weight && (
-                        <div className="flex justify-between items-center text-sm">
-                           <span className="text-secondary-500">Masse estimée unitaire</span>
-                           <span className="font-bold text-secondary-900">~{weight}g</span>
-                        </div>
-                     )}
-                     
-                     <div className="pt-4 mt-2 border-t border-secondary-100 flex justify-between items-center">
-                        <span className="font-bold text-secondary-900">Montant Estimé</span>
-                        <span className="text-2xl font-serif text-primary-600 font-bold">{price} €</span>
-                     </div>
-                  </div>
-               </div>
-
-               <div className="p-6 border-t border-secondary-100 bg-secondary-50/50 flex justify-end gap-3">
-                  <button 
-                     onClick={() => setShowConfirmModal(false)}
-                     className="px-5 py-2.5 text-secondary-600 font-medium hover:bg-white rounded-xl transition-colors border border-transparent hover:border-secondary-200"
-                  >
-                     Annuler
-                  </button>
-                  <button 
-                     onClick={handleSubmitOrder}
-                     disabled={isSubmitting}
-                     className="px-6 py-2.5 bg-secondary-900 hover:bg-black text-white font-bold rounded-xl shadow-md disabled:opacity-50 flex items-center gap-2 transition-transform active:scale-95"
-                  >
-                     {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : 'Confirmer la demande'}
-                  </button>
-               </div>
-            </div>
-         </div>
+              </div>
       )}
 
       <div className="bg-white border border-secondary-200 rounded-sm overflow-hidden flex flex-col md:flex-row min-h-[560px] shadow-sm">
@@ -377,7 +264,7 @@ export default function Quote() {
           </div>
 
           <div className="mt-auto border-t border-secondary-100 pt-6">
-            <div className="flex justify-between items-end mb-6">
+            <div className="flex justify-between items-end mb-4">
               <div className="text-secondary-500 text-[10px] font-bold uppercase tracking-widest">Estimation HT</div>
               <div className="text-4xl font-serif text-secondary-900 flex items-baseline gap-1">
                 {step === 1 || price === null ? (
@@ -388,17 +275,16 @@ export default function Quote() {
                 <span className="text-sm font-sans font-medium text-secondary-400">€</span>
               </div>
             </div>
-            <Button 
-              variant="primary" 
-              className="w-full py-4 shadow-xl shadow-primary-900/10" 
-              disabled={step === 1 || isSubmitting || price === null}
-              onClick={handleConfirmOrder}
-            >
-              Envoyer la demande
-            </Button>
-            <div className="flex items-center justify-center gap-2 mt-4 text-[10px] text-secondary-400 uppercase font-bold tracking-tighter text-center leading-tight">
-              <AlertCircle size={12} className="text-primary-500 shrink-0" />
-              Validation et examen gratuit.
+            {price !== null && step !== 1 && (
+              <p className="text-[10px] text-secondary-400 italic mb-4 leading-snug">
+                Les prix mentionnés sont purement informatifs et n’ont pas de valeur contractuelle.
+              </p>
+            )}
+            <div className="p-4 bg-primary-50 border border-primary-200 rounded-lg">
+              <p className="text-xs text-primary-800 text-center leading-relaxed">
+                Pour toute commande, veuillez contacter l’adresse email{' '}
+                <a href="mailto:contact@lagrenaille.fr" className="font-bold underline">contact@lagrenaille.fr</a>
+              </p>
             </div>
           </div>
         </div>

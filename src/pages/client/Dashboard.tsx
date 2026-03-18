@@ -177,6 +177,15 @@ function ClientDashboard() {
       {weights.length > 0 && (
         <div>
           <h2 className="text-lg font-bold text-secondary-900 mb-4">Comptes Métaux</h2>
+          {weights.some(a => a.balance < 0) && (
+            <div className="mb-4 p-4 bg-red-50 text-red-800 rounded-xl border border-red-200 flex gap-3 text-sm">
+              <AlertCircle className="shrink-0 mt-0.5 text-red-600" size={18} />
+              <div>
+                <p className="font-bold">⚠️ Veuillez régulariser votre compte poids</p>
+                <p className="text-xs mt-1">Votre solde de métal est négatif. Veuillez contacter La Grenaille pour régulariser votre compte.</p>
+              </div>
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {weights.map((account) => {
               const isNegative = account.balance < 0;

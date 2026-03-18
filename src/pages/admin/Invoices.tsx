@@ -15,7 +15,7 @@ import {
   Plus,
   Layers
 } from 'lucide-react';
-import { getJSON, postJSON, BASE_URL, uploadFile, getToken } from '../../api/client';
+import { getJSON, postJSON, BASE_URL, uploadFile, getToken, resolveUrl } from '../../api/client';
 
 type Invoice = {
   id: string;
@@ -123,11 +123,7 @@ export default function AdminInvoices() {
     inv.user.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const resolveUrl = (url: string | null) => {
-    if (!url) return '';
-    if (url.startsWith('http')) return url;
-    return `${BASE_URL}${url}`;
-  };
+
 
   if (loading) {
     return (
@@ -186,13 +182,14 @@ export default function AdminInvoices() {
                 <th className="px-6 py-4">Montant</th>
                 <th className="px-6 py-4">Date</th>
                 <th className="px-6 py-4">Commande(s)</th>
+                <th className="px-6 py-4">Notes</th>
                 <th className="px-6 py-4 hover:text-secondary-800">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-secondary-100">
               {filteredInvoices.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-secondary-400">
+                  <td colSpan={8} className="px-6 py-12 text-center text-secondary-400">
                     <FileText size={40} className="mx-auto mb-3 opacity-30" />
                     <p>Aucune facture</p>
                   </td>
@@ -244,6 +241,13 @@ export default function AdminInvoices() {
                      ) : (
                         <span className="text-xs font-mono text-secondary-500">#{inv.orderId?.slice(-6) || ' N/A'}</span>
                      )}
+                  </td>
+                  <td className="px-6 py-4">
+                    {inv.notes ? (
+                      <span className="text-xs text-secondary-600 italic truncate block max-w-[150px]" title={inv.notes}>{inv.notes}</span>
+                    ) : (
+                      <span className="text-xs text-secondary-300">-</span>
+                    )}
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
@@ -335,6 +339,16 @@ function UploadInvoiceModal({
   onClose: () => void; 
   onSuccess: (inv: Invoice) => void;
 }) {
+  // Get unique users from orders
+  const uniqueUsers = Array.from(
+    new Map(orders.filter(o => o.user).map(o => [o.user!.email, o.user!])).values()
+  );
+
+  // Find initial user from initialOrderId
+  const initialOrder = initialOrderId ? orders.find(o => o.id === initialOrderId) : null;
+  const initialUserId = initialOrder?.userId || '';
+
+  const [selectedUserId, setSelectedUserId] = useState(initialUserId);
   const [form, setForm] = useState({
     invoiceNumber: '',
     orderId: initialOrderId || '',
@@ -345,12 +359,24 @@ function UploadInvoiceModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const selectedOrder = orders.find(o => o.id === form.orderId);
+  // Filter orders for the selected user, excluding already-invoiced ones
+  const availableOrders = orders.filter(o => 
+    o.userId === selectedUserId && 
+    !o.invoiceGroupId
+  );
+
+  // Reset order selection when user changes
+  const handleUserChange = (userId: string) => {
+    setSelectedUserId(userId);
+    setForm({ ...form, orderId: '' });
+  };
+
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file || !form.orderId) {
-      setError('Veuillez sélectionner un fichier et une commande');
+    if (!file || !selectedUserId) {
+      setError('Veuillez sélectionner un client et un fichier');
       return;
     }
 
@@ -358,20 +384,17 @@ function UploadInvoiceModal({
     setError(null);
 
     try {
-      // Upload file first
       const uploadRes = await uploadFile(file);
       
-      // Create invoice
       const invoice = await postJSON<Invoice>('/invoices', {
         invoiceNumber: form.invoiceNumber,
-        orderId: form.orderId,
-        userId: selectedOrder?.userId,
+        orderId: form.orderId === 'DEPOT_METAL' ? undefined : (form.orderId || undefined),
+        userId: selectedUserId,
         fileUrl: uploadRes.url,
         amount: form.amount ? parseFloat(form.amount) : undefined,
         notes: form.notes || undefined,
       });
 
-      // Type is required for immediate UI update.
       onSuccess({ ...invoice, type: 'individual' });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de la création');
@@ -411,24 +434,47 @@ function UploadInvoiceModal({
             />
           </div>
 
+          {/* Client selection FIRST */}
           <div>
             <label className="block text-sm font-medium text-secondary-700 mb-1.5">
-              Commande associée *
+              Client *
             </label>
             <select
-              value={form.orderId}
-              onChange={e => setForm({ ...form, orderId: e.target.value })}
+              value={selectedUserId}
+              onChange={e => handleUserChange(e.target.value)}
               className="w-full px-4 py-2.5 border border-secondary-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-secondary-900"
               required
             >
-              <option value="">Sélectionner une commande</option>
-              {orders.filter(o => !o.invoiceGroupId).map(o => (
-                <option key={o.id} value={o.id}>
-                  #{o.id.slice(-6)} - {o.user?.companyName || 'Client'} ({o.status})
+              <option value="">Sélectionner un client</option>
+              {uniqueUsers.map(u => (
+                <option key={u.email} value={orders.find(o => o.user?.email === u.email)?.userId || ''}>
+                  {u.companyName || u.email}
                 </option>
               ))}
             </select>
           </div>
+
+          {/* Order selection FILTERED by client */}
+          {selectedUserId && (
+            <div>
+              <label className="block text-sm font-medium text-secondary-700 mb-1.5">
+                Commande associée
+              </label>
+              <select
+                value={form.orderId}
+                onChange={e => setForm({ ...form, orderId: e.target.value })}
+                className="w-full px-4 py-2.5 border border-secondary-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-secondary-900"
+              >
+                <option value="">Aucune (facture libre)</option>
+                <option value="DEPOT_METAL">⚙ Dépôt métal</option>
+                {availableOrders.map(o => (
+                  <option key={o.id} value={o.id}>
+                    #{o.id.slice(-6)} - {o.status} ({new Date(o.createdAt).toLocaleDateString('fr-FR')})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-secondary-700 mb-1.5">

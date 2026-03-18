@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getJSON } from '../../api/client';
-import { Box, Clock, ChevronRight, AlertCircle, Loader2, FileText, Eye } from 'lucide-react';
+import { Box, Clock, ChevronRight, AlertCircle, Loader2, FileText, Eye, Mail } from 'lucide-react';
 
 type Invoice = {
   id: string;
@@ -72,6 +72,17 @@ export default function Orders() {
         <p className="text-secondary-500">Suivez l'état d'avancement de vos tirages et fontes.</p>
       </div>
 
+      {/* Contact banner */}
+      <div className="p-4 bg-primary-50 border border-primary-200 rounded-xl flex items-center gap-3">
+        <div className="p-2 bg-primary-100 text-primary-600 rounded-lg">
+          <Mail size={18} />
+        </div>
+        <p className="text-sm text-primary-900">
+          Pour toute commande, veuillez contacter l’adresse email{' '}
+          <a href="mailto:contact@lagrenaille.fr" className="font-bold underline hover:text-primary-700">contact@lagrenaille.fr</a>
+        </p>
+      </div>
+
       {error && (
         <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-center gap-2">
           <AlertCircle size={20} />
@@ -118,9 +129,6 @@ export default function Orders() {
                             day: 'numeric', month: 'short', year: 'numeric' 
                           })}
                         </span>
-                        {order.estimatedPrice && (
-                          <span className="font-semibold text-secondary-700">{order.estimatedPrice}€</span>
-                        )}
                       </div>
                     </div>
                   </div>

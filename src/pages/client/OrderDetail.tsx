@@ -17,7 +17,7 @@ import {
   Truck,
   Flame
 } from 'lucide-react';
-import { getJSON, BASE_URL } from '../../api/client';
+import { getJSON, resolveUrl } from '../../api/client';
 import STLViewer from '../../components/STLViewer';
 
 type Order = {
@@ -77,11 +77,7 @@ export default function OrderDetail() {
     }
   };
 
-  const resolveUrl = (url: string) => {
-    if (!url) return '';
-    if (url.startsWith('http')) return url;
-    return `${BASE_URL}${url}`;
-  };
+
 
   const getCurrentStatusIndex = () => {
     if (!order) return -1;

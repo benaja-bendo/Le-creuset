@@ -21,7 +21,7 @@ import {
   Mail,
   User
 } from 'lucide-react';
-import { getJSON, postJSON, BASE_URL, uploadFile } from '../../api/client';
+import { getJSON, postJSON, resolveUrl, uploadFile } from '../../api/client';
 import STLViewer from '../../components/STLViewer';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
 
@@ -94,11 +94,7 @@ export default function AdminOrderDetail() {
     }
   };
 
-  const resolveUrl = (url: string) => {
-    if (!url) return '';
-    if (url.startsWith('http')) return url;
-    return `${BASE_URL}${url}`;
-  };
+
 
   const getCurrentStatusIndex = () => {
     if (!order) return -1;

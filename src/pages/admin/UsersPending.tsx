@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { getJSON, patchJSON, API_URL } from '../../api/client';
+import { getJSON, patchJSON, resolveUrl } from '../../api/client';
 import { Link } from 'react-router-dom';
-import { CheckCircle2, XCircle, FileSignature, Users, UserPlus, UserCheck, Mail, Phone, Clock, Search } from 'lucide-react';
+import { CheckCircle2, XCircle, FileSignature, Users, UserPlus, UserCheck, Mail, Phone, Clock, Search, Shield, AlertTriangle, Loader2 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
+import { useAuth } from '../../context/AuthContext';
 
 type User = {
   id: string;
@@ -40,12 +41,17 @@ const Tab = ({ active, onClick, children, count }: { active: boolean; onClick: (
 );
 
 export default function UsersManagement() {
-  const [activeTab, setActiveTab] = useState<'active' | 'pending'>('pending');
+  const [activeTab, setActiveTab] = useState<'active' | 'pending'>('active');
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [pendingUsers, setPendingUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Role change state
+  const { user: currentUser } = useAuth();
+  const [showRoleModal, setShowRoleModal] = useState(false);
+  const [targetUser, setTargetUser] = useState<User | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -65,12 +71,7 @@ export default function UsersManagement() {
     load();
   }, []);
 
-  const resolveUrl = (url?: string) => {
-    if (!url) return '#';
-    if (url.startsWith('http')) return url;
-    const base = API_URL.replace(/\/api$/, '');
-    return `${base}${url}`;
-  };
+
 
   const updateStatus = async (id: string, status: 'ACTIVE' | 'REJECTED') => {
     try {
@@ -136,18 +137,18 @@ export default function UsersManagement() {
         {/* Tabs */}
         <div className="border-b border-secondary-200 bg-secondary-50 px-6 flex gap-2">
           <Tab 
-            active={activeTab === 'pending'} 
-            onClick={() => setActiveTab('pending')}
-            count={pendingUsers.length}
-          >
-            <UserPlus size={16} /> En attente
-          </Tab>
-          <Tab 
             active={activeTab === 'active'} 
             onClick={() => setActiveTab('active')}
             count={allUsers.length}
           >
             <UserCheck size={16} /> Utilisateurs actifs
+          </Tab>
+          <Tab 
+            active={activeTab === 'pending'} 
+            onClick={() => setActiveTab('pending')}
+            count={pendingUsers.length}
+          >
+            <UserPlus size={16} /> En attente
           </Tab>
         </div>
 
@@ -323,12 +324,27 @@ export default function UsersManagement() {
                             {new Date(user.createdAt).toLocaleDateString('fr-FR')}
                           </td>
                           <td className="px-4 py-4">
-                            <Link 
-                              to={`/client/admin/users/${user.id}`}
-                              className="text-primary-600 hover:text-primary-700 text-sm font-medium"
-                            >
-                              Voir profil
-                            </Link>
+                            <div className="flex items-center gap-3">
+                              <Link 
+                                to={`/client/admin/users/${user.id}`}
+                                className="text-primary-600 hover:text-primary-700 text-sm font-medium"
+                              >
+                                Voir profil
+                              </Link>
+                              
+                              {currentUser?.id !== user.id && (
+                                <button
+                                  onClick={() => {
+                                    setTargetUser(user);
+                                    setShowRoleModal(true);
+                                  }}
+                                  className="text-secondary-400 hover:text-amber-600 transition-colors"
+                                  title="Changer le rôle"
+                                >
+                                  <Shield size={16} />
+                                </button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -339,6 +355,137 @@ export default function UsersManagement() {
             </>
           )}
         </div>
+      </div>
+
+      {/* Role Change Modal */}
+      {showRoleModal && targetUser && (
+        <ChangeRoleModal
+          targetUser={targetUser}
+          onClose={() => {
+            setShowRoleModal(false);
+            setTargetUser(null);
+          }}
+          onSuccess={(newRole) => {
+            setAllUsers(prev => prev.map(u => u.id === targetUser.id ? { ...u, role: newRole } : u));
+            setShowRoleModal(false);
+            setTargetUser(null);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+// ============================================
+// Change Role Modal Component
+// ============================================
+function ChangeRoleModal({ 
+  targetUser, 
+  onClose, 
+  onSuccess 
+}: { 
+  targetUser: User; 
+  onClose: () => void; 
+  onSuccess: (newRole: 'ADMIN' | 'CLIENT') => void;
+}) {
+  const [adminPassword, setAdminPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  const newRole = targetUser.role === 'ADMIN' ? 'CLIENT' : 'ADMIN';
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adminPassword) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      await patchJSON(`/users/${targetUser.id}/role`, {
+        role: newRole,
+        adminPassword: adminPassword,
+      });
+      onSuccess(newRole);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur lors du changement de rôle');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={onClose}>
+      <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="p-6 border-b border-secondary-100 flex items-center justify-between bg-secondary-50/50">
+          <h3 className="text-xl font-bold text-secondary-900 flex items-center gap-2">
+            <Shield className="text-amber-500" size={24} />
+            Changer le rôle
+          </h3>
+          <button onClick={onClose} className="text-secondary-400 hover:text-secondary-600 transition-colors">
+            <XCircle size={24} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          <div className="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-lg">
+            <div className="flex gap-3">
+              <AlertTriangle className="text-amber-600 shrink-0" size={20} />
+              <div className="text-sm">
+                <p className="font-bold text-amber-900">Action sensible</p>
+                <p className="text-amber-800 mt-1">
+                  Vous allez passer <strong>{targetUser.companyName || targetUser.email}</strong> au rang de <strong>{newRole === 'ADMIN' ? 'Administrateur' : 'Client'}</strong>.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {!error && (
+            <p className="text-sm text-secondary-600">
+              Pour confirmer cette modification, veuillez saisir <strong>votre mot de passe administrateur</strong> actuel.
+            </p>
+          )}
+
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-100 text-red-700 text-xs rounded-lg flex items-center gap-2">
+              <AlertTriangle size={14} />
+              {error}
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-bold text-secondary-700 mb-2 uppercase tracking-wide">
+              Votre mot de passe
+            </label>
+            <input
+              type="password"
+              value={adminPassword}
+              onChange={e => setAdminPassword(e.target.value)}
+              className="w-full px-4 py-3 border border-secondary-200 rounded-xl focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all text-secondary-900"
+              placeholder="••••••••"
+              required
+              autoFocus
+            />
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-3 border border-secondary-200 text-secondary-700 rounded-xl font-bold hover:bg-secondary-50 transition-colors"
+            >
+              Annuler
+            </button>
+            <button
+              type="submit"
+              disabled={loading || !adminPassword}
+              className="flex-1 px-4 py-3 bg-secondary-900 text-white rounded-xl font-bold hover:bg-secondary-800 disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-lg"
+            >
+              {loading ? <Loader2 className="animate-spin" size={20} /> : <CheckCircle2 size={20} />}
+              Confirmer
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
