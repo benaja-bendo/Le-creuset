@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   front:
-    image: ghcr.io/${GITHUB_REPOSITORY,,}:latest
+    image: ghcr.io/${GITHUB_REPOSITORY}:latest
     container_name: lecreuset-front
     restart: unless-stopped
     env_file:
@@ -13,7 +13,7 @@ services:
       - "80:80"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.front-prod.rule=Host(`$DOMAIN:-lagrenaille.fr`)"
+      - "traefik.http.routers.front-prod.rule=Host(`${VITE_DOMAIN_NAME:-lagrenaille.fr}`)"
       - "traefik.http.routers.front-prod.entrypoints=websecure"
       - "traefik.http.routers.front-prod.tls.certresolver=myresolver"
       - "traefik.http.services.front-prod.loadbalancer.server.port=80"
