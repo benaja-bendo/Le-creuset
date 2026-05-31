@@ -1,13 +1,19 @@
-import { useState, useRef, useCallback } from 'react';
-import { RefreshCw, Upload, X, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
-import { uploadFile, postJSON, BASE_URL } from '../../api/client';
-import { useNavigate } from 'react-router-dom';
+import { useState, useRef, useCallback, type ButtonHTMLAttributes, type ReactNode } from 'react';
+import { Upload, X, AlertCircle, Loader2 } from 'lucide-react';
+import { uploadFile, BASE_URL } from '../../api/client';
 import STLViewer from '../../components/STLViewer';
 
 // Composant bouton (client)
-const Button = ({ children, variant = 'primary', onClick, className = '', disabled = false, type = 'button' }: any) => {
+type ButtonVariant = 'primary' | 'outline' | 'ghost' | 'success';
+type ButtonProps = {
+  children: ReactNode;
+  variant?: ButtonVariant;
+  className?: string;
+} & Pick<ButtonHTMLAttributes<HTMLButtonElement>, 'onClick' | 'disabled' | 'type'>;
+
+const Button = ({ children, variant = 'primary', onClick, className = '', disabled = false, type = 'button' }: ButtonProps) => {
   const baseStyle = "px-6 py-3 transition-all duration-300 font-medium tracking-wide text-sm uppercase flex items-center justify-center gap-2 rounded-sm";
-  const variants: any = {
+  const variants: Record<ButtonVariant, string> = {
     primary: "bg-primary-600 text-white hover:bg-primary-700 hover:shadow-lg hover:shadow-primary-900/20 disabled:bg-secondary-700 disabled:text-secondary-500",
     outline: "border border-secondary-400 text-secondary-300 hover:border-primary-500 hover:text-primary-500",
     ghost: "text-secondary-400 hover:text-primary-500",
@@ -33,26 +39,30 @@ const SectionTitle = ({ title, subtitle }: { title: string, subtitle: string }) 
 
 // Configuration des matériaux avec densité pour le calcul du poids
 const MATERIALS = [
-  { id: 'or-jaune', label: 'Or Jaune 18k', color: 'bg-yellow-500', pricePerGram: 60, density: 19.3 },
-  { id: 'or-rose', label: 'Or Rose 18k', color: 'bg-pink-400', pricePerGram: 60, density: 18.5 },
-  { id: 'argent', label: 'Argent 925', color: 'bg-gray-300', pricePerGram: 1.5, density: 10.5 },
-  { id: 'bronze', label: 'Bronze', color: 'bg-orange-700', pricePerGram: 0.3, density: 8.7 },
-  { id: 'resine', label: 'Proto Résine', color: 'bg-blue-500', pricePerGram: 0.2, density: 1.2 },
+  { id: 'OR_JAUNE_375', label: 'Or Jaune 375 (9k)', color: 'bg-yellow-200', pricePerGram: 25, density: 11.0, isService: false },
+  { id: 'OR_JAUNE_750', label: 'Or Jaune 750 (18k)', color: 'bg-yellow-500', pricePerGram: 60, density: 15.0, isService: false },
+  { id: 'OR_ROSE_375', label: 'Or Rose 375 (9k)', color: 'bg-pink-300', pricePerGram: 25, density: 11.0, isService: false },
+  { id: 'OR_ROSE_750', label: 'Or Rose 750 (18k)', color: 'bg-pink-400', pricePerGram: 60, density: 15.0, isService: false },
+  { id: 'OR_GRIS_375', label: 'Or Gris 375 (9k)', color: 'bg-gray-300', pricePerGram: 25, density: 11.0, isService: false },
+  { id: 'OR_GRIS_750', label: 'Or Gris 750 (18k)', color: 'bg-gray-400', pricePerGram: 60, density: 15.0, isService: false },
+  { id: 'OR_GRIS_750_PALLADIE_13', label: 'Or Gris 750 (Palladié 13%)', color: 'bg-gray-200', pricePerGram: 70, density: 15.5, isService: false },
+  { id: 'OR_ROUGE_750', label: 'Or Rouge 750 (18k)', color: 'bg-red-400', pricePerGram: 60, density: 15.0, isService: false },
+  { id: 'PLATINE_950', label: 'Platine 950', color: 'bg-slate-300', pricePerGram: 45, density: 21.0, isService: false },
+  { id: 'ARGENT_925', label: 'Argent 925', color: 'bg-gray-100', pricePerGram: 1.5, density: 10.4, isService: false },
+  { id: 'LAITON', label: 'Laiton', color: 'bg-amber-300', pricePerGram: 0.5, density: 8.5, isService: false },
+  { id: 'PROTO_VISUEL', label: 'Prototype Visuel', color: 'bg-blue-300', pricePerGram: 0, density: 1.2, isService: true },
+  { id: 'IMPRESSION_CIRE', label: 'Prototype Résine', color: 'bg-orange-300', pricePerGram: 0, density: 1.0, isService: true },
 ];
 
 export default function Quote() {
-  const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [step, setStep] = useState(1);
   const [fileData, setFileData] = useState<{name: string, url: string, objectName: string} | null>(null);
-  const [material, setMaterial] = useState('or-jaune');
-  const [finish, setFinish] = useState('poli');
+  const [material, setMaterial] = useState('OR_JAUNE_750');
   const [quantity, setQuantity] = useState(1);
   const [isUploading, setIsUploading] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
   const [modelVolume, setModelVolume] = useState<number | null>(null);
   const [modelDimensions, setModelDimensions] = useState<{ x: number; y: number; z: number } | null>(null);
 
@@ -91,39 +101,25 @@ export default function Quote() {
     const mat = MATERIALS.find(m => m.id === material);
     if (!mat || !modelVolume) return null;
 
+    if (mat.isService) {
+        // Prix fixe simplifié pour les services par volume
+        const serviceBasePrice = mat.id === 'PROTO_VISUEL' ? 30 : 40;
+        return Math.round(serviceBasePrice * quantity + (modelVolume * 2));
+    }
+
     const weight = modelVolume * mat.density; // grammes
     const materialCost = weight * mat.pricePerGram;
     const laborCost = 50; // Forfait main d'œuvre
-    const finishCost = finish === 'poli' ? 40 : 0;
     
-    return Math.round((materialCost + laborCost + finishCost) * quantity);
+    return Math.round((materialCost + laborCost) * quantity);
   };
 
   const getEstimatedWeight = () => {
     const mat = MATERIALS.find(m => m.id === material);
-    if (!mat || !modelVolume) return null;
+    if (!mat || !modelVolume || mat.isService) return null;
     return (modelVolume * mat.density).toFixed(1);
   };
 
-  const handleSubmitOrder = async () => {
-    if (!fileData) return;
-    setIsSubmitting(true);
-    setError(null);
-    try {
-      const price = calculatePrice();
-      await postJSON('/orders', {
-        stlFileUrl: fileData.url,
-        estimatedPrice: price,
-        notes: `Matière: ${material}, Finition: ${finish}, Quantité: ${quantity}, Volume: ${modelVolume?.toFixed(2)}cm³`
-      });
-      setSuccess(true);
-      setTimeout(() => navigate('/client'), 3000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de la commande');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   const handleRemoveFile = () => {
     setStep(1);
@@ -132,20 +128,6 @@ export default function Quote() {
     setModelDimensions(null);
   };
 
-  if (success) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[500px] bg-white rounded-xl border border-secondary-200 shadow-sm p-12 text-center">
-        <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6">
-          <CheckCircle size={40} />
-        </div>
-        <h2 className="text-3xl font-serif text-secondary-900 mb-4">Commande Confirmée</h2>
-        <p className="text-secondary-600 max-w-md mx-auto">
-          Votre demande de production a bien été enregistrée. Elle est désormais visible dans votre tableau de bord sous le statut "EN ATTENTE".
-        </p>
-        <p className="text-secondary-400 text-sm mt-8 animate-pulse text-balance">Redirection vers le tableau de bord...</p>
-      </div>
-    );
-  }
 
   const price = calculatePrice();
   const weight = getEstimatedWeight();
@@ -158,7 +140,7 @@ export default function Quote() {
         <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-center gap-2 mb-4">
           <AlertCircle size={20} />
           <p>{error}</p>
-        </div>
+              </div>
       )}
 
       <div className="bg-white border border-secondary-200 rounded-sm overflow-hidden flex flex-col md:flex-row min-h-[560px] shadow-sm">
@@ -201,7 +183,7 @@ export default function Quote() {
                 fileUrl={fileData?.url || null}
                 fileName={fileData?.name || null}
                 materialType={material}
-                finishType={finish}
+                finishType="poli" // Backward comp
                 onVolumeCalculated={handleVolumeCalculated}
               />
               <button 
@@ -215,52 +197,29 @@ export default function Quote() {
           )}
         </div>
 
-        <div className="w-full md:w-1/3 p-8 bg-white flex flex-col">
-          <div className="mb-8">
+        <div className="w-full md:w-1/3 p-4 md:p-8 bg-white flex flex-col overflow-y-auto max-h-[800px]">
+          <div className="mb-6">
             <h3 className="text-primary-600 text-xs font-bold tracking-widest uppercase mb-6 flex items-center gap-2">
               <div className="h-px w-4 bg-primary-600"></div>
               Configuration
             </h3>
             
             <div className="mb-6">
-              <label className="block text-xs font-bold text-secondary-500 uppercase tracking-wider mb-3">Matériau de fonte</label>
-              <div className="grid grid-cols-2 gap-3">
+              <label className="block text-xs font-bold text-secondary-500 uppercase tracking-wider mb-3">Matériau / Service</label>
+              <div className="grid grid-cols-1 gap-2">
                 {MATERIALS.map((m) => (
                   <button
                     key={m.id}
                     onClick={() => setMaterial(m.id)}
-                    className={`p-3 rounded-md border text-left transition-all flex items-center gap-3 ${
+                    className={`p-2 xl:p-3 rounded-md border text-left transition-all flex items-center gap-3 ${
                       material === m.id 
                       ? 'border-primary-600 bg-primary-50 text-secondary-900 ring-1 ring-primary-500/50' 
                       : 'border-secondary-200 text-secondary-600 hover:border-secondary-300 bg-white'
                     } ${step === 1 ? 'opacity-40 cursor-not-allowed' : ''}`}
                     disabled={step === 1}
                   >
-                    <div className={`w-3 h-3 rounded-full ${m.color} shadow-sm shrink-0`}></div>
-                    <span className="text-[10px] font-bold uppercase tracking-tight truncate">{m.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="mb-6">
-              <label className="block text-xs font-bold text-secondary-500 uppercase tracking-wider mb-3">Finition</label>
-              <div className="flex gap-2">
-                {[
-                  { id: 'brut', label: 'Brut de fonte' },
-                  { id: 'poli', label: 'Poli miroir' },
-                ].map((f) => (
-                  <button
-                    key={f.id}
-                    onClick={() => setFinish(f.id)}
-                    className={`flex-1 py-3 px-2 rounded-md border text-[10px] font-bold uppercase tracking-wider transition-all ${
-                      finish === f.id 
-                      ? 'border-primary-600 bg-primary-50 text-secondary-900' 
-                      : 'border-secondary-200 text-secondary-600 hover:border-secondary-300 bg-white'
-                    } ${step === 1 ? 'opacity-40 cursor-not-allowed' : ''}`}
-                    disabled={step === 1}
-                  >
-                    {f.label}
+                    <div className={`w-3 h-3 rounded-full ${m.color} shadow-sm shrink-0 border border-black/10`}></div>
+                    <span className="text-[10px] xl:text-xs font-bold uppercase tracking-tight truncate">{m.label}</span>
                   </button>
                 ))}
               </div>
@@ -294,7 +253,7 @@ export default function Quote() {
                   </div>
                   {weight && (
                     <div className="flex justify-between">
-                      <span className="text-secondary-500">Poids estimé:</span>
+                      <span className="text-secondary-500">Masse estimée:</span>
                       <span className="font-medium text-secondary-900">~{weight}g</span>
                     </div>
                   )}
@@ -312,7 +271,7 @@ export default function Quote() {
           </div>
 
           <div className="mt-auto border-t border-secondary-100 pt-6">
-            <div className="flex justify-between items-end mb-6">
+            <div className="flex justify-between items-end mb-4">
               <div className="text-secondary-500 text-[10px] font-bold uppercase tracking-widest">Estimation HT</div>
               <div className="text-4xl font-serif text-secondary-900 flex items-baseline gap-1">
                 {step === 1 || price === null ? (
@@ -323,17 +282,16 @@ export default function Quote() {
                 <span className="text-sm font-sans font-medium text-secondary-400">€</span>
               </div>
             </div>
-            <Button 
-              variant="primary" 
-              className="w-full py-4 shadow-xl shadow-primary-900/10" 
-              disabled={step === 1 || isSubmitting || price === null}
-              onClick={handleSubmitOrder}
-            >
-              {isSubmitting ? <Loader2 className="animate-spin" size={20} /> : 'Commander cette pièce'}
-            </Button>
-            <div className="flex items-center justify-center gap-2 mt-4 text-[10px] text-secondary-400 uppercase font-bold tracking-tighter">
-              <RefreshCw size={12} className="text-primary-500" />
-              Délai de fabrication : 5 à 7 jours
+            {price !== null && step !== 1 && (
+              <p className="text-[10px] text-secondary-400 italic mb-4 leading-snug">
+                Les prix mentionnés sont purement informatifs et n’ont pas de valeur contractuelle.
+              </p>
+            )}
+            <div className="p-4 bg-primary-50 border border-primary-200 rounded-lg">
+              <p className="text-xs text-primary-800 text-center leading-relaxed">
+                Pour toute commande, veuillez contacter l’adresse email{' '}
+                <a href="mailto:contact@lagrenaille.fr" className="font-bold underline">contact@lagrenaille.fr</a>
+              </p>
             </div>
           </div>
         </div>

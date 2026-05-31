@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { 
   ArrowLeft, 
@@ -21,7 +21,7 @@ import {
   Mail,
   User
 } from 'lucide-react';
-import { getJSON, postJSON, BASE_URL, uploadFile } from '../../api/client';
+import { getJSON, postJSON, resolveUrl, uploadFile } from '../../api/client';
 import STLViewer from '../../components/STLViewer';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
 
@@ -79,11 +79,8 @@ export default function AdminOrderDetail() {
   const [showCloseModal, setShowCloseModal] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (id) loadOrder();
-  }, [id]);
-
-  const loadOrder = async () => {
+  const loadOrder = useCallback(async () => {
+    if (!id) return;
     try {
       const data = await getJSON<Order>(`/orders/${id}`);
       setOrder(data);
@@ -92,13 +89,13 @@ export default function AdminOrderDetail() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
-  const resolveUrl = (url: string) => {
-    if (!url) return '';
-    if (url.startsWith('http')) return url;
-    return `${BASE_URL}${url}`;
-  };
+  useEffect(() => {
+    void loadOrder();
+  }, [loadOrder]);
+
+
 
   const getCurrentStatusIndex = () => {
     if (!order) return -1;

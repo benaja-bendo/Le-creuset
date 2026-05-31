@@ -10,7 +10,7 @@ import {
   AlertCircle,
   Package
 } from 'lucide-react';
-import { getJSON, BASE_URL } from '../../api/client';
+import { getJSON, resolveUrl } from '../../api/client';
 
 type Invoice = {
   id: string;
@@ -45,10 +45,7 @@ export default function MyInvoices() {
     }
   };
 
-  const resolveUrl = (url: string) => {
-    if (url.startsWith('http')) return url;
-    return `${BASE_URL}${url}`;
-  };
+
 
   const getStatusLabel = (status: string) => {
     switch (status) {

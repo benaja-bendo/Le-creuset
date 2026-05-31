@@ -76,7 +76,7 @@ export default function ClientLayout() {
                 </div>
                 <div>
                   <h1 className="text-lg font-bold tracking-wide text-white">
-                    LE CREUSET
+                    LA GRENAILLE
                   </h1>
                   <p className="text-[10px] tracking-widest uppercase text-primary-400 font-medium">
                     espace pro
@@ -134,8 +134,8 @@ export default function ClientLayout() {
               ))}
             </nav>
 
-            {/* Settings Link */}
-            <div className="mt-6 pt-4 border-t border-secondary-800/50">
+            {/* Settings & Logout */}
+            <div className="mt-6 pt-4 border-t border-secondary-800/50 space-y-1">
               <Link
                 to="/client/settings"
                 className={clsx(
@@ -148,22 +148,23 @@ export default function ClientLayout() {
                 <Settings size={18} />
                 <span>Mon Compte</span>
               </Link>
+              <button 
+                onClick={() => { 
+                  fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
+                  logout();
+                  navigate('/login');
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-secondary-400 hover:bg-red-900/30 hover:text-red-400 transition-all duration-200"
+              >
+                <LogOut size={18} />
+                <span>Déconnexion</span>
+              </button>
             </div>
           </div>
 
-          {/* Footer with logout */}
+          {/* Footer branding */}
           <div className="mt-auto p-4 border-t border-secondary-800/50">
-            <button 
-              onClick={() => { 
-                fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
-                logout();
-                navigate('/login');
-              }}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-secondary-400 hover:bg-red-900/30 hover:text-red-400 transition-all duration-200"
-            >
-              <LogOut size={18} />
-              <span>Déconnexion</span>
-            </button>
+            <p className="text-[10px] text-secondary-600 text-center tracking-wide">© {new Date().getFullYear()} La Grenaille</p>
           </div>
         </div>
       </aside>

@@ -12,7 +12,7 @@ export default function CGV() {
           </h2>
           <p>
             Les présentes Conditions Générales de Vente (CGV) régissent les relations contractuelles entre 
-            Le Creuset et ses clients pour toutes les prestations de services proposées, notamment :
+            La Grenaille et ses clients pour toutes les prestations de services proposées, notamment :
           </p>
           <ul className="list-disc pl-6 space-y-2 mt-4">
             <li>Fonte à cire perdue (métaux précieux et communs)</li>
@@ -87,7 +87,7 @@ export default function CGV() {
             <li>La charge de travail de l'atelier</li>
           </ul>
           <p className="mt-4">
-            Le Creuset s'engage à respecter au mieux les délais annoncés. En cas de retard, le client sera 
+            La Grenaille s'engage à respecter au mieux les délais annoncés. En cas de retard, le client sera 
             informé dans les meilleurs délais. Un retard de livraison ne pourra donner lieu à des pénalités 
             ou à l'annulation de la commande, sauf accord express.
           </p>
@@ -114,13 +114,13 @@ export default function CGV() {
           </h2>
           <h3 className="text-xl font-serif font-bold text-white mb-3 mt-6">6.1 Garantie</h3>
           <p>
-            Le Creuset garantit la conformité des pièces réalisées par rapport aux spécifications validées. 
+            La Grenaille garantit la conformité des pièces réalisées par rapport aux spécifications validées. 
             Toute réclamation devra être formulée par écrit dans les 7 jours suivant la réception.
           </p>
           
           <h3 className="text-xl font-serif font-bold text-white mb-3 mt-6">6.2 Limites de responsabilité</h3>
           <p>
-            Le Creuset ne saurait être tenu responsable :
+            La Grenaille ne saurait être tenu responsable :
           </p>
           <ul className="list-disc pl-6 space-y-2 mt-4">
             <li>Des défauts inhérents aux fichiers 3D fournis par le client</li>
@@ -135,9 +135,9 @@ export default function CGV() {
             Article 7 - Propriété intellectuelle
           </h2>
           <p>
-            Les fichiers, moules et modèles confiés par le client restent sa propriété. Le Creuset s'engage 
+            Les fichiers, moules et modèles confiés par le client restent sa propriété. La Grenaille s'engage 
             à ne pas reproduire, diffuser ou exploiter ces créations sans autorisation expresse. Les moules 
-            réalisés restent propriété du client et peuvent être conservés par Le Creuset pour faciliter les 
+            réalisés restent propriété du client et peuvent être conservés par La Grenaille pour faciliter les 
             commandes ultérieures, sauf demande contraire.
           </p>
         </section>
@@ -151,7 +151,7 @@ export default function CGV() {
           </p>
           <ul className="list-disc pl-6 space-y-2 mt-4">
             <li><strong className="text-white">Option 1 :</strong> Fournir ses propres métaux (or, argent)</li>
-            <li><strong className="text-white">Option 2 :</strong> Acheter le métal via Le Creuset au cours du jour</li>
+            <li><strong className="text-white">Option 2 :</strong> Acheter le métal via La Grenaille au cours du jour</li>
           </ul>
           <p className="mt-4">
             Les chutes de métaux précieux sont restituées au client ou déduites du prix de la prestation, 
@@ -181,7 +181,7 @@ export default function CGV() {
           </h2>
           <p>
             Les présentes CGV sont soumises au droit français. En cas de litige, une solution amiable sera 
-            recherchée avant toute action judiciaire. À défaut, les tribunaux du siège social de Le Creuset 
+            recherchée avant toute action judiciaire. À défaut, les tribunaux du siège social de La Grenaille 
             seront seuls compétents.
           </p>
         </section>

@@ -1,17 +1,18 @@
-name: Deploy Front
+name: 🚀 Deploy Production (Front)
 
 on:
   push:
     branches:
       - main
+  workflow_dispatch: {}
 
 env:
   REGISTRY: ghcr.io
-  # Assumes the repo name matches the image name expected in docker-compose
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   build-and-push:
+    name: Build & Push Docker Image
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -19,28 +20,32 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
-      - name: Log in to the Container registry
+      - name: Lowercase repository name
+        run: echo "REPO_LC=${GITHUB_REPOSITORY,,}" >> ${GITHUB_ENV}
+
+      - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata (tags, labels) for Docker
+      - name: Extract Docker metadata (tags & labels)
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ env.REPO_LC }}
           tags: |
-            type=raw,value=front-latest
+            type=raw,value=latest
+            type=sha,prefix=sha-,format=short
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and push
-        uses: docker/build-push-action@v5
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
         with:
           context: .
           push: true
@@ -49,79 +54,66 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
-            VITE_API_URL=api.dev.lagrenaille.fr
-            VITE_DOMAIN_NAME=dev.lagrenaille.fr
-            
-            
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build-and-push
-    steps:
-      - name: Lowercase Repo Name
-        run: |
-          echo "REPO_LC=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
+            VITE_API_URL=${{ secrets.VITE_API_URL }}
+            VITE_DOMAIN_NAME=${{ secrets.VITE_DOMAIN_NAME }}
 
-      - name: Deploy to VPS
+  deploy:
+    name: Deploy to VPS
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Lowercase repository name
+        run: echo "REPO_LC=${GITHUB_REPOSITORY,,}" >> ${GITHUB_ENV}
+
+      - name: Copy deployment files to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY || secrets.VPS_KEY }}
+          passphrase: ${{ secrets.VPS_PASSPHRASE }}
+          source: ".deploy/*"
+          target: "/opt/apps/frontend-prod"
+          strip_components: 1
+
+      - name: Deploy to VPS via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_KEY }}
+          key: ${{ secrets.VPS_SSH_KEY || secrets.VPS_KEY }}
           passphrase: ${{ secrets.VPS_PASSPHRASE }}
           envs: REPO_LC
           script: |
-            # Debugging info
-            echo "User: $(whoami)"
-            echo "Groups: $(groups)"
-            ls -ld /opt/apps || echo "/opt/apps does not exist"
-            
-            # Vérification des pré-requis
-            if ! groups | grep -q "docker"; then
-              echo "Error: User is not in the 'docker' group."
-              exit 1
-            fi
+            set -e
+            APP_DIR="/opt/apps/frontend-prod"
+            mkdir -p "$APP_DIR"
+            cd "$APP_DIR"
 
-            if [ ! -w "/opt/apps" ] && [ ! -w "/opt/apps/frontend" ]; then
-               # Si /opt/apps n'existe pas ou n'est pas inscriptible, on tente de le créer si on a les droits (sudo manquant souvent)
-               # Sinon on échoue avec un message clair
-               if [ ! -d "/opt/apps" ]; then
-                 echo "Error: /opt/apps directory does not exist. Please run Ansible playbook."
-                 exit 1
-               fi
-               echo "Error: No write permission on /opt/apps. Please run Ansible playbook."
-               exit 1
-            fi
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io \
+              -u "${{ github.actor }}" --password-stdin
 
-            # Création du dossier dédié
-            mkdir -p /opt/apps/frontend
-            cd /opt/apps/frontend
-            
-            # Login Docker
-            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
-            # Création du docker-compose.yml à la volée
-            cat <<EOF > docker-compose.yml
-            services:
-              front:
-                image: ghcr.io/$REPO_LC:front-latest
-                container_name: lecreuset-front
-                restart: always
-                networks:
-                  - proxy
-                labels:
-                  - "traefik.enable=true"
-                  - "traefik.http.routers.front.rule=Host(\`lecreuset.benaja-bendo.fr\`)"
-                  - "traefik.http.routers.front.entrypoints=websecure"
-                  - "traefik.http.routers.front.tls.certresolver=myresolver"
-                  - "traefik.http.services.front.loadbalancer.server.port=80"
-            networks:
-              proxy:
-                external: true
+            cat > .env <<EOF
+            VITE_API_URL=${{ secrets.VITE_API_URL }}
+            VITE_DOMAIN_NAME=${{ secrets.VITE_DOMAIN_NAME }}
+            GITHUB_REPOSITORY=$REPO_LC
             EOF
-            
-            # Déploiement
-            docker compose pull
-            docker compose up -d
-            
-            # Nettoyage
+
+            MAX_RETRIES=5
+            RETRY_COUNT=0
+            until docker compose pull; do
+              RETRY_COUNT=$((RETRY_COUNT+1))
+              if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
+                echo "Failed to pull images after $MAX_RETRIES attempts."
+                exit 1
+              fi
+              echo "Pull failed, retrying in 10 seconds... ($RETRY_COUNT/$MAX_RETRIES)"
+              sleep 10
+            done
+
+            docker compose up -d --remove-orphans
             docker image prune -f

@@ -69,9 +69,10 @@ const CustomLogo = ({ className = "", size = 48 }) => (
 );
 
 export default function PublicLayout() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [menuOpenForPath, setMenuOpenForPath] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
+  const isMenuOpen = menuOpenForPath === location.pathname;
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
@@ -81,10 +82,10 @@ export default function PublicLayout() {
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    setIsMenuOpen(false);
   }, [location.pathname]);
 
   const isActive = (path: string) => location.pathname === path;
+  const closeMenu = () => setMenuOpenForPath(null);
 
   const navLinks = [
     { name: 'Accueil', path: '/' },
@@ -107,7 +108,7 @@ export default function PublicLayout() {
               <CustomLogo size={48} />
             </div>
             <span className="text-2xl font-serif font-bold tracking-wide text-white">
-              LE CREUSET
+              LA GRENAILLE
             </span>
           </Link>
 
@@ -137,7 +138,7 @@ export default function PublicLayout() {
           {/* Mobile Menu Button */}
           <button 
             className="md:hidden text-white z-50 hover:text-primary-500 transition-colors"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            onClick={() => setMenuOpenForPath((prev) => (prev === location.pathname ? null : location.pathname))}
           >
             {isMenuOpen ? <X size={28} /> : <Menu size={28} />}
           </button>
@@ -150,6 +151,7 @@ export default function PublicLayout() {
               <Link 
                 key={link.path}
                 to={link.path}
+                onClick={closeMenu}
                 className={clsx(
                   "text-2xl font-serif hover:text-primary-500 transition-colors",
                   isActive(link.path) ? "text-primary-500" : "text-white"
@@ -160,6 +162,7 @@ export default function PublicLayout() {
             ))}
             <Link 
               to="/client"
+              onClick={closeMenu}
               className="mt-8 px-8 py-3 border border-secondary-700 text-primary-500 hover:bg-secondary-900"
             >
               Espace Client
@@ -182,7 +185,7 @@ export default function PublicLayout() {
                 <div className="w-6 h-6 bg-secondary-800 rounded-sm flex items-center justify-center text-primary-600">
                   <Hammer size={14} />
                 </div>
-                <span className="text-lg font-serif font-bold text-white">LE CREUSET</span>
+                <span className="text-lg font-serif font-bold text-white">LA GRENAILLE</span>
               </div>
               <p className="text-secondary-500 text-sm leading-relaxed">
                 L'excellence de la fonderie d'art et de bijouterie. 
@@ -223,7 +226,7 @@ export default function PublicLayout() {
           </div>
           
           <div className="border-t border-secondary-900 pt-8 text-center text-xs text-secondary-600">
-            &copy; {new Date().getFullYear()} Le Creuset. Tous droits réservés.
+            &copy; {new Date().getFullYear()} La Grenaille. Tous droits réservés.
           </div>
         </div>
       </footer>

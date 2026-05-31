@@ -87,7 +87,7 @@ export default function Login() {
           </div>
           <div className="hidden lg:block">
             <div className="rounded-lg overflow-hidden border border-secondary-800">
-              <img src="/hero-pro.jpg" alt="Espace pro" className="w-full h-80 object-cover" />
+              <img src="/hero-pro.png" alt="Espace pro" className="w-full h-80 object-cover" />
             </div>
             <div className="mt-6 grid grid-cols-3 gap-4">
               <div className="p-4 bg-secondary-900 border border-secondary-800 rounded-lg">

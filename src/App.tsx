@@ -66,7 +66,7 @@ const router = createBrowserRouter([
         element: <ServiceDetail 
           title="Fonte à Cire Perdue"
           subtitle="L'alchimie entre tradition millénaire et technologies modernes."
-          description="Chez Le Creuset, nous maîtrisons l'art délicat de la fonte à cire perdue. Que vous nous fournissiez vos cires, vos fichiers 3D ou vos moules, nous garantissons une qualité de surface exceptionnelle et une densité de métal optimale. Nous travaillons l'or (tous titres), l'argent, le bronze et le laiton."
+          description="Chez La Grenaille, nous maîtrisons l'art délicat de la fonte à cire perdue. Que vous nous fournissiez vos cires, vos fichiers 3D ou vos moules, nous garantissons une qualité de surface exceptionnelle et une densité de métal optimale. Nous travaillons l'or (tous titres), l'argent, le bronze et le laiton."
           icon={Flame}
           image={fonteImg}
           details={[

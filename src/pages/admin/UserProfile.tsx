@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { getJSON, BASE_URL } from '../../api/client';
+import { getJSON, resolveUrl } from '../../api/client';
 import { 
   ArrowLeft, 
   Loader2, 
@@ -17,12 +17,48 @@ import {
 import WeightGauges from '../../components/WeightGauges';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
 
+type ProfileUser = {
+  id: string;
+  email: string;
+  companyName: string | null;
+  name?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  kbisFileUrl?: string | null;
+  customsFileUrl?: string | null;
+  createdAt: string;
+};
+
+type Transaction = {
+  id: string;
+  type: 'CREDIT' | 'DEBIT';
+  amount: number;
+  label: string;
+  date: string;
+};
+
+type MetalAccount = {
+  id: string;
+  metalType: string;
+  balance: number;
+  lastUpdate: string;
+  transactions?: Transaction[];
+};
+
+type InvoiceSummary = {
+  id: string;
+  invoiceNumber: string;
+  issueDate: string;
+  amount: number | null;
+  fileUrl: string | null;
+};
+
 export default function AdminUserProfile() {
   const { id } = useParams<{ id: string }>();
   const [data, setData] = useState<{
-    user: any;
-    accounts: any[];
-    invoices: any[];
+    user: ProfileUser;
+    accounts: MetalAccount[];
+    invoices: InvoiceSummary[];
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,9 +68,9 @@ export default function AdminUserProfile() {
       if (!id) return;
       try {
         const [user, accounts, invoices] = await Promise.all([
-          getJSON<any>(`/users/${id}`),
-          getJSON<any[]>(`/weights/user/${id}`),
-          getJSON<any[]>(`/invoices/user/${id}`),
+          getJSON<ProfileUser>(`/users/${id}`),
+          getJSON<MetalAccount[]>(`/weights/user/${id}`),
+          getJSON<InvoiceSummary[]>(`/invoices/user/${id}`),
         ]);
         setData({ user, accounts, invoices });
       } catch (err) {
@@ -46,11 +82,7 @@ export default function AdminUserProfile() {
     load();
   }, [id]);
 
-  const resolveUrl = (url: string) => {
-    if (!url) return '';
-    if (url.startsWith('http')) return url;
-    return `${BASE_URL}${url}`;
-  };
+
 
   if (loading) {
     return (
@@ -144,6 +176,82 @@ export default function AdminUserProfile() {
               <div className="flex justify-between py-2">
                 <span className="text-secondary-500">Adresse</span>
                 <span className="text-secondary-800 text-right max-w-[200px]">{user.address || '-'}</span>
+              </div>
+            </div>
+          </section>
+
+          {/* Documents */}
+          <section className="bg-white rounded-2xl border border-secondary-200 shadow-sm p-6 space-y-4">
+            <h3 className="font-bold text-secondary-900 flex items-center gap-2">
+              <FileText size={18} className="text-primary-500" />
+              Documents Légaux
+            </h3>
+            <div className="space-y-3">
+              {/* KBIS */}
+              <div className="flex items-center justify-between p-3 bg-secondary-50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${user.kbisFileUrl ? 'bg-green-100 text-green-600' : 'bg-secondary-200 text-secondary-400'}`}>
+                    <FileText size={16} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-secondary-900">Extrait KBIS</p>
+                    <p className="text-[10px] text-secondary-500">{user.kbisFileUrl ? 'Document fourni' : 'Non fourni'}</p>
+                  </div>
+                </div>
+                {user.kbisFileUrl && (
+                  <div className="flex gap-1">
+                    <a
+                      href={resolveUrl(user.kbisFileUrl)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors text-xs font-bold flex items-center gap-1"
+                    >
+                      <Eye size={14} /> Voir
+                    </a>
+                    <a
+                      href={resolveUrl(user.kbisFileUrl)}
+                      target="_blank"
+                      rel="noreferrer"
+                      download
+                      className="p-2 text-secondary-500 hover:bg-secondary-100 rounded-lg transition-colors"
+                    >
+                      <Download size={14} />
+                    </a>
+                  </div>
+                )}
+              </div>
+              {/* Douanes */}
+              <div className="flex items-center justify-between p-3 bg-secondary-50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${user.customsFileUrl ? 'bg-green-100 text-green-600' : 'bg-secondary-200 text-secondary-400'}`}>
+                    <FileText size={16} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-secondary-900">Fiche Douanes</p>
+                    <p className="text-[10px] text-secondary-500">{user.customsFileUrl ? 'Document fourni' : 'Non fourni'}</p>
+                  </div>
+                </div>
+                {user.customsFileUrl && (
+                  <div className="flex gap-1">
+                    <a
+                      href={resolveUrl(user.customsFileUrl)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors text-xs font-bold flex items-center gap-1"
+                    >
+                      <Eye size={14} /> Voir
+                    </a>
+                    <a
+                      href={resolveUrl(user.customsFileUrl)}
+                      target="_blank"
+                      rel="noreferrer"
+                      download
+                      className="p-2 text-secondary-500 hover:bg-secondary-100 rounded-lg transition-colors"
+                    >
+                      <Download size={14} />
+                    </a>
+                  </div>
+                )}
               </div>
             </div>
           </section>

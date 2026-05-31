@@ -13,7 +13,8 @@ import {
   Award,
   Users,
   Target,
-  Sparkles
+  Sparkles,
+  type LucideIcon
 } from 'lucide-react';
 
 // Import Assets
@@ -34,7 +35,7 @@ const ServiceCard = ({
 }: { 
   title: string; 
   description: string; 
-  icon: any; 
+  icon: LucideIcon; 
   image: string; 
   link: string;
   index: number;
@@ -122,7 +123,7 @@ const ProcessStep = ({ number, title, description, index }: { number: string; ti
   );
 };
 
-const Benefit = ({ icon: Icon, title, description, index }: { icon: any; title: string; description: string; index: number }) => {
+const Benefit = ({ icon: Icon, title, description, index }: { icon: LucideIcon; title: string; description: string; index: number }) => {
   const benefitRef = useRef(null);
 
   useGSAP(() => {
@@ -320,7 +321,7 @@ export default function Services() {
               Pourquoi Nous Choisir
             </h2>
             <p className="text-secondary-400">
-              L'engagement Le Creuset pour votre réussite
+              L'engagement La Grenaille pour votre réussite
             </p>
           </div>
 

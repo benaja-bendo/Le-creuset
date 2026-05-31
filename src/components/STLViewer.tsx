@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { STLLoader } from 'three-stdlib';
 import { OBJLoader } from 'three-stdlib';
-import { OrbitControls } from 'three-stdlib';
+import { OrbitControls, RoomEnvironment } from 'three-stdlib';
 import { Loader2, RotateCcw, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 
 interface STLViewerProps {
@@ -13,12 +13,21 @@ interface STLViewerProps {
   onVolumeCalculated?: (volume: number, dimensions: { x: number; y: number; z: number }) => void;
 }
 
-const MATERIAL_CONFIG: Record<string, { color: number; metalness: number; density: number }> = {
-  'or-jaune': { color: 0xFFD700, metalness: 1.0, density: 19.3 },
-  'or-rose': { color: 0xE0BFB8, metalness: 1.0, density: 18.5 },
-  'argent': { color: 0xC0C0C0, metalness: 1.0, density: 10.5 },
-  'bronze': { color: 0xCD7F32, metalness: 1.0, density: 8.7 },
-  'resine': { color: 0x3b82f6, metalness: 0.0, density: 1.2 },
+const MATERIAL_CONFIG: Record<string, { color: number; metalness: number; density: number; isService?: boolean }> = {
+  'OR_JAUNE_375': { color: 0xF7E2A3, metalness: 1.0, density: 11.0 },
+  'OR_JAUNE_750': { color: 0xFFD700, metalness: 1.0, density: 15.0 },
+  'OR_ROSE_375': { color: 0xEDB8A8, metalness: 1.0, density: 11.0 },
+  'OR_ROSE_750': { color: 0xE0BFB8, metalness: 1.0, density: 15.0 },
+  'OR_GRIS_375': { color: 0xCccccc, metalness: 1.0, density: 11.0 },
+  'OR_GRIS_750': { color: 0xDCDCDC, metalness: 1.0, density: 15.0 },
+  'OR_GRIS_750_PALLADIE_13': { color: 0xE0E0E0, metalness: 1.0, density: 15.5 },
+  'OR_ROUGE_750': { color: 0xD4A373, metalness: 1.0, density: 15.0 },
+  'PLATINE_950': { color: 0xE5E4E2, metalness: 1.0, density: 21.0 },
+  'PALLADIUM': { color: 0xCED0DD, metalness: 1.0, density: 12.0 },
+  'ARGENT_925': { color: 0xC0C0C0, metalness: 1.0, density: 10.4 },
+  'LAITON': { color: 0xCDA434, metalness: 0.8, density: 8.5 },
+  'PROTO_VISUEL': { color: 0x3b82f6, metalness: 0.1, density: 1.2, isService: true },
+  'IMPRESSION_CIRE': { color: 0xFF5733, metalness: 0.0, density: 1.0, isService: true },
 };
 
 /**
@@ -79,7 +88,7 @@ export default function STLViewer({ fileUrl, fileName, materialType, finishType,
 
     // Scène
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0f0f0f);
+    scene.background = new THREE.Color(0xfafafa);
     sceneRef.current = scene;
 
     // Caméra
@@ -99,10 +108,14 @@ export default function STLViewer({ fileUrl, fileName, materialType, finishType,
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.2;
+    renderer.toneMappingExposure = 1.5;
     containerRef.current.innerHTML = '';
     containerRef.current.appendChild(renderer.domElement);
     rendererRef.current = renderer;
+
+    const pmremGenerator = new THREE.PMREMGenerator(renderer);
+    pmremGenerator.compileEquirectangularShader();
+    scene.environment = pmremGenerator.fromScene(RoomEnvironment() as unknown as THREE.Scene, 0.04).texture;
 
     // Contrôles OrbitControls
     const controls = new OrbitControls(camera, renderer.domElement);
@@ -115,7 +128,7 @@ export default function STLViewer({ fileUrl, fileName, materialType, finishType,
     controlsRef.current = controls;
 
     // Lumières
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
     scene.add(ambientLight);
 
     const keyLight = new THREE.DirectionalLight(0xffffff, 1.2);
@@ -123,16 +136,16 @@ export default function STLViewer({ fileUrl, fileName, materialType, finishType,
     keyLight.castShadow = true;
     scene.add(keyLight);
 
-    const fillLight = new THREE.DirectionalLight(0xffffff, 0.6);
+    const fillLight = new THREE.DirectionalLight(0xffffff, 0.8);
     fillLight.position.set(-50, 50, -30);
     scene.add(fillLight);
 
-    const rimLight = new THREE.DirectionalLight(0xffaf7b, 0.5);
+    const rimLight = new THREE.DirectionalLight(0xffaf7b, 0.4);
     rimLight.position.set(0, -50, -50);
     scene.add(rimLight);
 
     // Grille de fond
-    const gridHelper = new THREE.GridHelper(200, 20, 0x2a2a2a, 0x1a1a1a);
+    const gridHelper = new THREE.GridHelper(200, 20, 0x94a3b8, 0xcbd5e1);
     gridHelper.rotation.x = Math.PI / 2;
     gridHelper.position.z = -50;
     scene.add(gridHelper);
@@ -175,7 +188,7 @@ export default function STLViewer({ fileUrl, fileName, materialType, finishType,
 
     try {
       // Récupérer le token depuis localStorage
-      const token = localStorage.getItem('lecreuset_token');
+      const token = localStorage.getItem('lagrenaille_token');
       
       // Fetch le fichier avec le token d'authentification
       const response = await fetch(fileUrl, {
@@ -222,12 +235,14 @@ export default function STLViewer({ fileUrl, fileName, materialType, finishType,
       onVolumeCalculated?.(volume, dimensions);
 
       // Créer le matériau
-      const config = MATERIAL_CONFIG[materialType] || MATERIAL_CONFIG['or-jaune'];
-      const material = new THREE.MeshStandardMaterial({
+      const config = MATERIAL_CONFIG[materialType] || MATERIAL_CONFIG['OR_JAUNE_750'];
+      const material = new THREE.MeshPhysicalMaterial({
         color: config.color,
         metalness: config.metalness,
-        roughness: finishType === 'poli' ? 0.1 : 0.4,
-        envMapIntensity: 1.0,
+        roughness: finishType === 'poli' ? 0.05 : 0.4,
+        clearcoat: finishType === 'poli' ? 0.8 : 0.0,
+        clearcoatRoughness: 0.1,
+        envMapIntensity: 2.0,
       });
 
       const mesh = new THREE.Mesh(geometry, material);
@@ -265,11 +280,12 @@ export default function STLViewer({ fileUrl, fileName, materialType, finishType,
   useEffect(() => {
     if (!meshRef.current) return;
     
-    const config = MATERIAL_CONFIG[materialType] || MATERIAL_CONFIG['or-jaune'];
-    const material = meshRef.current.material as THREE.MeshStandardMaterial;
+    const config = MATERIAL_CONFIG[materialType] || MATERIAL_CONFIG['OR_JAUNE_750'];
+    const material = meshRef.current.material as THREE.MeshPhysicalMaterial;
     material.color.setHex(config.color);
     material.metalness = config.metalness;
-    material.roughness = finishType === 'poli' ? 0.1 : 0.4;
+    material.roughness = finishType === 'poli' ? 0.05 : 0.4;
+    material.clearcoat = finishType === 'poli' ? 0.8 : 0.0;
   }, [materialType, finishType]);
 
   // Initialiser la scène
@@ -314,38 +330,38 @@ export default function STLViewer({ fileUrl, fileName, materialType, finishType,
     }
   };
 
-  const config = MATERIAL_CONFIG[materialType] || MATERIAL_CONFIG['or-jaune'];
+  const config = MATERIAL_CONFIG[materialType] || MATERIAL_CONFIG['OR_JAUNE_750'];
 
   return (
     <div className="relative w-full h-full">
-      <div ref={containerRef} className="w-full h-full bg-secondary-950 rounded-sm" />
+      <div ref={containerRef} className="w-full h-full bg-slate-50 rounded-sm" />
       
       {/* Contrôles du viewer */}
       <div className="absolute bottom-4 right-4 flex gap-2">
         <button
           onClick={handleZoomIn}
-          className="p-2 bg-secondary-800/80 hover:bg-secondary-700 text-secondary-300 hover:text-white rounded-lg backdrop-blur-md transition-colors"
+          className="p-2 bg-white/80 hover:bg-white text-secondary-500 hover:text-primary-600 rounded-lg backdrop-blur-md transition-colors shadow-sm"
           title="Zoom +"
         >
           <ZoomIn size={18} />
         </button>
         <button
           onClick={handleZoomOut}
-          className="p-2 bg-secondary-800/80 hover:bg-secondary-700 text-secondary-300 hover:text-white rounded-lg backdrop-blur-md transition-colors"
+          className="p-2 bg-white/80 hover:bg-white text-secondary-500 hover:text-primary-600 rounded-lg backdrop-blur-md transition-colors shadow-sm"
           title="Zoom -"
         >
           <ZoomOut size={18} />
         </button>
         <button
           onClick={handleResetView}
-          className="p-2 bg-secondary-800/80 hover:bg-secondary-700 text-secondary-300 hover:text-white rounded-lg backdrop-blur-md transition-colors"
+          className="p-2 bg-white/80 hover:bg-white text-secondary-500 hover:text-primary-600 rounded-lg backdrop-blur-md transition-colors shadow-sm"
           title="Réinitialiser la vue"
         >
           <RotateCcw size={18} />
         </button>
         <button
           onClick={() => controlsRef.current && (controlsRef.current.autoRotate = !controlsRef.current.autoRotate)}
-          className="p-2 bg-secondary-800/80 hover:bg-secondary-700 text-secondary-300 hover:text-white rounded-lg backdrop-blur-md transition-colors"
+          className="p-2 bg-white/80 hover:bg-white text-secondary-500 hover:text-primary-600 rounded-lg backdrop-blur-md transition-colors shadow-sm"
           title="Toggle rotation auto"
         >
           <Maximize2 size={18} />
@@ -354,26 +370,26 @@ export default function STLViewer({ fileUrl, fileName, materialType, finishType,
 
       {/* Informations du modèle */}
       {modelInfo && fileName && (
-        <div className="absolute top-4 left-4 bg-secondary-900/90 backdrop-blur-md p-4 rounded-lg border border-secondary-800 text-xs text-secondary-400 shadow-2xl max-w-[220px]">
-          <div className="flex items-center gap-3 mb-3 pb-3 border-b border-secondary-800">
+        <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md p-4 rounded-lg border border-secondary-200 text-xs text-secondary-500 shadow-xl max-w-[220px]">
+          <div className="flex items-center gap-3 mb-3 pb-3 border-b border-secondary-100">
             <div 
               className="w-4 h-4 rounded-full shadow-sm shrink-0" 
               style={{ backgroundColor: `#${config.color.toString(16).padStart(6, '0')}` }}
             />
-            <span className="font-bold text-white text-sm truncate">{fileName}</span>
+            <span className="font-bold text-secondary-900 text-sm truncate">{fileName}</span>
           </div>
           <div className="space-y-2">
             <div className="flex justify-between">
               <span className="text-secondary-500">Volume:</span>
-              <span className="text-white font-medium">{modelInfo.volume.toFixed(2)} cm³</span>
+              <span className="text-secondary-900 font-medium">{modelInfo.volume.toFixed(2)} cm³</span>
             </div>
             <div className="flex justify-between">
               <span className="text-secondary-500">Masse estimée:</span>
-              <span className="text-white font-medium">~{(modelInfo.volume * config.density).toFixed(1)}g</span>
+              <span className="text-secondary-900 font-medium">~{(modelInfo.volume * config.density).toFixed(1)}g</span>
             </div>
             <div className="flex justify-between">
               <span className="text-secondary-500">Dimensions:</span>
-              <span className="text-white font-medium text-[10px]">
+              <span className="text-secondary-900 font-medium text-[10px]">
                 {modelInfo.dimensions.x} × {modelInfo.dimensions.y} × {modelInfo.dimensions.z} mm
               </span>
             </div>
@@ -383,19 +399,19 @@ export default function STLViewer({ fileUrl, fileName, materialType, finishType,
 
       {/* Loader */}
       {loading && (
-        <div className="absolute inset-0 bg-secondary-950/80 flex items-center justify-center backdrop-blur-sm">
+        <div className="absolute inset-0 bg-white/80 flex items-center justify-center backdrop-blur-sm">
           <div className="text-center">
             <Loader2 className="animate-spin text-primary-500 mx-auto mb-3" size={48} />
-            <p className="text-secondary-300 font-medium">Chargement du modèle 3D...</p>
+            <p className="text-secondary-600 font-medium">Chargement du modèle 3D...</p>
           </div>
         </div>
       )}
 
       {/* Erreur */}
       {error && (
-        <div className="absolute inset-0 bg-secondary-950/80 flex items-center justify-center backdrop-blur-sm">
+        <div className="absolute inset-0 bg-white/80 flex items-center justify-center backdrop-blur-sm">
           <div className="text-center p-6 max-w-sm">
-            <p className="text-red-400 font-medium">{error}</p>
+            <p className="text-red-500 font-medium">{error}</p>
             <p className="text-secondary-500 text-sm mt-2">Vérifiez que le fichier est un modèle 3D valide.</p>
           </div>
         </div>

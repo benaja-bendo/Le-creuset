@@ -208,7 +208,7 @@ export default function Register() {
           </div>
           <div className="hidden lg:block">
             <div className="rounded-lg overflow-hidden border border-secondary-800">
-              <img src="/hero-register.jpg" alt="Accès pro" className="w-full h-80 object-cover" />
+              <img src="/hero-register.png" alt="Accès pro" className="w-full h-80 object-cover" />
             </div>
           </div>
         </div>

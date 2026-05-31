@@ -1,12 +1,21 @@
 import { Flame, Layers, Printer, Upload } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import type { MouseEventHandler, ReactNode } from 'react';
 import fonteImg from '../../assets/fonte.png';
 import impressionImg from '../../assets/impression-3d.png';
 import moulageImg from '../../assets/moulage.png';
 
-const Button = ({ children, variant = 'primary', onClick, className = '' }: any) => {
+type ButtonVariant = 'primary' | 'outline';
+type ButtonProps = {
+  children: ReactNode;
+  variant?: ButtonVariant;
+  onClick?: MouseEventHandler<HTMLButtonElement>;
+  className?: string;
+};
+
+const Button = ({ children, variant = 'primary', onClick, className = '' }: ButtonProps) => {
   const baseStyle = "px-8 py-4 transition-all duration-300 font-semibold tracking-widest text-sm uppercase flex items-center justify-center gap-2";
-  const variants: any = {
+  const variants: Record<ButtonVariant, string> = {
     primary: "bg-primary-400 text-secondary-900 hover:bg-primary-500 hover:-translate-y-1 shadow-lg",
     outline: "border border-primary-400 text-primary-400 hover:bg-primary-400 hover:text-secondary-900",
   };

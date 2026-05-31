@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, type ButtonHTMLAttributes, type ReactNode } from 'react';
 import { 
   User, 
   Building2, 
@@ -11,16 +11,23 @@ import {
   CheckCircle, 
   AlertCircle,
   Loader2,
-  Upload,
-  Eye
+  Eye,
+  type LucideIcon
 } from 'lucide-react';
-import { getJSON, patchJSON, uploadFile, BASE_URL } from '../../api/client';
+import { getJSON, patchJSON, resolveUrl } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 
 // Button component
-const Button = ({ children, variant = 'primary', onClick, className = '', disabled = false, type = 'button' }: any) => {
+type ButtonVariant = 'primary' | 'outline' | 'danger' | 'ghost';
+type ButtonProps = {
+  children: ReactNode;
+  variant?: ButtonVariant;
+  className?: string;
+} & Pick<ButtonHTMLAttributes<HTMLButtonElement>, 'onClick' | 'disabled' | 'type'>;
+
+const Button = ({ children, variant = 'primary', onClick, className = '', disabled = false, type = 'button' }: ButtonProps) => {
   const baseStyle = "px-5 py-2.5 transition-all duration-300 font-medium tracking-wide text-sm uppercase flex items-center justify-center gap-2 rounded-md";
-  const variants: any = {
+  const variants: Record<ButtonVariant, string> = {
     primary: "bg-primary-600 text-white hover:bg-primary-700 hover:shadow-lg disabled:bg-secondary-300 disabled:text-secondary-500",
     outline: "border border-secondary-300 text-secondary-600 hover:border-primary-500 hover:text-primary-600",
     danger: "bg-red-600 text-white hover:bg-red-700",
@@ -61,7 +68,7 @@ const InputField = ({
   value: string; 
   onChange: (v: string) => void; 
   type?: string;
-  icon?: any;
+  icon?: LucideIcon;
   disabled?: boolean;
   placeholder?: string;
 }) => (
@@ -133,11 +140,7 @@ export default function Profile() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  // Document upload
-  const kbisInputRef = useRef<HTMLInputElement>(null);
-  const customsInputRef = useRef<HTMLInputElement>(null);
-  const [uploadingKbis, setUploadingKbis] = useState(false);
-  const [uploadingCustoms, setUploadingCustoms] = useState(false);
+  // Document upload removed - clients can only view
 
   // Load profile data
   useEffect(() => {
@@ -149,7 +152,7 @@ export default function Profile() {
         setCompanyName(data.companyName || '');
         setPhone(data.phone || '');
         setAddress(data.address || '');
-      } catch (err) {
+      } catch {
         setAlert({ type: 'error', message: 'Impossible de charger le profil' });
       } finally {
         setLoading(false);
@@ -206,32 +209,6 @@ export default function Profile() {
     }
   };
 
-  // Upload document
-  const handleDocumentUpload = async (type: 'kbis' | 'customs', file: File) => {
-    if (type === 'kbis') setUploadingKbis(true);
-    else setUploadingCustoms(true);
-
-    try {
-      const response = await uploadFile(file);
-      const docUrl = `${BASE_URL}${response.url}`;
-      
-      await patchJSON('/users/me/documents', {
-        [type === 'kbis' ? 'kbisFileUrl' : 'customsFileUrl']: docUrl,
-      });
-
-      setProfile(prev => prev ? {
-        ...prev,
-        [type === 'kbis' ? 'kbisFileUrl' : 'customsFileUrl']: docUrl,
-      } : null);
-
-      showAlert('success', `Document ${type === 'kbis' ? 'KBIS' : 'Douanes'} mis à jour`);
-    } catch (err) {
-      showAlert('error', err instanceof Error ? err.message : 'Erreur lors de l\'upload');
-    } finally {
-      if (type === 'kbis') setUploadingKbis(false);
-      else setUploadingCustoms(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -293,9 +270,11 @@ export default function Profile() {
             <Tab active={activeTab === 'security'} onClick={() => setActiveTab('security')}>
               <span className="flex items-center gap-2"><Lock size={16} /> Sécurité</span>
             </Tab>
-            <Tab active={activeTab === 'documents'} onClick={() => setActiveTab('documents')}>
-              <span className="flex items-center gap-2"><FileText size={16} /> Documents</span>
-            </Tab>
+            {profile?.role !== 'ADMIN' && (
+              <Tab active={activeTab === 'documents'} onClick={() => setActiveTab('documents')}>
+                <span className="flex items-center gap-2"><FileText size={16} /> Documents</span>
+              </Tab>
+            )}
           </div>
         </div>
 
@@ -430,41 +409,26 @@ export default function Profile() {
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <h5 className="font-medium text-secondary-900">Extrait KBIS</h5>
-                    <p className="text-xs text-secondary-500 mt-1">Document de moins de 3 mois</p>
                   </div>
-                  {profile?.kbisFileUrl && (
+                  {profile?.kbisFileUrl ? (
                     <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">
                       <CheckCircle size={12} /> Fourni
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded-full">
+                      Non fourni
                     </span>
                   )}
                 </div>
                 
-                <div className="flex gap-2">
-                  <input 
-                    type="file" 
-                    ref={kbisInputRef}
-                    className="hidden" 
-                    accept=".pdf"
-                    onChange={(e) => e.target.files?.[0] && handleDocumentUpload('kbis', e.target.files[0])}
-                  />
+                {profile?.kbisFileUrl && (
                   <Button 
-                    variant="outline" 
-                    onClick={() => kbisInputRef.current?.click()}
-                    disabled={uploadingKbis}
-                    className="flex-1"
+                    variant="ghost"
+                    onClick={() => window.open(resolveUrl(profile.kbisFileUrl!), '_blank')}
                   >
-                    {uploadingKbis ? <Loader2 className="animate-spin" size={16} /> : <Upload size={16} />}
-                    {profile?.kbisFileUrl ? 'Mettre à jour' : 'Charger'}
+                    <Eye size={16} /> Voir le document
                   </Button>
-                  {profile?.kbisFileUrl && (
-                    <Button 
-                      variant="ghost"
-                      onClick={() => window.open(profile.kbisFileUrl!, '_blank')}
-                    >
-                      <Eye size={16} /> Voir
-                    </Button>
-                  )}
-                </div>
+                )}
               </div>
 
               {/* Customs */}
@@ -474,51 +438,38 @@ export default function Profile() {
                     <h5 className="font-medium text-secondary-900">Fiche Douanes</h5>
                     <p className="text-xs text-secondary-500 mt-1">Déclaration d'existence - Garantie des métaux</p>
                   </div>
-                  {profile?.customsFileUrl && (
+                  {profile?.customsFileUrl ? (
                     <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">
                       <CheckCircle size={12} /> Fourni
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded-full">
+                      Non fourni
                     </span>
                   )}
                 </div>
                 
-                <div className="flex gap-2">
-                  <input 
-                    type="file" 
-                    ref={customsInputRef}
-                    className="hidden" 
-                    accept=".pdf"
-                    onChange={(e) => e.target.files?.[0] && handleDocumentUpload('customs', e.target.files[0])}
-                  />
+                {profile?.customsFileUrl && (
                   <Button 
-                    variant="outline" 
-                    onClick={() => customsInputRef.current?.click()}
-                    disabled={uploadingCustoms}
-                    className="flex-1"
+                    variant="ghost"
+                    onClick={() => window.open(resolveUrl(profile.customsFileUrl!), '_blank')}
                   >
-                    {uploadingCustoms ? <Loader2 className="animate-spin" size={16} /> : <Upload size={16} />}
-                    {profile?.customsFileUrl ? 'Mettre à jour' : 'Charger'}
+                    <Eye size={16} /> Voir le document
                   </Button>
-                  {profile?.customsFileUrl && (
-                    <Button 
-                      variant="ghost"
-                      onClick={() => window.open(profile.customsFileUrl!, '_blank')}
-                    >
-                      <Eye size={16} /> Voir
-                    </Button>
-                  )}
-                </div>
+                )}
               </div>
 
-              {/* Account Info */}
-              <div className="mt-8 p-4 bg-primary-50 rounded-lg border border-primary-200">
-                <h5 className="font-medium text-primary-900 mb-2">Informations du compte</h5>
-                <div className="text-sm text-primary-700 space-y-1">
-                  <p>Compte créé le : <strong>{profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString('fr-FR') : '-'}</strong></p>
-                  <p>Dernière mise à jour : <strong>{profile?.updatedAt ? new Date(profile.updatedAt).toLocaleDateString('fr-FR') : '-'}</strong></p>
-                </div>
-              </div>
             </div>
           )}
+          
+          {/* Account Info */}
+          <div className="mt-8 p-4 bg-primary-50 rounded-lg border border-primary-200">
+            <h5 className="font-medium text-primary-900 mb-2">Informations du compte</h5>
+            <div className="text-sm text-primary-700 space-y-1">
+              <p>Compte créé le : <strong>{profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString('fr-FR') : '-'}</strong></p>
+              <p>Dernière mise à jour : <strong>{profile?.updatedAt ? new Date(profile.updatedAt).toLocaleDateString('fr-FR') : '-'}</strong></p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

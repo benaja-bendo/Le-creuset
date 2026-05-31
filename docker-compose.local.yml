@@ -1,0 +1,20 @@
+services:
+  front-local:
+    image: node:22-alpine
+    container_name: lecreuset-front-local
+    working_dir: /app
+    volumes:
+      - .:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:3000/api}
+      - VITE_DOMAIN_NAME=${VITE_DOMAIN_NAME:-localhost}
+    command: npm run dev -- --host
+    networks:
+      - proxy
+
+networks:
+  proxy:
+    external: true

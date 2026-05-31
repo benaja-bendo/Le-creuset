@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { 
   FileText, 
@@ -12,21 +12,24 @@ import {
   DollarSign,
   Loader2,
   AlertCircle,
-  Plus
+  Plus,
+  Layers
 } from 'lucide-react';
-import { getJSON, postJSON, BASE_URL, uploadFile } from '../../api/client';
+import { getJSON, postJSON, BASE_URL, uploadFile, getToken, resolveUrl } from '../../api/client';
 
 type Invoice = {
   id: string;
   invoiceNumber: string;
-  orderId: string;
+  orderId?: string;
   userId: string;
-  fileUrl: string;
+  fileUrl: string | null;
   amount: number | null;
   issueDate: string;
   notes: string | null;
   createdAt: string;
-  order: { id: string; status: string; estimatedPrice: number | null };
+  type?: 'individual' | 'group';
+  order?: { id: string; status: string; estimatedPrice: number | null };
+  orders?: { id: string; status: string; estimatedPrice: number | null }[];
   user: { id: string; email: string; companyName: string | null };
 };
 
@@ -34,9 +37,23 @@ type Order = {
   id: string;
   status: string;
   userId: string;
+  invoiceGroupId?: string;
   user?: { companyName: string; email: string };
   estimatedPrice: number | null;
   createdAt: string;
+};
+
+type InvoiceGroup = {
+  id: string;
+  invoiceNumber: string;
+  userId: string;
+  fileUrl: string | null;
+  amount: number | null;
+  issueDate: string;
+  notes: string | null;
+  createdAt: string;
+  orders?: { id: string; status: string; estimatedPrice: number | null }[];
+  user: { id: string; email: string; companyName: string | null };
 };
 
 export default function AdminInvoices() {
@@ -50,34 +67,65 @@ export default function AdminInvoices() {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialOrderId = searchParams.get('orderId');
 
-  useEffect(() => {
-    loadData();
-    if (initialOrderId) {
-      setShowUploadModal(true);
-    }
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
-      const [inv, ord] = await Promise.all([
+      const [inv, groups, ord] = await Promise.all([
         getJSON<Invoice[]>('/invoices'),
+        getJSON<InvoiceGroup[]>('/invoice-groups'),
         getJSON<Order[]>('/orders'),
       ]);
-      setInvoices(inv);
+      
+      const formattedInv = inv.map(i => ({ ...i, type: 'individual' as const }));
+      const formattedGroups = groups.map(g => ({
+        ...g,
+        id: g.id,
+        invoiceNumber: g.invoiceNumber,
+        userId: g.userId,
+        fileUrl: g.fileUrl,
+        amount: g.amount,
+        issueDate: g.issueDate,
+        notes: g.notes,
+        createdAt: g.createdAt,
+        type: 'group' as const,
+        orders: g.orders,
+        user: g.user,
+      }));
+      
+      // Merge and sort
+      const allInvoices = [...formattedInv, ...formattedGroups].sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      
+      setInvoices(allInvoices);
       setOrders(ord);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur de chargement');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Supprimer cette facture ?')) return;
+  useEffect(() => {
+    void loadData();
+    if (initialOrderId) {
+      setShowUploadModal(true);
+    }
+  }, [loadData, initialOrderId]);
+
+  const handleDelete = async (id: string, type: 'individual' | 'group' = 'individual') => {
+    if (!confirm(`Supprimer cette facture ${type === 'group' ? 'groupée ' : ''}?`)) return;
     try {
-      await fetch(`${BASE_URL}/api/invoices/${id}`, { method: 'DELETE' });
+      if (type === 'group') {
+        await fetch(`${BASE_URL}/api/invoice-groups/${id}`, { method: 'DELETE', headers: {
+          'Authorization': `Bearer ${getToken()}`
+        } });
+      } else {
+        await fetch(`${BASE_URL}/api/invoices/${id}`, { method: 'DELETE', headers: {
+          'Authorization': `Bearer ${getToken()}`
+        } });
+      }
       setInvoices(prev => prev.filter(i => i.id !== id));
-    } catch (err) {
+    } catch {
       setError('Erreur lors de la suppression');
     }
   };
@@ -88,10 +136,7 @@ export default function AdminInvoices() {
     inv.user.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const resolveUrl = (url: string) => {
-    if (url.startsWith('http')) return url;
-    return `${BASE_URL}${url}`;
-  };
+
 
   if (loading) {
     return (
@@ -107,7 +152,7 @@ export default function AdminInvoices() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-secondary-900">Gestion des Factures</h1>
-          <p className="text-secondary-500">Déposez et gérez les factures clients.</p>
+          <p className="text-secondary-500">Déposez et gérez les factures clients (Individuelles et Groupées).</p>
         </div>
         <button
           onClick={() => setShowUploadModal(true)}
@@ -144,18 +189,20 @@ export default function AdminInvoices() {
           <table className="w-full text-sm text-left">
             <thead className="bg-secondary-50 text-secondary-600 font-medium">
               <tr>
+                <th className="px-6 py-4">Type</th>
                 <th className="px-6 py-4">N° Facture</th>
                 <th className="px-6 py-4">Client</th>
                 <th className="px-6 py-4">Montant</th>
                 <th className="px-6 py-4">Date</th>
-                <th className="px-6 py-4">Commande</th>
-                <th className="px-6 py-4">Actions</th>
+                <th className="px-6 py-4">Commande(s)</th>
+                <th className="px-6 py-4">Notes</th>
+                <th className="px-6 py-4 hover:text-secondary-800">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-secondary-100">
               {filteredInvoices.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-secondary-400">
+                  <td colSpan={8} className="px-6 py-12 text-center text-secondary-400">
                     <FileText size={40} className="mx-auto mb-3 opacity-30" />
                     <p>Aucune facture</p>
                   </td>
@@ -163,49 +210,85 @@ export default function AdminInvoices() {
               ) : filteredInvoices.map((inv) => (
                 <tr key={inv.id} className="hover:bg-secondary-50/50 transition-colors">
                   <td className="px-6 py-4">
+                    {inv.type === 'group' ? (
+                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-indigo-50 text-indigo-700 text-xs font-bold uppercase tracking-tighter border border-indigo-200">
+                           <Layers size={14}/> Groupée
+                       </span>
+                    ) : (
+                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-secondary-50 text-secondary-700 text-xs font-bold uppercase tracking-tighter border border-secondary-200">
+                           <FileText size={14}/> Indiv.
+                       </span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4">
                     <span className="font-medium text-secondary-900">{inv.invoiceNumber}</span>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
-                      <Building2 size={14} className="text-secondary-400" />
-                      <span className="text-secondary-700">{inv.user.companyName || inv.user.email}</span>
+                       <Building2 size={14} className="text-secondary-400" />
+                       <span className="text-secondary-700">{inv.user.companyName || inv.user.email}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-1.5 text-secondary-700">
-                      <DollarSign size={14} className="text-secondary-400" />
-                      {inv.amount ? `${inv.amount} €` : '-'}
+                       <DollarSign size={14} className="text-secondary-400" />
+                       {inv.amount ? `${inv.amount} €` : '-'}
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-1.5 text-secondary-500">
-                      <Calendar size={14} />
-                      {new Date(inv.issueDate).toLocaleDateString('fr-FR')}
+                       <Calendar size={14} />
+                       {new Date(inv.issueDate).toLocaleDateString('fr-FR')}
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="text-xs font-mono text-secondary-500">#{inv.orderId.slice(-6)}</span>
+                     {inv.type === 'group' ? (
+                        <div className="text-xs text-secondary-500 flex flex-col gap-1">
+                           <span className="font-medium text-secondary-700">{inv.orders?.length} commandes stipulées</span>
+                           {inv.orders && inv.orders.length > 0 && (
+                               <span className="font-mono text-[10px] text-secondary-400 truncate w-32">
+                                  {inv.orders.map(o => `#${o.id.slice(-6)}`).join(', ')}
+                               </span>
+                           )}
+                        </div>
+                     ) : (
+                        <span className="text-xs font-mono text-secondary-500">#{inv.orderId?.slice(-6) || ' N/A'}</span>
+                     )}
+                  </td>
+                  <td className="px-6 py-4">
+                    {inv.notes ? (
+                      <span className="text-xs text-secondary-600 italic truncate block max-w-[150px]" title={inv.notes}>{inv.notes}</span>
+                    ) : (
+                      <span className="text-xs text-secondary-300">-</span>
+                    )}
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
+                      {inv.fileUrl ? (
+                          <>
+                            <button
+                                onClick={() => setPreviewUrl(resolveUrl(inv.fileUrl))}
+                                className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                                title="Voir"
+                            >
+                                <Eye size={16} />
+                            </button>
+                            <a
+                                href={resolveUrl(inv.fileUrl)}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="p-2 text-secondary-500 hover:bg-secondary-100 rounded-lg transition-colors"
+                                title="Télécharger"
+                            >
+                                <FileText size={16} />
+                            </a>
+                          </>
+                      ) : (
+                         <span className="text-xs italic text-secondary-400">PDF manquant</span>
+                      )}
+                      
                       <button
-                        onClick={() => setPreviewUrl(resolveUrl(inv.fileUrl))}
-                        className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
-                        title="Voir"
-                      >
-                        <Eye size={16} />
-                      </button>
-                      <a
-                        href={resolveUrl(inv.fileUrl)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="p-2 text-secondary-500 hover:bg-secondary-100 rounded-lg transition-colors"
-                        title="Télécharger"
-                      >
-                        <FileText size={16} />
-                      </a>
-                      <button
-                        onClick={() => handleDelete(inv.id)}
+                        onClick={() => handleDelete(inv.id, inv.type)}
                         className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                         title="Supprimer"
                       >
@@ -269,6 +352,16 @@ function UploadInvoiceModal({
   onClose: () => void; 
   onSuccess: (inv: Invoice) => void;
 }) {
+  // Get unique users from orders
+  const uniqueUsers = Array.from(
+    new Map(orders.filter(o => o.user).map(o => [o.user!.email, o.user!])).values()
+  );
+
+  // Find initial user from initialOrderId
+  const initialOrder = initialOrderId ? orders.find(o => o.id === initialOrderId) : null;
+  const initialUserId = initialOrder?.userId || '';
+
+  const [selectedUserId, setSelectedUserId] = useState(initialUserId);
   const [form, setForm] = useState({
     invoiceNumber: '',
     orderId: initialOrderId || '',
@@ -279,12 +372,24 @@ function UploadInvoiceModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const selectedOrder = orders.find(o => o.id === form.orderId);
+  // Filter orders for the selected user, excluding already-invoiced ones
+  const availableOrders = orders.filter(o => 
+    o.userId === selectedUserId && 
+    !o.invoiceGroupId
+  );
+
+  // Reset order selection when user changes
+  const handleUserChange = (userId: string) => {
+    setSelectedUserId(userId);
+    setForm({ ...form, orderId: '' });
+  };
+
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file || !form.orderId) {
-      setError('Veuillez sélectionner un fichier et une commande');
+    if (!file || !selectedUserId) {
+      setError('Veuillez sélectionner un client et un fichier');
       return;
     }
 
@@ -292,20 +397,18 @@ function UploadInvoiceModal({
     setError(null);
 
     try {
-      // Upload file first
       const uploadRes = await uploadFile(file);
       
-      // Create invoice
       const invoice = await postJSON<Invoice>('/invoices', {
         invoiceNumber: form.invoiceNumber,
-        orderId: form.orderId,
-        userId: selectedOrder?.userId,
+        orderId: form.orderId === 'DEPOT_METAL' ? undefined : (form.orderId || undefined),
+        userId: selectedUserId,
         fileUrl: uploadRes.url,
         amount: form.amount ? parseFloat(form.amount) : undefined,
         notes: form.notes || undefined,
       });
 
-      onSuccess(invoice);
+      onSuccess({ ...invoice, type: 'individual' });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de la création');
     } finally {
@@ -344,24 +447,47 @@ function UploadInvoiceModal({
             />
           </div>
 
+          {/* Client selection FIRST */}
           <div>
             <label className="block text-sm font-medium text-secondary-700 mb-1.5">
-              Commande associée *
+              Client *
             </label>
             <select
-              value={form.orderId}
-              onChange={e => setForm({ ...form, orderId: e.target.value })}
+              value={selectedUserId}
+              onChange={e => handleUserChange(e.target.value)}
               className="w-full px-4 py-2.5 border border-secondary-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-secondary-900"
               required
             >
-              <option value="">Sélectionner une commande</option>
-              {orders.map(o => (
-                <option key={o.id} value={o.id}>
-                  #{o.id.slice(-6)} - {o.user?.companyName || 'Client'} ({o.status})
+              <option value="">Sélectionner un client</option>
+              {uniqueUsers.map(u => (
+                <option key={u.email} value={orders.find(o => o.user?.email === u.email)?.userId || ''}>
+                  {u.companyName || u.email}
                 </option>
               ))}
             </select>
           </div>
+
+          {/* Order selection FILTERED by client */}
+          {selectedUserId && (
+            <div>
+              <label className="block text-sm font-medium text-secondary-700 mb-1.5">
+                Commande associée
+              </label>
+              <select
+                value={form.orderId}
+                onChange={e => setForm({ ...form, orderId: e.target.value })}
+                className="w-full px-4 py-2.5 border border-secondary-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-secondary-900"
+              >
+                <option value="">Aucune (facture libre)</option>
+                <option value="DEPOT_METAL">⚙ Dépôt métal</option>
+                {availableOrders.map(o => (
+                  <option key={o.id} value={o.id}>
+                    #{o.id.slice(-6)} - {o.status} ({new Date(o.createdAt).toLocaleDateString('fr-FR')})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-secondary-700 mb-1.5">

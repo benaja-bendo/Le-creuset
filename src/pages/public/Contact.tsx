@@ -1,4 +1,5 @@
 import { Mail, MapPin, Phone } from 'lucide-react';
+import type { ReactNode } from 'react';
 
 const SectionTitle = ({ title, subtitle }: { title: string, subtitle: string }) => (
   <div className="mb-12 text-center">
@@ -12,7 +13,7 @@ const SectionTitle = ({ title, subtitle }: { title: string, subtitle: string }) 
   </div>
 );
 
-const Button = ({ children, className = '' }: any) => (
+const Button = ({ children, className = '' }: { children: ReactNode; className?: string }) => (
   <button className={`px-6 py-3 bg-primary-600 text-white hover:bg-primary-700 hover:shadow-lg hover:shadow-primary-900/20 transition-all duration-300 font-medium tracking-wide text-sm uppercase flex items-center justify-center gap-2 rounded-sm ${className}`}>
     {children}
   </button>
@@ -37,7 +38,7 @@ export default function Contact() {
               <div className="flex items-start gap-4">
                 <MapPin className="text-primary-600 mt-1" size={20} />
                 <div>
-                  <h4 className="text-white font-medium">L'Atelier Le Creuset</h4>
+                  <h4 className="text-white font-medium">L'Atelier La Grenaille</h4>
                   <p className="text-secondary-500">12 Rue des Fondeurs<br/>75003 Paris, France</p>
                 </div>
               </div>

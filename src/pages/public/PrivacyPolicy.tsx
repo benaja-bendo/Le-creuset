@@ -8,7 +8,7 @@ export default function PrivacyPolicy() {
       <div className="space-y-8 text-secondary-300">
         <section>
           <p className="text-lg text-secondary-400 italic">
-            Le Creuset accorde une grande importance à la protection de vos données personnelles. 
+            La Grenaille accorde une grande importance à la protection de vos données personnelles. 
             Cette politique de confidentialité vous informe sur la manière dont nous collectons, 
             utilisons et protégeons vos informations conformément au Règlement Général sur la 
             Protection des Données (RGPD).
@@ -123,7 +123,7 @@ export default function PrivacyPolicy() {
             7. Sécurité des données
           </h2>
           <p>
-            Le Creuset met en œuvre toutes les mesures techniques et organisationnelles pour protéger 
+            La Grenaille met en œuvre toutes les mesures techniques et organisationnelles pour protéger 
             vos données contre tout accès non autorisé, modification, divulgation ou destruction :
           </p>
           <ul className="list-disc pl-6 space-y-2 mt-4">
@@ -191,7 +191,7 @@ export default function PrivacyPolicy() {
             10. Modifications
           </h2>
           <p>
-            Le Creuset se réserve le droit de modifier cette politique de confidentialité à tout moment. 
+            La Grenaille se réserve le droit de modifier cette politique de confidentialité à tout moment. 
             Les modifications seront publiées sur cette page avec une nouvelle date de mise à jour. 
             Nous vous encourageons à consulter régulièrement cette page.
           </p>

@@ -4,7 +4,8 @@ import {
   Box, 
   Clock, 
   FileText, 
-  TrendingUp, 
+  TrendingUp,
+  TrendingDown, 
   Users, 
   ClipboardList, 
   AlertCircle, 
@@ -14,7 +15,8 @@ import {
   ArrowRight,
   UserCheck,
   UserPlus,
-  ShoppingCart
+  ShoppingCart,
+  type LucideIcon
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -43,7 +45,7 @@ type User = {
 };
 
 // Composants réutilisables
-const StatCard = ({ label, value, icon: Icon, color, bg }: { label: string; value: string; icon: any; color: string; bg: string }) => (
+const StatCard = ({ label, value, icon: Icon, color, bg }: { label: string; value: string; icon: LucideIcon; color: string; bg: string }) => (
   <div className="bg-white p-6 rounded-xl border border-secondary-200 shadow-sm hover:shadow-md transition-shadow">
     <div className="flex items-center justify-between mb-4">
       <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${bg} ${color}`}>
@@ -55,7 +57,7 @@ const StatCard = ({ label, value, icon: Icon, color, bg }: { label: string; valu
   </div>
 );
 
-const QuickAction = ({ to, icon: Icon, title, subtitle, variant = 'default' }: { to: string; icon: any; title: string; subtitle: string; variant?: 'primary' | 'default' }) => (
+const QuickAction = ({ to, icon: Icon, title, subtitle, variant = 'default' }: { to: string; icon: LucideIcon; title: string; subtitle: string; variant?: 'primary' | 'default' }) => (
   <Link 
     to={to} 
     className={`flex items-center gap-4 p-4 rounded-xl border transition-all group ${
@@ -176,20 +178,37 @@ function ClientDashboard() {
       {weights.length > 0 && (
         <div>
           <h2 className="text-lg font-bold text-secondary-900 mb-4">Comptes Métaux</h2>
+          {weights.some(a => a.balance < 0) && (
+            <div className="mb-4 p-4 bg-red-50 text-red-800 rounded-xl border border-red-200 flex gap-3 text-sm">
+              <AlertCircle className="shrink-0 mt-0.5 text-red-600" size={18} />
+              <div>
+                <p className="font-bold">⚠️ Veuillez régulariser votre compte poids</p>
+                <p className="text-xs mt-1">Votre solde de métal est négatif. Veuillez contacter La Grenaille pour régulariser votre compte.</p>
+              </div>
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {weights.map((account) => (
-              <div key={account.id} className="bg-gradient-to-br from-secondary-800 to-secondary-900 p-6 rounded-xl text-white shadow-lg overflow-hidden relative">
-                <div className="relative z-10">
-                  <p className="text-secondary-400 text-sm mb-1">{account.metalType}</p>
-                  <p className="text-3xl font-bold">
-                    {account.balance} <span className="text-sm font-normal text-secondary-300">g</span>
-                  </p>
+            {weights.map((account) => {
+              const isNegative = account.balance < 0;
+              const formattedName = account.metalType.replace(/_/g, ' ');
+              return (
+              <div key={account.id} className={`p-6 rounded-xl text-white shadow-lg overflow-hidden relative border border-transparent transition-all
+                 ${isNegative ? 'bg-gradient-to-br from-red-800 to-red-900 border-red-700' : 'bg-gradient-to-br from-secondary-800 to-secondary-900'}`}>
+                <div className="relative z-10 flex flex-col h-full justify-between">
+                  <p className="text-secondary-300 text-xs font-bold uppercase tracking-wider mb-2">{formattedName}</p>
+                  <div className="flex items-baseline gap-1 mt-auto">
+                     <p className={`text-4xl font-black tracking-tighter ${isNegative ? 'text-red-100' : 'text-white'}`}>
+                       {account.balance.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
+                     </p>
+                     <span className="text-sm font-bold opacity-70">g</span>
+                  </div>
                 </div>
                 <div className="absolute -right-4 -bottom-4 opacity-10">
-                  <TrendingUp size={100} />
+                  {isNegative ? <TrendingDown size={120} /> : <TrendingUp size={120} />}
                 </div>
               </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       )}

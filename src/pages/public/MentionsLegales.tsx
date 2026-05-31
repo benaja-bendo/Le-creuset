@@ -82,7 +82,7 @@ export default function MentionsLegales() {
             précise possible.
           </p>
           <p>
-            Le Creuset se réserve le droit de corriger, à tout moment et sans préavis, le contenu de ce site.
+            La Grenaille se réserve le droit de corriger, à tout moment et sans préavis, le contenu de ce site.
           </p>
         </section>
 
@@ -92,7 +92,7 @@ export default function MentionsLegales() {
           </h2>
           <p>
             Les liens hypertextes mis en place dans le cadre du présent site internet en direction d'autres 
-            ressources présentes sur le réseau Internet ne sauraient engager la responsabilité de Le Creuset.
+            ressources présentes sur le réseau Internet ne sauraient engager la responsabilité de La Grenaille.
           </p>
         </section>
 

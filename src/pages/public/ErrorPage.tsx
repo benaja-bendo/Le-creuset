@@ -1,9 +1,22 @@
 import { useRouteError, Link } from 'react-router-dom';
 import { AlertTriangle, Home, RotateCcw } from 'lucide-react';
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
 export default function ErrorPage() {
-  const error = useRouteError() as any;
+  const error = useRouteError();
   console.error(error);
+
+  const message =
+    error instanceof Error
+      ? error.message
+      : isRecord(error) && typeof error.statusText === 'string'
+        ? error.statusText
+        : isRecord(error) && typeof error.message === 'string'
+          ? error.message
+          : "Erreur système inconnue";
 
   return (
     <div className="min-h-screen bg-secondary-950 flex items-center justify-center p-6 text-center">
@@ -21,7 +34,7 @@ export default function ErrorPage() {
         
         <div className="bg-secondary-900 border border-secondary-800 rounded-lg p-4 mb-8 text-left">
           <p className="text-xs font-mono text-red-400 break-words">
-            {error?.statusText || error?.message || "Erreur système inconnue"}
+            {message}
           </p>
         </div>
         
