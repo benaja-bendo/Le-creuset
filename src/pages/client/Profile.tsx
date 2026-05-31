@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ButtonHTMLAttributes, type ReactNode } from 'react';
 import { 
   User, 
   Building2, 
@@ -11,15 +11,23 @@ import {
   CheckCircle, 
   AlertCircle,
   Loader2,
-  Eye
+  Eye,
+  type LucideIcon
 } from 'lucide-react';
 import { getJSON, patchJSON, resolveUrl } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 
 // Button component
-const Button = ({ children, variant = 'primary', onClick, className = '', disabled = false, type = 'button' }: any) => {
+type ButtonVariant = 'primary' | 'outline' | 'danger' | 'ghost';
+type ButtonProps = {
+  children: ReactNode;
+  variant?: ButtonVariant;
+  className?: string;
+} & Pick<ButtonHTMLAttributes<HTMLButtonElement>, 'onClick' | 'disabled' | 'type'>;
+
+const Button = ({ children, variant = 'primary', onClick, className = '', disabled = false, type = 'button' }: ButtonProps) => {
   const baseStyle = "px-5 py-2.5 transition-all duration-300 font-medium tracking-wide text-sm uppercase flex items-center justify-center gap-2 rounded-md";
-  const variants: any = {
+  const variants: Record<ButtonVariant, string> = {
     primary: "bg-primary-600 text-white hover:bg-primary-700 hover:shadow-lg disabled:bg-secondary-300 disabled:text-secondary-500",
     outline: "border border-secondary-300 text-secondary-600 hover:border-primary-500 hover:text-primary-600",
     danger: "bg-red-600 text-white hover:bg-red-700",
@@ -60,7 +68,7 @@ const InputField = ({
   value: string; 
   onChange: (v: string) => void; 
   type?: string;
-  icon?: any;
+  icon?: LucideIcon;
   disabled?: boolean;
   placeholder?: string;
 }) => (
@@ -144,7 +152,7 @@ export default function Profile() {
         setCompanyName(data.companyName || '');
         setPhone(data.phone || '');
         setAddress(data.address || '');
-      } catch (err) {
+      } catch {
         setAlert({ type: 'error', message: 'Impossible de charger le profil' });
       } finally {
         setLoading(false);

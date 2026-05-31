@@ -3,15 +3,31 @@ import { getJSON } from '../../api/client';
 import { Scale, Loader2, AlertCircle } from 'lucide-react';
 import WeightGauges from '../../components/WeightGauges';
 
+type Transaction = {
+  id: string;
+  type: 'CREDIT' | 'DEBIT';
+  amount: number;
+  label: string;
+  date: string;
+};
+
+type MetalAccount = {
+  id: string;
+  metalType: string;
+  balance: number;
+  lastUpdate: string;
+  transactions?: Transaction[];
+};
+
 export default function WeightAccount() {
-  const [accounts, setAccounts] = useState<any[]>([]);
+  const [accounts, setAccounts] = useState<MetalAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
       try {
-        const data = await getJSON<any[]>('/weights/me');
+        const data = await getJSON<MetalAccount[]>('/weights/me');
         setAccounts(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Erreur de chargement');

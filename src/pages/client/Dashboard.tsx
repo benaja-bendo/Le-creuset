@@ -15,7 +15,8 @@ import {
   ArrowRight,
   UserCheck,
   UserPlus,
-  ShoppingCart
+  ShoppingCart,
+  type LucideIcon
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -44,7 +45,7 @@ type User = {
 };
 
 // Composants réutilisables
-const StatCard = ({ label, value, icon: Icon, color, bg }: { label: string; value: string; icon: any; color: string; bg: string }) => (
+const StatCard = ({ label, value, icon: Icon, color, bg }: { label: string; value: string; icon: LucideIcon; color: string; bg: string }) => (
   <div className="bg-white p-6 rounded-xl border border-secondary-200 shadow-sm hover:shadow-md transition-shadow">
     <div className="flex items-center justify-between mb-4">
       <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${bg} ${color}`}>
@@ -56,7 +57,7 @@ const StatCard = ({ label, value, icon: Icon, color, bg }: { label: string; valu
   </div>
 );
 
-const QuickAction = ({ to, icon: Icon, title, subtitle, variant = 'default' }: { to: string; icon: any; title: string; subtitle: string; variant?: 'primary' | 'default' }) => (
+const QuickAction = ({ to, icon: Icon, title, subtitle, variant = 'default' }: { to: string; icon: LucideIcon; title: string; subtitle: string; variant?: 'primary' | 'default' }) => (
   <Link 
     to={to} 
     className={`flex items-center gap-4 p-4 rounded-xl border transition-all group ${

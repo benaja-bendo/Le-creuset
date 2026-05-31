@@ -1,4 +1,5 @@
 import { Mail, MapPin, Phone } from 'lucide-react';
+import type { ReactNode } from 'react';
 
 const SectionTitle = ({ title, subtitle }: { title: string, subtitle: string }) => (
   <div className="mb-12 text-center">
@@ -12,7 +13,7 @@ const SectionTitle = ({ title, subtitle }: { title: string, subtitle: string }) 
   </div>
 );
 
-const Button = ({ children, className = '' }: any) => (
+const Button = ({ children, className = '' }: { children: ReactNode; className?: string }) => (
   <button className={`px-6 py-3 bg-primary-600 text-white hover:bg-primary-700 hover:shadow-lg hover:shadow-primary-900/20 transition-all duration-300 font-medium tracking-wide text-sm uppercase flex items-center justify-center gap-2 rounded-sm ${className}`}>
     {children}
   </button>

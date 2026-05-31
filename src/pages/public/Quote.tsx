@@ -1,12 +1,21 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type MouseEventHandler, type ReactNode } from 'react';
 import { Box, Upload, X, AlertCircle } from 'lucide-react';
 import * as THREE from 'three';
 
 // --- Components ---
 
-const Button = ({ children, variant = 'primary', onClick, className = '', disabled = false }: any) => {
+type ButtonVariant = 'primary' | 'outline' | 'ghost' | 'success';
+type ButtonProps = {
+  children: ReactNode;
+  variant?: ButtonVariant;
+  onClick?: MouseEventHandler<HTMLButtonElement>;
+  className?: string;
+  disabled?: boolean;
+};
+
+const Button = ({ children, variant = 'primary', onClick, className = '', disabled = false }: ButtonProps) => {
   const baseStyle = "px-6 py-3 transition-all duration-300 font-medium tracking-wide text-sm uppercase flex items-center justify-center gap-2 rounded-sm";
-  const variants: any = {
+  const variants: Record<ButtonVariant, string> = {
     primary: "bg-primary-600 text-white hover:bg-primary-700 hover:shadow-lg hover:shadow-primary-900/20 disabled:bg-secondary-700 disabled:text-secondary-500",
     outline: "border border-secondary-400 text-secondary-300 hover:border-primary-500 hover:text-primary-500",
     ghost: "text-secondary-400 hover:text-primary-500",
@@ -74,19 +83,20 @@ const ThreeViewer = ({ materialType }: { materialType: string }) => {
   const frameIdRef = useRef<number>(null);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    const container = containerRef.current;
+    if (!container) return;
 
     // Scene setup
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x1c1917); // secondary-900
 
-    const camera = new THREE.PerspectiveCamera(50, containerRef.current.clientWidth / containerRef.current.clientHeight, 0.1, 1000);
+    const camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 1000);
     camera.position.z = 5;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
-    containerRef.current.innerHTML = '';
-    containerRef.current.appendChild(renderer.domElement);
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    container.innerHTML = '';
+    container.appendChild(renderer.domElement);
 
     // Geometry (Placeholder for uploaded STL - TorusKnot looks like jewelry)
     const geometry = new THREE.TorusKnotGeometry(1.2, 0.4, 100, 16);
@@ -124,18 +134,18 @@ const ThreeViewer = ({ materialType }: { materialType: string }) => {
 
     // Handle Resize
     const handleResize = () => {
-      if (!containerRef.current || !camera || !renderer) return;
-      camera.aspect = containerRef.current.clientWidth / containerRef.current.clientHeight;
+      if (!camera || !renderer) return;
+      camera.aspect = container.clientWidth / container.clientHeight;
       camera.updateProjectionMatrix();
-      renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
+      renderer.setSize(container.clientWidth, container.clientHeight);
     };
     window.addEventListener('resize', handleResize);
 
     return () => {
       window.removeEventListener('resize', handleResize);
       if (frameIdRef.current) cancelAnimationFrame(frameIdRef.current);
-      if (rendererRef.current && containerRef.current) {
-        containerRef.current.removeChild(rendererRef.current.domElement);
+      if (rendererRef.current) {
+        container.removeChild(rendererRef.current.domElement);
       }
       // Dispose geometries and materials to avoid memory leaks
       geometry.dispose();

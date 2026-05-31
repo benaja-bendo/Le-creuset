@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { 
   FileText, 
@@ -43,6 +43,19 @@ type Order = {
   createdAt: string;
 };
 
+type InvoiceGroup = {
+  id: string;
+  invoiceNumber: string;
+  userId: string;
+  fileUrl: string | null;
+  amount: number | null;
+  issueDate: string;
+  notes: string | null;
+  createdAt: string;
+  orders?: { id: string; status: string; estimatedPrice: number | null }[];
+  user: { id: string; email: string; companyName: string | null };
+};
+
 export default function AdminInvoices() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -54,18 +67,11 @@ export default function AdminInvoices() {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialOrderId = searchParams.get('orderId');
 
-  useEffect(() => {
-    loadData();
-    if (initialOrderId) {
-      setShowUploadModal(true);
-    }
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const [inv, groups, ord] = await Promise.all([
         getJSON<Invoice[]>('/invoices'),
-        getJSON<any[]>('/invoice-groups'),
+        getJSON<InvoiceGroup[]>('/invoice-groups'),
         getJSON<Order[]>('/orders'),
       ]);
       
@@ -97,7 +103,14 @@ export default function AdminInvoices() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    void loadData();
+    if (initialOrderId) {
+      setShowUploadModal(true);
+    }
+  }, [loadData, initialOrderId]);
 
   const handleDelete = async (id: string, type: 'individual' | 'group' = 'individual') => {
     if (!confirm(`Supprimer cette facture ${type === 'group' ? 'groupée ' : ''}?`)) return;
@@ -112,7 +125,7 @@ export default function AdminInvoices() {
         } });
       }
       setInvoices(prev => prev.filter(i => i.id !== id));
-    } catch (err) {
+    } catch {
       setError('Erreur lors de la suppression');
     }
   };

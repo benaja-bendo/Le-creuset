@@ -115,7 +115,7 @@ export default function STLViewer({ fileUrl, fileName, materialType, finishType,
 
     const pmremGenerator = new THREE.PMREMGenerator(renderer);
     pmremGenerator.compileEquirectangularShader();
-    scene.environment = pmremGenerator.fromScene(RoomEnvironment() as any, 0.04).texture;
+    scene.environment = pmremGenerator.fromScene(RoomEnvironment() as unknown as THREE.Scene, 0.04).texture;
 
     // Contrôles OrbitControls
     const controls = new OrbitControls(camera, renderer.domElement);

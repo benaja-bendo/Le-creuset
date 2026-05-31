@@ -17,12 +17,48 @@ import {
 import WeightGauges from '../../components/WeightGauges';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
 
+type ProfileUser = {
+  id: string;
+  email: string;
+  companyName: string | null;
+  name?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  kbisFileUrl?: string | null;
+  customsFileUrl?: string | null;
+  createdAt: string;
+};
+
+type Transaction = {
+  id: string;
+  type: 'CREDIT' | 'DEBIT';
+  amount: number;
+  label: string;
+  date: string;
+};
+
+type MetalAccount = {
+  id: string;
+  metalType: string;
+  balance: number;
+  lastUpdate: string;
+  transactions?: Transaction[];
+};
+
+type InvoiceSummary = {
+  id: string;
+  invoiceNumber: string;
+  issueDate: string;
+  amount: number | null;
+  fileUrl: string | null;
+};
+
 export default function AdminUserProfile() {
   const { id } = useParams<{ id: string }>();
   const [data, setData] = useState<{
-    user: any;
-    accounts: any[];
-    invoices: any[];
+    user: ProfileUser;
+    accounts: MetalAccount[];
+    invoices: InvoiceSummary[];
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,9 +68,9 @@ export default function AdminUserProfile() {
       if (!id) return;
       try {
         const [user, accounts, invoices] = await Promise.all([
-          getJSON<any>(`/users/${id}`),
-          getJSON<any[]>(`/weights/user/${id}`),
-          getJSON<any[]>(`/invoices/user/${id}`),
+          getJSON<ProfileUser>(`/users/${id}`),
+          getJSON<MetalAccount[]>(`/weights/user/${id}`),
+          getJSON<InvoiceSummary[]>(`/invoices/user/${id}`),
         ]);
         setData({ user, accounts, invoices });
       } catch (err) {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { 
   ArrowLeft, 
@@ -79,11 +79,8 @@ export default function AdminOrderDetail() {
   const [showCloseModal, setShowCloseModal] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (id) loadOrder();
-  }, [id]);
-
-  const loadOrder = async () => {
+  const loadOrder = useCallback(async () => {
+    if (!id) return;
     try {
       const data = await getJSON<Order>(`/orders/${id}`);
       setOrder(data);
@@ -92,7 +89,11 @@ export default function AdminOrderDetail() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    void loadOrder();
+  }, [loadOrder]);
 
 
 

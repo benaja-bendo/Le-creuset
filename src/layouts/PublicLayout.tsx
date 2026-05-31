@@ -69,9 +69,10 @@ const CustomLogo = ({ className = "", size = 48 }) => (
 );
 
 export default function PublicLayout() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [menuOpenForPath, setMenuOpenForPath] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
+  const isMenuOpen = menuOpenForPath === location.pathname;
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
@@ -81,10 +82,10 @@ export default function PublicLayout() {
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    setIsMenuOpen(false);
   }, [location.pathname]);
 
   const isActive = (path: string) => location.pathname === path;
+  const closeMenu = () => setMenuOpenForPath(null);
 
   const navLinks = [
     { name: 'Accueil', path: '/' },
@@ -137,7 +138,7 @@ export default function PublicLayout() {
           {/* Mobile Menu Button */}
           <button 
             className="md:hidden text-white z-50 hover:text-primary-500 transition-colors"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            onClick={() => setMenuOpenForPath((prev) => (prev === location.pathname ? null : location.pathname))}
           >
             {isMenuOpen ? <X size={28} /> : <Menu size={28} />}
           </button>
@@ -150,6 +151,7 @@ export default function PublicLayout() {
               <Link 
                 key={link.path}
                 to={link.path}
+                onClick={closeMenu}
                 className={clsx(
                   "text-2xl font-serif hover:text-primary-500 transition-colors",
                   isActive(link.path) ? "text-primary-500" : "text-white"
@@ -160,6 +162,7 @@ export default function PublicLayout() {
             ))}
             <Link 
               to="/client"
+              onClick={closeMenu}
               className="mt-8 px-8 py-3 border border-secondary-700 text-primary-500 hover:bg-secondary-900"
             >
               Espace Client

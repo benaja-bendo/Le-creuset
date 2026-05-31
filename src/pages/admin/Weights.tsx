@@ -154,8 +154,8 @@ export default function Weights() {
             ...user,
             accounts: fullAccounts
         });
-    } catch(e) {
-        console.error("Failed to fetch history");
+    } catch (err) {
+        console.error(err);
     }
   };
 

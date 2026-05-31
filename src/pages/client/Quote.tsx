@@ -1,12 +1,19 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, type ButtonHTMLAttributes, type ReactNode } from 'react';
 import { Upload, X, AlertCircle, Loader2 } from 'lucide-react';
 import { uploadFile, BASE_URL } from '../../api/client';
 import STLViewer from '../../components/STLViewer';
 
 // Composant bouton (client)
-const Button = ({ children, variant = 'primary', onClick, className = '', disabled = false, type = 'button' }: any) => {
+type ButtonVariant = 'primary' | 'outline' | 'ghost' | 'success';
+type ButtonProps = {
+  children: ReactNode;
+  variant?: ButtonVariant;
+  className?: string;
+} & Pick<ButtonHTMLAttributes<HTMLButtonElement>, 'onClick' | 'disabled' | 'type'>;
+
+const Button = ({ children, variant = 'primary', onClick, className = '', disabled = false, type = 'button' }: ButtonProps) => {
   const baseStyle = "px-6 py-3 transition-all duration-300 font-medium tracking-wide text-sm uppercase flex items-center justify-center gap-2 rounded-sm";
-  const variants: any = {
+  const variants: Record<ButtonVariant, string> = {
     primary: "bg-primary-600 text-white hover:bg-primary-700 hover:shadow-lg hover:shadow-primary-900/20 disabled:bg-secondary-700 disabled:text-secondary-500",
     outline: "border border-secondary-400 text-secondary-300 hover:border-primary-500 hover:text-primary-500",
     ghost: "text-secondary-400 hover:text-primary-500",

@@ -161,8 +161,8 @@ export default function AdminOrders() {
       await fetchData();
       setSelectedOrders(new Set());
       alert("Facturation groupée créée avec succès !");
-    } catch (err: any) {
-       alert(err.message || "Erreur lors de la création du groupe de factures.");
+    } catch (err) {
+       alert(err instanceof Error ? err.message : "Erreur lors de la création du groupe de factures.");
     } finally {
        setIsGrouping(false);
     }
@@ -194,8 +194,8 @@ export default function AdminOrders() {
         notes: ''
       });
       await fetchData();
-    } catch (e: any) {
-      alert(e.message || "Erreur lors de la création de la commande.");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Erreur lors de la création de la commande.");
     } finally {
       setIsSubmittingManual(false);
     }
