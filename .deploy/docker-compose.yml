@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   front:
     image: ghcr.io/${GITHUB_REPOSITORY}:latest
@@ -9,8 +7,6 @@ services:
       - .env
     networks:
       - proxy
-    ports:
-      - "80:80"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.front-prod.rule=Host(`${VITE_DOMAIN_NAME:-lagrenaille.fr}`)"
