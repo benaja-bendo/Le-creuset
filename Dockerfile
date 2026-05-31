@@ -2,7 +2,9 @@
 # Construit les fichiers statiques de l'application avec Node.js
 FROM node:22-alpine AS build
 WORKDIR /app
-RUN corepack enable
+
+# On utilise corepack pour installer la version exacte de pnpm nécessaire pour le lockfile
+RUN corepack enable && corepack prepare pnpm@10.12.4 --activate
 
 # Optimisation du cache : on copie d'abord uniquement les dépendances
 COPY package.json pnpm-lock.yaml ./
