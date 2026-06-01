@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getJSON, patchJSON, postJSON, deleteJSON } from '../../api/client';
-import { Box, AlertCircle, Loader2, Download, Package, Flame, Send, Eye, FilePlus, Layers, Plus, Trash2, X } from 'lucide-react';
+import { Box, AlertCircle, Loader2, Download, Package, Flame, Send, Eye, FilePlus, Layers, Plus, Trash2, X, Pencil } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
 
 type Order = {
@@ -48,6 +48,11 @@ export default function AdminOrders() {
 
   // Status filter
   const [statusFilter, setStatusFilter] = useState<string>('');
+
+  // Edit Order Modal
+  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [editForm, setEditForm] = useState({ materialType: '', notes: '' });
 
   const materialOptions = [
     { value: 'OR_750_JAUNE', label: 'Or Jaune 750' },
@@ -175,6 +180,31 @@ export default function AdminOrders() {
       setOrders(orders.filter(o => o.id !== orderId));
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Erreur lors de la suppression');
+    }
+  };
+
+  const openEditModal = (order: Order) => {
+    setEditingOrder(order);
+    setEditForm({ materialType: order.materialType || '', notes: order.notes || '' });
+  };
+
+  const handleUpdateOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingOrder) return;
+    setIsSavingEdit(true);
+    try {
+      await patchJSON(`/orders/${editingOrder.id}`, {
+        materialType: editForm.materialType,
+        notes: editForm.notes,
+      });
+      setOrders(orders.map(o => o.id === editingOrder.id
+        ? { ...o, materialType: editForm.materialType, notes: editForm.notes }
+        : o));
+      setEditingOrder(null);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Erreur lors de la modification');
+    } finally {
+      setIsSavingEdit(false);
     }
   };
 
@@ -345,6 +375,54 @@ export default function AdminOrders() {
          </div>
       )}
 
+      {/* Edit Order Modal */}
+      {editingOrder && (
+         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-secondary-950/40 backdrop-blur-sm" onClick={() => setEditingOrder(null)}>
+           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+             <div className="px-6 py-4 border-b border-secondary-100 flex items-center justify-between">
+                <h3 className="font-bold text-lg text-secondary-900 flex items-center gap-2">
+                   <Pencil size={20} className="text-amber-600" />
+                   Modifier la commande #{editingOrder.id.slice(-6).toUpperCase()}
+                </h3>
+                <button onClick={() => setEditingOrder(null)} className="text-secondary-400 hover:text-secondary-600">×</button>
+             </div>
+             <form onSubmit={handleUpdateOrder} className="p-6 space-y-4 bg-secondary-50/50">
+               <div>
+                  <label className="block text-sm font-medium text-secondary-700 mb-1">Alliage / Service</label>
+                  <select
+                     value={editForm.materialType}
+                     onChange={e => setEditForm({...editForm, materialType: e.target.value})}
+                     className="w-full px-4 py-2.5 bg-white border border-secondary-200 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none text-secondary-900"
+                  >
+                     <option value="">Non spécifié</option>
+                     {materialOptions.map(m => (
+                        <option key={m.value} value={m.value}>{m.label}</option>
+                     ))}
+                  </select>
+               </div>
+               <div>
+                  <label className="block text-sm font-medium text-secondary-700 mb-1">Notes internes / Description</label>
+                  <textarea
+                     rows={3}
+                     value={editForm.notes}
+                     onChange={e => setEditForm({...editForm, notes: e.target.value})}
+                     className="w-full px-4 py-2.5 bg-white border border-secondary-200 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none text-secondary-900 resize-none"
+                  ></textarea>
+               </div>
+               <div className="pt-4 flex justify-end gap-3">
+                  <button type="button" onClick={() => setEditingOrder(null)} className="px-5 py-2.5 text-secondary-600 font-medium hover:bg-secondary-100 rounded-xl transition-colors">
+                     Annuler
+                  </button>
+                  <button type="submit" disabled={isSavingEdit} className="px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl shadow-md disabled:opacity-50 flex items-center gap-2">
+                     {isSavingEdit && <Loader2 size={16} className="animate-spin" />}
+                     Enregistrer
+                  </button>
+               </div>
+             </form>
+           </div>
+         </div>
+      )}
+
       <div className="bg-white rounded-xl border border-secondary-200 shadow-sm overflow-hidden text-secondary-900">
         <div className="overflow-x-auto min-h-[400px]">
           <table className="w-full text-left border-collapse">
@@ -438,7 +516,19 @@ export default function AdminOrders() {
 
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <button 
+                              <button
+                                onClick={() => openEditModal(order)}
+                                className="p-2 bg-secondary-100 text-secondary-400 rounded-lg hover:bg-amber-50 hover:text-amber-600 transition-all"
+                              >
+                                <Pencil size={18} />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>Modifier la commande</TooltipContent>
+                          </Tooltip>
+
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
                                 onClick={() => handleDeleteOrder(order.id)}
                                 className="p-2 bg-secondary-100 text-secondary-400 rounded-lg hover:bg-red-50 hover:text-red-600 transition-all"
                               >

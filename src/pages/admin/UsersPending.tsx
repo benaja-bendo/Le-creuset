@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getJSON, patchJSON, resolveUrl } from '../../api/client';
 import { Link } from 'react-router-dom';
-import { CheckCircle2, XCircle, FileSignature, Users, UserPlus, UserCheck, Mail, Phone, Clock, Search, Shield, AlertTriangle, Loader2 } from 'lucide-react';
+import { CheckCircle2, XCircle, FileSignature, Users, UserPlus, UserCheck, Mail, Phone, Clock, Search, Shield, AlertTriangle, Loader2, Ban, Power } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
 import { useAuth } from '../../context/AuthContext';
 
@@ -14,7 +14,7 @@ type User = {
   address?: string;
   kbisFileUrl?: string;
   customsFileUrl?: string;
-  status: 'PENDING' | 'ACTIVE' | 'REJECTED';
+  status: 'PENDING' | 'ACTIVE' | 'REJECTED' | 'SUSPENDED';
   role: 'CLIENT' | 'ADMIN';
   createdAt: string;
 };
@@ -53,6 +53,9 @@ export default function UsersManagement() {
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [targetUser, setTargetUser] = useState<User | null>(null);
 
+  // Deactivation (soft delete) confirmation modal
+  const [userToDeactivate, setUserToDeactivate] = useState<User | null>(null);
+
   useEffect(() => {
     const load = async () => {
       try {
@@ -60,7 +63,7 @@ export default function UsersManagement() {
           getJSON<User[]>('/users/all'),
           getJSON<User[]>('/users/pending'),
         ]);
-        setAllUsers(all.filter(u => u.status === 'ACTIVE'));
+        setAllUsers(all.filter(u => u.status === 'ACTIVE' || u.status === 'SUSPENDED'));
         setPendingUsers(pending);
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Erreur de chargement');
@@ -75,13 +78,13 @@ export default function UsersManagement() {
 
   const updateStatus = async (id: string, status: 'ACTIVE' | 'REJECTED') => {
     try {
-      const ok = status === 'ACTIVE' 
+      const ok = status === 'ACTIVE'
         ? window.confirm('Confirmer la validation de ce compte ?\nCela initialisera également les comptes poids.')
         : window.confirm('Confirmer le rejet et suppression de ce compte ?');
       if (!ok) return;
-      
+
       await patchJSON(`/users/${id}/status`, { status });
-      
+
       if (status === 'ACTIVE') {
         const user = pendingUsers.find(u => u.id === id);
         if (user) {
@@ -91,6 +94,30 @@ export default function UsersManagement() {
       setPendingUsers(prev => prev.filter(u => u.id !== id));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erreur lors de la mise à jour');
+    }
+  };
+
+  // Réactivation d'un compte suspendu
+  const reactivateUser = async (id: string) => {
+    try {
+      await patchJSON(`/users/${id}/status`, { status: 'ACTIVE' });
+      setAllUsers(prev => prev.map(u => (u.id === id ? { ...u, status: 'ACTIVE' } : u)));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erreur lors de la réactivation');
+    }
+  };
+
+  // Désactivation (soft) confirmée depuis la modale
+  const confirmDeactivate = async () => {
+    if (!userToDeactivate) return;
+    try {
+      await patchJSON(`/users/${userToDeactivate.id}/status`, { status: 'SUSPENDED' });
+      setAllUsers(prev =>
+        prev.map(u => (u.id === userToDeactivate.id ? { ...u, status: 'SUSPENDED' } : u)),
+      );
+      setUserToDeactivate(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erreur lors de la désactivation');
     }
   };
 
@@ -312,13 +339,20 @@ export default function UsersManagement() {
                           </td>
                           <td className="px-4 py-4 text-secondary-600">{user.phone || '-'}</td>
                           <td className="px-4 py-4">
-                            <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                              user.role === 'ADMIN' 
-                                ? 'bg-amber-100 text-amber-700' 
-                                : 'bg-blue-100 text-blue-700'
-                            }`}>
-                              {user.role === 'ADMIN' ? 'Admin' : 'Client'}
-                            </span>
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                                user.role === 'ADMIN'
+                                  ? 'bg-amber-100 text-amber-700'
+                                  : 'bg-blue-100 text-blue-700'
+                              }`}>
+                                {user.role === 'ADMIN' ? 'Admin' : 'Client'}
+                              </span>
+                              {user.status === 'SUSPENDED' && (
+                                <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                                  Désactivé
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td className="px-4 py-4 text-secondary-500">
                             {new Date(user.createdAt).toLocaleDateString('fr-FR')}
@@ -333,16 +367,36 @@ export default function UsersManagement() {
                               </Link>
                               
                               {currentUser?.id !== user.id && (
-                                <button
-                                  onClick={() => {
-                                    setTargetUser(user);
-                                    setShowRoleModal(true);
-                                  }}
-                                  className="text-secondary-400 hover:text-amber-600 transition-colors"
-                                  title="Changer le rôle"
-                                >
-                                  <Shield size={16} />
-                                </button>
+                                <>
+                                  <button
+                                    onClick={() => {
+                                      setTargetUser(user);
+                                      setShowRoleModal(true);
+                                    }}
+                                    className="text-secondary-400 hover:text-amber-600 transition-colors"
+                                    title="Changer le rôle"
+                                  >
+                                    <Shield size={16} />
+                                  </button>
+
+                                  {user.status === 'SUSPENDED' ? (
+                                    <button
+                                      onClick={() => reactivateUser(user.id)}
+                                      className="text-secondary-400 hover:text-emerald-600 transition-colors"
+                                      title="Réactiver le compte"
+                                    >
+                                      <Power size={16} />
+                                    </button>
+                                  ) : (
+                                    <button
+                                      onClick={() => setUserToDeactivate(user)}
+                                      className="text-secondary-400 hover:text-red-600 transition-colors"
+                                      title="Désactiver le compte"
+                                    >
+                                      <Ban size={16} />
+                                    </button>
+                                  )}
+                                </>
                               )}
                             </div>
                           </td>
@@ -356,6 +410,44 @@ export default function UsersManagement() {
           )}
         </div>
       </div>
+
+      {/* Deactivation confirmation modal */}
+      {userToDeactivate && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setUserToDeactivate(null)}>
+          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b border-secondary-100 flex items-center gap-3 bg-red-50/50">
+              <Ban className="text-red-500" size={24} />
+              <h3 className="text-xl font-bold text-secondary-900">Désactiver le compte</h3>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded-r-lg text-sm">
+                <p className="text-red-800">
+                  Vous allez désactiver le compte de <strong>{userToDeactivate.companyName || userToDeactivate.email}</strong>.
+                </p>
+                <p className="text-red-700 mt-2">
+                  L'utilisateur ne pourra plus se connecter. Ses données (commandes, factures, comptes poids) sont conservées et le compte pourra être réactivé à tout moment.
+                </p>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setUserToDeactivate(null)}
+                  className="flex-1 px-4 py-3 border border-secondary-200 text-secondary-700 rounded-xl font-bold hover:bg-secondary-50 transition-colors"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDeactivate}
+                  className="flex-1 px-4 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-all flex items-center justify-center gap-2 shadow-lg"
+                >
+                  <Ban size={18} /> Désactiver
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Role Change Modal */}
       {showRoleModal && targetUser && (
