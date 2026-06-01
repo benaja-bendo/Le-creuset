@@ -322,8 +322,9 @@ export default function AdminInvoices() {
 
       {/* Upload Modal */}
       {showUploadModal && (
-        <UploadInvoiceModal 
-          orders={orders} 
+        <UploadInvoiceModal
+          orders={orders}
+          invoicedOrderIds={new Set(invoices.filter(i => i.type !== 'group' && i.orderId).map(i => i.orderId as string))}
           initialOrderId={initialOrderId}
           onClose={() => {
             setShowUploadModal(false);
@@ -341,15 +342,17 @@ export default function AdminInvoices() {
 }
 
 // Upload Modal Component
-function UploadInvoiceModal({ 
-  orders, 
+function UploadInvoiceModal({
+  orders,
+  invoicedOrderIds,
   initialOrderId,
-  onClose, 
-  onSuccess 
-}: { 
-  orders: Order[]; 
+  onClose,
+  onSuccess
+}: {
+  orders: Order[];
+  invoicedOrderIds: Set<string>;
   initialOrderId?: string | null;
-  onClose: () => void; 
+  onClose: () => void;
   onSuccess: (inv: Invoice) => void;
 }) {
   // Get unique users from orders
@@ -368,15 +371,25 @@ function UploadInvoiceModal({
     amount: '',
     notes: '',
   });
+  // Transaction métal optionnelle (dépôt métal)
+  const [metalForm, setMetalForm] = useState({
+    metalType: 'OR_FIN',
+    metalWeight: '',
+    metalTransactionType: 'CREDIT' as 'CREDIT' | 'DEBIT',
+  });
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Filter orders for the selected user, excluding already-invoiced ones
-  const availableOrders = orders.filter(o => 
-    o.userId === selectedUserId && 
-    !o.invoiceGroupId
+  // Filter orders for the selected user, excluding orders already invoiced
+  // (groupées ou avec une facture individuelle déjà déposée).
+  const availableOrders = orders.filter(o =>
+    o.userId === selectedUserId &&
+    !o.invoiceGroupId &&
+    !invoicedOrderIds.has(o.id)
   );
+
+  const isMetalDeposit = form.orderId === 'DEPOT_METAL';
 
   // Reset order selection when user changes
   const handleUserChange = (userId: string) => {
@@ -399,6 +412,7 @@ function UploadInvoiceModal({
     try {
       const uploadRes = await uploadFile(file);
       
+      const includeMetal = isMetalDeposit && metalForm.metalWeight;
       const invoice = await postJSON<Invoice>('/invoices', {
         invoiceNumber: form.invoiceNumber,
         orderId: form.orderId === 'DEPOT_METAL' ? undefined : (form.orderId || undefined),
@@ -406,6 +420,13 @@ function UploadInvoiceModal({
         fileUrl: uploadRes.url,
         amount: form.amount ? parseFloat(form.amount) : undefined,
         notes: form.notes || undefined,
+        ...(includeMetal
+          ? {
+              metalType: metalForm.metalType,
+              metalWeight: parseFloat(metalForm.metalWeight),
+              metalTransactionType: metalForm.metalTransactionType,
+            }
+          : {}),
       });
 
       onSuccess({ ...invoice, type: 'individual' });
@@ -486,6 +507,50 @@ function UploadInvoiceModal({
                   </option>
                 ))}
               </select>
+            </div>
+          )}
+
+          {/* Transaction métal (dépôt métal) */}
+          {isMetalDeposit && (
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg space-y-3">
+              <p className="text-xs font-bold text-amber-800 uppercase tracking-wide">Transaction métal associée</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-secondary-700 mb-1">Métal</label>
+                  <select
+                    value={metalForm.metalType}
+                    onChange={e => setMetalForm({ ...metalForm, metalType: e.target.value })}
+                    className="w-full px-3 py-2 border border-secondary-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-secondary-900 bg-white text-sm"
+                  >
+                    <option value="OR_FIN">Or Fin</option>
+                    <option value="ARGENT_FIN">Argent Fin</option>
+                    <option value="PLATINE">Platine</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-secondary-700 mb-1">Sens</label>
+                  <select
+                    value={metalForm.metalTransactionType}
+                    onChange={e => setMetalForm({ ...metalForm, metalTransactionType: e.target.value as 'CREDIT' | 'DEBIT' })}
+                    className="w-full px-3 py-2 border border-secondary-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-secondary-900 bg-white text-sm"
+                  >
+                    <option value="CREDIT">Crédit (apport)</option>
+                    <option value="DEBIT">Débit (retrait)</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-secondary-700 mb-1">Masse (grammes)</label>
+                <input
+                  type="number"
+                  step="0.001"
+                  value={metalForm.metalWeight}
+                  onChange={e => setMetalForm({ ...metalForm, metalWeight: e.target.value })}
+                  className="w-full px-3 py-2 border border-secondary-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-secondary-900 text-sm"
+                  placeholder="0.000"
+                />
+              </div>
+              <p className="text-[11px] text-amber-700">Le compte poids du client sera mis à jour automatiquement.</p>
             </div>
           )}
 

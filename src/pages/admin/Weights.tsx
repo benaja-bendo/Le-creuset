@@ -177,7 +177,7 @@ export default function Weights() {
              </div>
              <h1 className="text-2xl font-bold text-secondary-900">Soldes Métaux Clients</h1>
           </div>
-          <p className="text-secondary-500">Supervisez les comptes (Or Fin, Argent, Platine, Palladium) et ajustez les soldes.</p>
+          <p className="text-secondary-500">Supervisez les comptes (Or Fin, Argent, Platine) et ajustez les soldes.</p>
         </div>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary-400" size={18} />

@@ -230,13 +230,12 @@ function ClientDashboard() {
                   <th className="px-6 py-4">ID</th>
                   <th className="px-6 py-4">Date</th>
                   <th className="px-6 py-4">État</th>
-                  <th className="px-6 py-4">Prix est.</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-secondary-100">
                 {orders.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="px-6 py-12 text-center text-secondary-400">
+                    <td colSpan={3} className="px-6 py-12 text-center text-secondary-400">
                       <Package size={40} className="mx-auto mb-3 opacity-30" />
                       <p>Aucune commande en cours</p>
                     </td>
@@ -251,9 +250,6 @@ function ClientDashboard() {
                       <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusStyle(order.status)}`}>
                         {getStatusLabel(order.status)}
                       </span>
-                    </td>
-                    <td className="px-6 py-4 font-medium text-secondary-900">
-                      {order.estimatedPrice ? `${order.estimatedPrice}€` : '-'}
                     </td>
                   </tr>
                 ))}

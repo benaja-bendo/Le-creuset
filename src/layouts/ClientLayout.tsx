@@ -53,9 +53,16 @@ export default function ClientLayout() {
     { name: 'Comptes Poids', path: '/client/admin/weights', icon: Scale },
     { name: 'Commandes', path: '/client/admin/orders', icon: Package },
     { name: 'Factures', path: '/client/admin/invoices', icon: FileText },
+    { name: 'Bibliothèque', path: '/client/admin/library', icon: Layers },
   ];
 
   const menuItems = isAdmin ? adminMenuItems : clientMenuItems;
+
+  const handleLogout = () => {
+    fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
+    logout();
+    navigate('/login');
+  };
 
   return (
     <div className="min-h-screen bg-secondary-50 flex font-sans">
@@ -148,12 +155,8 @@ export default function ClientLayout() {
                 <Settings size={18} />
                 <span>Mon Compte</span>
               </Link>
-              <button 
-                onClick={() => { 
-                  fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
-                  logout();
-                  navigate('/login');
-                }}
+              <button
+                onClick={handleLogout}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-secondary-400 hover:bg-red-900/30 hover:text-red-400 transition-all duration-200"
               >
                 <LogOut size={18} />
@@ -197,8 +200,8 @@ export default function ClientLayout() {
                   <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary-500 rounded-full"></span>
                 </button>
                 <div className="h-8 w-px bg-secondary-200 mx-1" aria-hidden="true"></div>
-                <Link 
-                  to="/client/settings" 
+                <Link
+                  to="/client/settings"
                   className="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-secondary-700 hover:text-secondary-900 hover:bg-secondary-50 rounded-xl transition-colors"
                 >
                   <div className="w-8 h-8 bg-secondary-100 rounded-lg flex items-center justify-center">
@@ -206,6 +209,14 @@ export default function ClientLayout() {
                   </div>
                   <span className="hidden md:inline">{user?.companyName || 'Mon Compte'}</span>
                 </Link>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-colors"
+                  aria-label="Se déconnecter"
+                >
+                  <LogOut size={18} />
+                  <span className="hidden sm:inline">Déconnexion</span>
+                </button>
               </>
             )}
           </div>

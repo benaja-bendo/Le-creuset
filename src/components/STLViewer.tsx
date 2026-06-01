@@ -108,14 +108,15 @@ export default function STLViewer({ fileUrl, fileName, materialType, finishType,
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.5;
+    renderer.toneMappingExposure = 1.8;
     containerRef.current.innerHTML = '';
     containerRef.current.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
     const pmremGenerator = new THREE.PMREMGenerator(renderer);
     pmremGenerator.compileEquirectangularShader();
-    scene.environment = pmremGenerator.fromScene(RoomEnvironment() as unknown as THREE.Scene, 0.04).texture;
+    // Intensité de l'environnement augmentée pour éclaircir les métaux réfléchissants
+    scene.environment = pmremGenerator.fromScene(RoomEnvironment() as unknown as THREE.Scene, 0.1).texture;
 
     // Contrôles OrbitControls
     const controls = new OrbitControls(camera, renderer.domElement);
@@ -128,7 +129,7 @@ export default function STLViewer({ fileUrl, fileName, materialType, finishType,
     controlsRef.current = controls;
 
     // Lumières
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
     scene.add(ambientLight);
 
     const keyLight = new THREE.DirectionalLight(0xffffff, 1.2);
