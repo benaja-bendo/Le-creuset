@@ -11,6 +11,7 @@ import CGV from './pages/public/CGV';
 import PrivacyPolicy from './pages/public/PrivacyPolicy';
 import Login from './pages/public/Login';
 import Register from './pages/public/Register';
+import ResetPassword from './pages/public/ResetPassword';
 import WaitingApproval from './pages/public/WaitingApproval';
 import ErrorPage from './pages/public/ErrorPage';
 import Dashboard from './pages/client/Dashboard';
@@ -22,6 +23,7 @@ import UsersPending from './pages/admin/UsersPending';
 import Weights from './pages/admin/Weights';
 import AdminOrders from './pages/admin/Orders';
 import AdminInvoices from './pages/admin/Invoices';
+import AdminCreateInvoice from './pages/admin/CreateInvoice';
 import AdminOrderDetail from './pages/admin/OrderDetail';
 import MyInvoices from './pages/client/MyInvoices';
 import OrderDetail from './pages/client/OrderDetail';
@@ -53,6 +55,10 @@ const router = createBrowserRouter([
       {
         path: 'register',
         element: <Register />,
+      },
+      {
+        path: 'reset',
+        element: <ResetPassword />,
       },
       {
         path: 'waiting-approval',
@@ -209,6 +215,14 @@ const router = createBrowserRouter([
         element: (
           <ProtectedRoute allowedRoles={['ADMIN']}>
             <AdminInvoices />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'admin/invoices/new',
+        element: (
+          <ProtectedRoute allowedRoles={['ADMIN']}>
+            <AdminCreateInvoice />
           </ProtectedRoute>
         ),
       },

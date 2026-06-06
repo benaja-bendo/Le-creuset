@@ -292,8 +292,8 @@ export default function Weights() {
 
       {/* Transaction Modal (Same logic but adapted for user selection visually) */}
       {showTxModal && selectedUserForTx && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-secondary-950/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-secondary-950/40 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowTxModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
             <div className="p-6 border-b border-secondary-100 flex items-center justify-between">
               <div>
                  <h3 className="text-xl font-bold text-secondary-900">Nouveau Mouvement</h3>
@@ -406,8 +406,8 @@ export default function Weights() {
 
       {/* History Modal */}
       {showHistoryModal && selectedUserForHistory && (
-         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-secondary-950/40 backdrop-blur-sm" onClick={() => setShowHistoryModal(false)}>
-         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300" onClick={e => e.stopPropagation()}>
+         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-secondary-950/40 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowHistoryModal(false)}>
+         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
            <div className="p-6 border-b border-secondary-100 flex items-center justify-between shrink-0 bg-secondary-50/50">
              <div>
                 <h3 className="text-xl font-bold text-secondary-900 flex items-center gap-2">

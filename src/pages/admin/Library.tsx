@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getJSON, postJSON, deleteJSON, uploadFile, resolveUrl, API_URL } from '../../api/client';
-import { Layers, Box, Loader2, AlertCircle, Plus, Trash2, Upload, Search, FileText, CameraOff } from 'lucide-react';
+import { Layers, Box, Loader2, AlertCircle, Plus, Trash2, Upload, Search, FileText, CameraOff, ZoomIn, Eye, X, Edit2 } from 'lucide-react';
+import { patchJSON } from '../../api/client';
+import ImageViewerModal from '../../components/ImageViewerModal';
+import STLViewer from '../../components/STLViewer';
 
 type User = { id: string; email: string; companyName: string | null };
 
@@ -40,6 +43,17 @@ export default function AdminLibrary() {
   const [moldForm, setMoldForm] = useState({ name: '', reference: '', notes: '' });
   const [moldPhoto, setMoldPhoto] = useState<File | null>(null);
   const [savingMold, setSavingMold] = useState(false);
+  
+  // Image Viewer
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+  // STL Viewer
+  const [previewStl, setPreviewStl] = useState<LibraryFile | null>(null);
+
+  // Edit STL Form
+  const [editingStl, setEditingStl] = useState<LibraryFile | null>(null);
+  const [editStlForm, setEditStlForm] = useState({ name: '', reference: '', notes: '' });
+  const [savingEditStl, setSavingEditStl] = useState(false);
 
   useEffect(() => {
     getJSON<User[]>('/users/all')
@@ -103,6 +117,26 @@ export default function AdminLibrary() {
       setStlFiles(prev => prev.filter(f => f.id !== id));
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Erreur');
+    }
+  };
+
+  const handleEditStl = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingStl || !selectedUserId) return;
+    
+    setSavingEditStl(true);
+    try {
+      await patchJSON(`/library/${editingStl.id}`, {
+        name: editStlForm.name,
+        reference: editStlForm.reference || undefined,
+        notes: editStlForm.notes || undefined,
+      });
+      await loadClientData(selectedUserId);
+      setEditingStl(null);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Erreur lors de la modification');
+    } finally {
+      setSavingEditStl(false);
     }
   };
 
@@ -235,8 +269,19 @@ export default function AdminLibrary() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
-                        <a href={resolveUrl(f.fileUrl)} target="_blank" rel="noreferrer" className="p-2 text-secondary-500 hover:bg-secondary-100 rounded-lg"><FileText size={16} /></a>
-                        <button onClick={() => handleDeleteStl(f.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={16} /></button>
+                        <button onClick={() => setPreviewStl(f)} className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg" title="Aperçu 3D"><Eye size={16} /></button>
+                        <button 
+                          onClick={() => {
+                            setEditingStl(f);
+                            setEditStlForm({ name: f.name, reference: f.reference || '', notes: f.notes || '' });
+                          }} 
+                          className="p-2 text-amber-500 hover:bg-amber-50 rounded-lg" 
+                          title="Modifier"
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                        <a href={resolveUrl(f.fileUrl)} target="_blank" rel="noreferrer" className="p-2 text-secondary-500 hover:bg-secondary-100 rounded-lg" title="Télécharger"><FileText size={16} /></a>
+                        <button onClick={() => handleDeleteStl(f.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg" title="Supprimer"><Trash2 size={16} /></button>
                       </div>
                     </div>
                   ))}
@@ -268,9 +313,17 @@ export default function AdminLibrary() {
                     <p className="col-span-full p-2 text-center text-sm text-secondary-400">Aucun moule.</p>
                   ) : molds.map(m => (
                     <div key={m.id} className="border border-secondary-200 rounded-xl overflow-hidden">
-                      <div className="h-28 bg-secondary-50 flex items-center justify-center">
+                      <div 
+                        className="h-28 bg-secondary-50 flex items-center justify-center relative group cursor-pointer"
+                        onClick={() => m.photoUrl && setPreviewImage(resolvePhotoUrl(m.photoUrl))}
+                      >
                         {m.photoUrl ? (
-                          <img src={resolvePhotoUrl(m.photoUrl) || ''} alt={m.name} className="w-full h-full object-cover" />
+                          <>
+                            <img src={resolvePhotoUrl(m.photoUrl) || ''} alt={m.name} className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                              <ZoomIn className="text-white" size={24} />
+                            </div>
+                          </>
                         ) : (
                           <CameraOff size={24} className="text-secondary-300" />
                         )}
@@ -291,6 +344,81 @@ export default function AdminLibrary() {
           )}
         </div>
       </div>
+
+      <ImageViewerModal 
+        isOpen={!!previewImage} 
+        onClose={() => setPreviewImage(null)} 
+        imageUrl={previewImage || ''} 
+      />
+
+      {/* STL Preview Modal */}
+      {previewStl && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={() => setPreviewStl(null)}>
+          <div className="bg-white rounded-xl w-full max-w-4xl h-[80vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b border-secondary-200">
+              <h3 className="font-semibold text-secondary-900 truncate">{previewStl.name}</h3>
+              <button onClick={() => setPreviewStl(null)} className="p-2 hover:bg-secondary-100 rounded-lg"><X size={18} /></button>
+            </div>
+            <div className="flex-1 bg-secondary-950">
+              <STLViewer
+                fileUrl={resolveUrl(previewStl.fileUrl)}
+                fileName={previewStl.name.toLowerCase().endsWith('.stl') ? previewStl.name : `${previewStl.name}.stl`}
+                materialType="OR_JAUNE_750"
+                finishType="poli"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit STL Modal */}
+      {editingStl && (
+        <div className="fixed inset-0 bg-secondary-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setEditingStl(null)}>
+          <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-6 border-b border-secondary-100 bg-secondary-50/50">
+              <h3 className="font-bold text-secondary-900 text-lg">Modifier le fichier STL</h3>
+              <button onClick={() => setEditingStl(null)} className="p-2 hover:bg-secondary-200 text-secondary-500 rounded-lg transition-colors"><X size={20} /></button>
+            </div>
+            <form onSubmit={handleEditStl} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-bold text-secondary-700 mb-1">Nom *</label>
+                <input 
+                  type="text" 
+                  value={editStlForm.name} 
+                  onChange={e => setEditStlForm({ ...editStlForm, name: e.target.value })} 
+                  required 
+                  className="w-full px-4 py-2 border border-secondary-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-secondary-700 mb-1">Référence</label>
+                <input 
+                  type="text" 
+                  value={editStlForm.reference} 
+                  onChange={e => setEditStlForm({ ...editStlForm, reference: e.target.value })} 
+                  className="w-full px-4 py-2 border border-secondary-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-secondary-700 mb-1">Notes</label>
+                <textarea 
+                  value={editStlForm.notes} 
+                  onChange={e => setEditStlForm({ ...editStlForm, notes: e.target.value })} 
+                  className="w-full px-4 py-2 border border-secondary-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent min-h-[100px]"
+                />
+              </div>
+              <div className="pt-4 flex gap-3">
+                <button type="button" onClick={() => setEditingStl(null)} className="flex-1 px-4 py-2 border border-secondary-200 text-secondary-700 rounded-lg font-medium hover:bg-secondary-50 transition-colors">
+                  Annuler
+                </button>
+                <button type="submit" disabled={savingEditStl || !editStlForm.name} className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+                  {savingEditStl ? <Loader2 size={18} className="animate-spin" /> : 'Enregistrer'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

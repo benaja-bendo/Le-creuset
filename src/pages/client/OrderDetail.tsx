@@ -22,6 +22,7 @@ import STLViewer from '../../components/STLViewer';
 
 type Order = {
   id: string;
+  orderNumber?: string;
   userId: string;
   status: string;
   stlFileUrl: string | null;
@@ -137,7 +138,7 @@ export default function OrderDetail() {
         <div>
           <h1 className="text-2xl font-bold text-secondary-900 flex items-center gap-3">
             <Package size={28} className="text-primary-500" />
-            Commande #{order.id.slice(-6)}
+            Commande #{order.orderNumber || order.id.slice(-6).toUpperCase()}
           </h1>
           <p className="text-secondary-500 mt-1">
             Créée le {new Date(order.createdAt).toLocaleDateString('fr-FR', { 
@@ -145,12 +146,6 @@ export default function OrderDetail() {
             })}
           </p>
         </div>
-        {order.estimatedPrice && (
-          <div className="bg-gradient-to-br from-primary-500 to-primary-600 text-white px-5 py-3 rounded-xl shadow-lg">
-            <p className="text-xs uppercase tracking-wide opacity-80">Montant estimé</p>
-            <p className="text-2xl font-bold">{order.estimatedPrice} €</p>
-          </div>
-        )}
       </div>
 
       {/* Status Timeline */}
@@ -220,31 +215,31 @@ export default function OrderDetail() {
           </div>
         </div>
 
-        {/* Right: Order Details */}
-        <div className="bg-white rounded-xl border border-secondary-200 p-6">
-          <h3 className="font-semibold text-secondary-900 mb-4">Détails de la commande</h3>
-          
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-secondary-50 rounded-lg p-4">
-                <p className="text-xs text-secondary-500 uppercase tracking-wide mb-1">Métal</p>
-                <p className="font-medium text-secondary-900">{getMaterialLabel(order.materialType)}</p>
+          {/* Order Details */}
+          <div className="bg-white rounded-xl border border-secondary-200 p-6">
+            <h3 className="font-semibold text-secondary-900 mb-4">Détails de la commande</h3>
+            
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-secondary-50 rounded-lg p-4">
+                  <p className="text-xs text-secondary-500 uppercase tracking-wide mb-1">Métal</p>
+                  <p className="font-medium text-secondary-900">{getMaterialLabel(order.materialType)}</p>
+                </div>
+                <div className="bg-secondary-50 rounded-lg p-4">
+                  <p className="text-xs text-secondary-500 uppercase tracking-wide mb-1">Finition</p>
+                  <p className="font-medium text-secondary-900">{getFinishLabel(order.finishType)}</p>
+                </div>
+                <div className="bg-secondary-50 rounded-lg p-4">
+                  <p className="text-xs text-secondary-500 uppercase tracking-wide mb-1">Quantité</p>
+                  <p className="font-medium text-secondary-900">{order.quantity} pièce(s)</p>
+                </div>
+                <div className="bg-secondary-50 rounded-lg p-4">
+                  <p className="text-xs text-secondary-500 uppercase tracking-wide mb-1">Dernière MAJ</p>
+                  <p className="font-medium text-secondary-900">
+                    {new Date(order.updatedAt).toLocaleDateString('fr-FR')}
+                  </p>
+                </div>
               </div>
-              <div className="bg-secondary-50 rounded-lg p-4">
-                <p className="text-xs text-secondary-500 uppercase tracking-wide mb-1">Finition</p>
-                <p className="font-medium text-secondary-900">{getFinishLabel(order.finishType)}</p>
-              </div>
-              <div className="bg-secondary-50 rounded-lg p-4">
-                <p className="text-xs text-secondary-500 uppercase tracking-wide mb-1">Quantité</p>
-                <p className="font-medium text-secondary-900">{order.quantity} pièce(s)</p>
-              </div>
-              <div className="bg-secondary-50 rounded-lg p-4">
-                <p className="text-xs text-secondary-500 uppercase tracking-wide mb-1">Dernière MAJ</p>
-                <p className="font-medium text-secondary-900">
-                  {new Date(order.updatedAt).toLocaleDateString('fr-FR')}
-                </p>
-              </div>
-            </div>
 
             {order.notes && (
               <div className="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-lg">
@@ -320,8 +315,8 @@ export default function OrderDetail() {
 
       {/* Preview Modal */}
       {previewUrl && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setPreviewUrl(null)}>
-          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-secondary-950/40 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setPreviewUrl(null)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 border-b border-secondary-200">
               <h3 className="font-semibold text-secondary-900">Aperçu du document</h3>
               <button onClick={() => setPreviewUrl(null)} className="p-2 hover:bg-secondary-100 rounded-lg">

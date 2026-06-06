@@ -4,7 +4,6 @@ import {
   FileText, 
   Settings, 
   LogOut, 
-  Bell, 
   User, 
   Menu,
   X,
@@ -195,11 +194,6 @@ export default function ClientLayout() {
           <div className="flex items-center gap-3">
             {user && (
               <>
-                <button className="p-2.5 text-secondary-400 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-colors relative" aria-label="Notifications">
-                  <Bell size={20} />
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary-500 rounded-full"></span>
-                </button>
-                <div className="h-8 w-px bg-secondary-200 mx-1" aria-hidden="true"></div>
                 <Link
                   to="/client/settings"
                   className="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-secondary-700 hover:text-secondary-900 hover:bg-secondary-50 rounded-xl transition-colors"

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { postJSON, uploadFile } from '../../api/client';
 import { Link, useNavigate } from 'react-router-dom';
 import Alert from '../../components/Alert';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
 
 /**
  * Page d’inscription (soumission de dossier) avec statut PENDING
@@ -19,6 +19,9 @@ export default function Register() {
     customsFileUrl: '',
     name: '',
   });
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [files, setFiles] = useState<{ kbis?: File; customs?: File }>({});
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -41,21 +44,21 @@ export default function Register() {
     setLoading(true);
 
     try {
-      if (!files.kbis || !files.customs) {
-        throw new Error('Veuillez fournir tous les documents obligatoires (KBIS et Douanes)');
+      if (form.password !== confirmPassword) {
+        throw new Error('Les mots de passe ne correspondent pas');
       }
 
       // 1. Upload des fichiers
       const [kbisRes, customsRes] = await Promise.all([
-        uploadFile(files.kbis),
-        uploadFile(files.customs)
+        files.kbis ? uploadFile(files.kbis) : Promise.resolve(null),
+        files.customs ? uploadFile(files.customs) : Promise.resolve(null)
       ]);
 
       // 2. Inscription avec les URLs retournées
       await postJSON('/auth/register', {
         ...form,
-        kbisFileUrl: kbisRes.url,
-        customsFileUrl: customsRes.url,
+        kbisFileUrl: kbisRes ? kbisRes.url : '',
+        customsFileUrl: customsRes ? customsRes.url : '',
       });
 
       setSuccess('Votre dossier a été soumis avec succès et est en attente de validation.');
@@ -77,30 +80,61 @@ export default function Register() {
               Renseignez les informations de votre entreprise pour activer votre espace. Un administrateur validera votre dossier.
             </p>
             <form onSubmit={onSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm text-secondary-300 mb-2">Email professionnel</label>
+                <input
+                  type="email"
+                  name="email"
+                  value={form.email}
+                  onChange={onChange}
+                  className="w-full px-3 py-2 rounded-md bg-secondary-950 border border-secondary-800 text-white focus:outline-none focus:ring-2 focus:ring-primary-600"
+                  placeholder="prenom.nom@entreprise.fr"
+                  required
+                />
+              </div>
+
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-secondary-300 mb-2">Email professionnel</label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={form.email}
-                    onChange={onChange}
-                    className="w-full px-3 py-2 rounded-md bg-secondary-950 border border-secondary-800 text-white focus:outline-none focus:ring-2 focus:ring-primary-600"
-                    placeholder="prenom.nom@entreprise.fr"
-                    required
-                  />
+                  <label className="block text-sm text-secondary-300 mb-2">Mot de passe</label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      name="password"
+                      value={form.password}
+                      onChange={onChange}
+                      className="w-full px-3 py-2 rounded-md bg-secondary-950 border border-secondary-800 text-white focus:outline-none focus:ring-2 focus:ring-primary-600 pr-10"
+                      placeholder="••••••••"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-secondary-400 hover:text-secondary-300"
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
                 </div>
                 <div>
-                  <label className="block text-sm text-secondary-300 mb-2">Mot de passe</label>
-                  <input
-                    type="password"
-                    name="password"
-                    value={form.password}
-                    onChange={onChange}
-                    className="w-full px-3 py-2 rounded-md bg-secondary-950 border border-secondary-800 text-white focus:outline-none focus:ring-2 focus:ring-primary-600"
-                    placeholder="••••••••"
-                    required
-                  />
+                  <label className="block text-sm text-secondary-300 mb-2">Confirmer le mot de passe</label>
+                  <div className="relative">
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      name="confirmPassword"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="w-full px-3 py-2 rounded-md bg-secondary-950 border border-secondary-800 text-white focus:outline-none focus:ring-2 focus:ring-primary-600 pr-10"
+                      placeholder="••••••••"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-secondary-400 hover:text-secondary-300"
+                    >
+                      {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -159,25 +193,23 @@ export default function Register() {
 
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-secondary-300 mb-2">Extrait KBIS (PDF)</label>
+                  <label className="block text-sm text-secondary-300 mb-2">Extrait KBIS (PDF) <span className="text-secondary-500 italic text-xs">(Optionnel)</span></label>
                   <input
                     type="file"
                     name="kbis"
                     onChange={onFileChange}
                     accept="application/pdf"
                     className="w-full px-3 py-1.5 rounded-md bg-secondary-950 border border-secondary-800 text-sm text-secondary-400 file:mr-4 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-primary-900 file:text-primary-300 hover:file:bg-primary-800 cursor-pointer"
-                    required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-secondary-300 mb-2">Déclaration Douanes (PDF)</label>
+                  <label className="block text-sm text-secondary-300 mb-2">Déclaration Douanes (PDF) <span className="text-secondary-500 italic text-xs">(Optionnel)</span></label>
                   <input
                     type="file"
                     name="customs"
                     onChange={onFileChange}
                     accept="application/pdf"
                     className="w-full px-3 py-1.5 rounded-md bg-secondary-950 border border-secondary-800 text-sm text-secondary-400 file:mr-4 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-primary-900 file:text-primary-300 hover:file:bg-primary-800 cursor-pointer"
-                    required
                   />
                 </div>
               </div>
