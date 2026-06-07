@@ -5,7 +5,6 @@ import {
   Eye, 
   X, 
   Calendar,
-  DollarSign,
   Loader2,
   AlertCircle,
   Package
@@ -103,7 +102,6 @@ export default function MyInvoices() {
                     <h3 className="font-semibold text-secondary-900">{invoice.invoiceNumber}</h3>
                     {invoice.amount && (
                       <span className="text-lg font-bold text-secondary-900 flex items-center gap-1">
-                        <DollarSign size={16} className="text-secondary-400" />
                         {invoice.amount} €
                       </span>
                     )}
