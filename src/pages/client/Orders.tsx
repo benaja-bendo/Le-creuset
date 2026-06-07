@@ -10,6 +10,7 @@ type Invoice = {
 
 type Order = {
   id: string;
+  orderNumber?: string;
   status: string;
   createdAt: string;
   stlFileUrl?: string;
@@ -112,7 +113,7 @@ export default function Orders() {
                     </div>
                     <div>
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <span className="font-mono text-sm font-bold text-secondary-900">#{order.id.slice(-6).toUpperCase()}</span>
+                        <span className="font-mono text-sm font-bold text-secondary-900">#{order.orderNumber || order.id.slice(-6).toUpperCase()}</span>
                         <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full border ${getStatusStyle(order.status)}`}>
                           {getStatusLabel(order.status)}
                         </span>

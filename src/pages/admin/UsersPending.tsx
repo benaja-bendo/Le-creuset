@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { getJSON, patchJSON, resolveUrl } from '../../api/client';
+import { deleteJSON, getJSON, patchJSON, resolveUrl } from '../../api/client';
 import { Link } from 'react-router-dom';
-import { CheckCircle2, XCircle, FileSignature, Users, UserPlus, UserCheck, Mail, Phone, Clock, Search, Shield, AlertTriangle, Loader2, Ban, Power } from 'lucide-react';
+import { Trash2, CheckCircle2, XCircle, FileSignature, Users, UserPlus, UserCheck, Mail, Phone, Clock, Search, Shield, AlertTriangle, Loader2, Ban, Power, Eye } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
 import { useAuth } from '../../context/AuthContext';
 
@@ -55,6 +55,9 @@ export default function UsersManagement() {
 
   // Deactivation (soft delete) confirmation modal
   const [userToDeactivate, setUserToDeactivate] = useState<User | null>(null);
+
+  // Hard delete confirmation modal
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -118,6 +121,18 @@ export default function UsersManagement() {
       setUserToDeactivate(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erreur lors de la désactivation');
+    }
+  };
+
+  // Suppression totale et définitive d'un compte
+  const confirmDelete = async () => {
+    if (!userToDelete) return;
+    try {
+      await deleteJSON(`/users/${userToDelete.id}`);
+      setAllUsers(prev => prev.filter(u => u.id !== userToDelete.id));
+      setUserToDelete(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erreur lors de la suppression');
     }
   };
 
@@ -361,41 +376,65 @@ export default function UsersManagement() {
                             <div className="flex items-center gap-3">
                               <Link 
                                 to={`/client/admin/users/${user.id}`}
-                                className="text-primary-600 hover:text-primary-700 text-sm font-medium"
+                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary-600 bg-primary-50 hover:bg-primary-100 rounded-lg transition-colors"
                               >
-                                Voir profil
+                                <Eye size={14} /> Profil
                               </Link>
                               
                               {currentUser?.id !== user.id && (
                                 <>
-                                  <button
-                                    onClick={() => {
-                                      setTargetUser(user);
-                                      setShowRoleModal(true);
-                                    }}
-                                    className="text-secondary-400 hover:text-amber-600 transition-colors"
-                                    title="Changer le rôle"
-                                  >
-                                    <Shield size={16} />
-                                  </button>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <button
+                                        onClick={() => {
+                                          setTargetUser(user);
+                                          setShowRoleModal(true);
+                                        }}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors"
+                                      >
+                                        <Shield size={14} /> Rôle
+                                      </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Changer le rôle (Admin / Client)</TooltipContent>
+                                  </Tooltip>
 
                                   {user.status === 'SUSPENDED' ? (
-                                    <button
-                                      onClick={() => reactivateUser(user.id)}
-                                      className="text-secondary-400 hover:text-emerald-600 transition-colors"
-                                      title="Réactiver le compte"
-                                    >
-                                      <Power size={16} />
-                                    </button>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <button
+                                          onClick={() => reactivateUser(user.id)}
+                                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors"
+                                        >
+                                          <Power size={14} /> Réactiver
+                                        </button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>Réactiver le compte suspendu</TooltipContent>
+                                    </Tooltip>
                                   ) : (
-                                    <button
-                                      onClick={() => setUserToDeactivate(user)}
-                                      className="text-secondary-400 hover:text-red-600 transition-colors"
-                                      title="Désactiver le compte"
-                                    >
-                                      <Ban size={16} />
-                                    </button>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <button
+                                          onClick={() => setUserToDeactivate(user)}
+                                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors"
+                                        >
+                                          <Ban size={14} /> Suspendre
+                                        </button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>Suspendre temporairement l'accès</TooltipContent>
+                                    </Tooltip>
                                   )}
+
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <button
+                                        onClick={() => setUserToDelete(user)}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                                      >
+                                        <Trash2 size={14} /> Supprimer
+                                      </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Supprimer définitivement le compte</TooltipContent>
+                                  </Tooltip>
                                 </>
                               )}
                             </div>
@@ -413,8 +452,8 @@ export default function UsersManagement() {
 
       {/* Deactivation confirmation modal */}
       {userToDeactivate && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setUserToDeactivate(null)}>
-          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-secondary-950/40 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setUserToDeactivate(null)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
             <div className="p-6 border-b border-secondary-100 flex items-center gap-3 bg-red-50/50">
               <Ban className="text-red-500" size={24} />
               <h3 className="text-xl font-bold text-secondary-900">Désactiver le compte</h3>
@@ -442,6 +481,47 @@ export default function UsersManagement() {
                   className="flex-1 px-4 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-all flex items-center justify-center gap-2 shadow-lg"
                 >
                   <Ban size={18} /> Désactiver
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Hard Delete confirmation modal */}
+      {userToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-secondary-950/40 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setUserToDelete(null)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b border-secondary-100 flex items-center gap-3 bg-red-50/50">
+              <AlertTriangle className="text-red-600" size={24} />
+              <h3 className="text-xl font-bold text-secondary-900">Suppression définitive</h3>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="bg-red-50 border-l-4 border-red-600 p-4 rounded-r-lg text-sm">
+                <p className="text-red-900 font-bold mb-2">
+                  ATTENTION : ACTION IRRÉVERSIBLE
+                </p>
+                <p className="text-red-800">
+                  Vous êtes sur le point de supprimer <strong>définitivement</strong> le compte de <strong>{userToDelete.companyName || userToDelete.email}</strong>.
+                </p>
+                <p className="text-red-700 mt-2">
+                  Toutes les données associées seront supprimées : commandes, factures, comptes poids, devis, fichiers, etc.
+                </p>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setUserToDelete(null)}
+                  className="flex-1 px-4 py-3 border border-secondary-200 text-secondary-700 rounded-xl font-bold hover:bg-secondary-50 transition-colors"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDelete}
+                  className="flex-1 px-4 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-all flex items-center justify-center gap-2 shadow-lg"
+                >
+                  <Trash2 size={18} /> Supprimer
                 </button>
               </div>
             </div>
@@ -507,8 +587,8 @@ function ChangeRoleModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={onClose}>
-      <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-secondary-950/40 backdrop-blur-sm animate-in fade-in duration-200" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-secondary-100 flex items-center justify-between bg-secondary-50/50">
           <h3 className="text-xl font-bold text-secondary-900 flex items-center gap-2">
             <Shield className="text-amber-500" size={24} />

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { getJSON, API_URL, resolveUrl } from '../../api/client';
-import { Layers, Search, AlertCircle, Loader2, CameraOff, Box, Download, Eye, FileText, X } from 'lucide-react';
+import { Layers, Search, AlertCircle, Loader2, CameraOff, Box, Download, Eye, FileText, X, ZoomIn } from 'lucide-react';
 import STLViewer from '../../components/STLViewer';
+import ImageViewerModal from '../../components/ImageViewerModal';
 
 type Mold = {
   id: string;
@@ -28,6 +29,7 @@ export default function Library() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [preview, setPreview] = useState<LibraryFile | null>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -183,20 +185,28 @@ export default function Library() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredMolds.map((mold) => (
               <div key={mold.id} className="group bg-white rounded-xl border border-secondary-200 shadow-sm overflow-hidden hover:shadow-xl transition-all">
-                <div className="h-48 bg-secondary-50 relative overflow-hidden flex items-center justify-center">
+                <div 
+                  className="h-48 bg-secondary-50 relative overflow-hidden flex items-center justify-center cursor-pointer"
+                  onClick={() => mold.photoUrl && setPreviewImage(resolvePhotoUrl(mold.photoUrl))}
+                >
                   {mold.photoUrl ? (
-                    <img
-                      src={resolvePhotoUrl(mold.photoUrl) || ''}
-                      alt={mold.name}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                    />
+                    <>
+                      <img
+                        src={resolvePhotoUrl(mold.photoUrl) || ''}
+                        alt={mold.name}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      />
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                        <ZoomIn className="text-white" size={24} />
+                      </div>
+                    </>
                   ) : (
                     <div className="flex flex-col items-center gap-2 text-secondary-300">
                       <CameraOff size={32} />
                       <span className="text-[10px] font-bold uppercase tracking-widest">Pas d'image</span>
                     </div>
                   )}
-                  <div className="absolute top-2 right-2 bg-secondary-900/80 backdrop-blur-sm text-white px-2 py-1 rounded text-[10px] font-mono tracking-tighter border border-secondary-700">
+                  <div className="absolute top-2 right-2 bg-secondary-900/80 backdrop-blur-sm text-white px-2 py-1 rounded text-[10px] font-mono tracking-tighter border border-secondary-700 z-20">
                     REF: {mold.reference}
                   </div>
                 </div>
@@ -235,6 +245,12 @@ export default function Library() {
           </div>
         </div>
       )}
+
+      <ImageViewerModal 
+        isOpen={!!previewImage} 
+        onClose={() => setPreviewImage(null)} 
+        imageUrl={previewImage || ''} 
+      />
     </div>
   );
 }

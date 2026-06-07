@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getJSON, resolveUrl } from '../../api/client';
 import { 
@@ -12,10 +12,12 @@ import {
   Calendar, 
   Download, 
   Eye, 
-  Scale 
+  Scale,
+  Upload
 } from 'lucide-react';
 import WeightGauges from '../../components/WeightGauges';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
+import { uploadFile, patchJSON } from '../../api/client';
 
 type ProfileUser = {
   id: string;
@@ -62,25 +64,49 @@ export default function AdminUserProfile() {
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [uploadingKbis, setUploadingKbis] = useState(false);
+  const [uploadingCustoms, setUploadingCustoms] = useState(false);
+
+  const load = useCallback(async () => {
+    if (!id) return;
+    try {
+      const [user, accounts, invoices] = await Promise.all([
+        getJSON<ProfileUser>(`/users/${id}`),
+        getJSON<MetalAccount[]>(`/weights/user/${id}`),
+        getJSON<InvoiceSummary[]>(`/invoices/user/${id}`),
+      ]);
+      setData({ user, accounts, invoices });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur de chargement');
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
 
   useEffect(() => {
-    async function load() {
-      if (!id) return;
-      try {
-        const [user, accounts, invoices] = await Promise.all([
-          getJSON<ProfileUser>(`/users/${id}`),
-          getJSON<MetalAccount[]>(`/weights/user/${id}`),
-          getJSON<InvoiceSummary[]>(`/invoices/user/${id}`),
-        ]);
-        setData({ user, accounts, invoices });
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Erreur de chargement');
-      } finally {
-        setLoading(false);
-      }
-    }
     load();
-  }, [id]);
+  }, [load]);
+
+  const handleFileUpload = async (file: File, type: 'kbis' | 'customs') => {
+    if (!id) return;
+    try {
+      if (type === 'kbis') setUploadingKbis(true);
+      else setUploadingCustoms(true);
+
+      const res = await uploadFile(file);
+      await patchJSON(`/users/${id}/documents`, {
+        [type === 'kbis' ? 'kbisFileUrl' : 'customsFileUrl']: res.url
+      });
+      
+      // Reload to update UI
+      await load();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Erreur lors de l'upload");
+    } finally {
+      if (type === 'kbis') setUploadingKbis(false);
+      else setUploadingCustoms(false);
+    }
+  };
 
 
 
@@ -198,27 +224,33 @@ export default function AdminUserProfile() {
                     <p className="text-[10px] text-secondary-500">{user.kbisFileUrl ? 'Document fourni' : 'Non fourni'}</p>
                   </div>
                 </div>
-                {user.kbisFileUrl && (
-                  <div className="flex gap-1">
-                    <a
-                      href={resolveUrl(user.kbisFileUrl)}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors text-xs font-bold flex items-center gap-1"
-                    >
-                      <Eye size={14} /> Voir
-                    </a>
-                    <a
-                      href={resolveUrl(user.kbisFileUrl)}
-                      target="_blank"
-                      rel="noreferrer"
-                      download
-                      className="p-2 text-secondary-500 hover:bg-secondary-100 rounded-lg transition-colors"
-                    >
-                      <Download size={14} />
-                    </a>
-                  </div>
-                )}
+                <div className="flex gap-1 items-center">
+                  <label className="p-2 text-secondary-500 hover:bg-secondary-100 rounded-lg transition-colors cursor-pointer" title="Modifier le document">
+                    {uploadingKbis ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                    <input type="file" className="hidden" accept="application/pdf" onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'kbis')} />
+                  </label>
+                  {user.kbisFileUrl && (
+                    <>
+                      <a
+                        href={resolveUrl(user.kbisFileUrl)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors text-xs font-bold flex items-center gap-1"
+                      >
+                        <Eye size={14} /> Voir
+                      </a>
+                      <a
+                        href={resolveUrl(user.kbisFileUrl)}
+                        target="_blank"
+                        rel="noreferrer"
+                        download
+                        className="p-2 text-secondary-500 hover:bg-secondary-100 rounded-lg transition-colors"
+                      >
+                        <Download size={14} />
+                      </a>
+                    </>
+                  )}
+                </div>
               </div>
               {/* Douanes */}
               <div className="flex items-center justify-between p-3 bg-secondary-50 rounded-lg">
@@ -231,27 +263,33 @@ export default function AdminUserProfile() {
                     <p className="text-[10px] text-secondary-500">{user.customsFileUrl ? 'Document fourni' : 'Non fourni'}</p>
                   </div>
                 </div>
-                {user.customsFileUrl && (
-                  <div className="flex gap-1">
-                    <a
-                      href={resolveUrl(user.customsFileUrl)}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors text-xs font-bold flex items-center gap-1"
-                    >
-                      <Eye size={14} /> Voir
-                    </a>
-                    <a
-                      href={resolveUrl(user.customsFileUrl)}
-                      target="_blank"
-                      rel="noreferrer"
-                      download
-                      className="p-2 text-secondary-500 hover:bg-secondary-100 rounded-lg transition-colors"
-                    >
-                      <Download size={14} />
-                    </a>
-                  </div>
-                )}
+                <div className="flex gap-1 items-center">
+                  <label className="p-2 text-secondary-500 hover:bg-secondary-100 rounded-lg transition-colors cursor-pointer" title="Modifier le document">
+                    {uploadingCustoms ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                    <input type="file" className="hidden" accept="application/pdf" onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'customs')} />
+                  </label>
+                  {user.customsFileUrl && (
+                    <>
+                      <a
+                        href={resolveUrl(user.customsFileUrl)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors text-xs font-bold flex items-center gap-1"
+                      >
+                        <Eye size={14} /> Voir
+                      </a>
+                      <a
+                        href={resolveUrl(user.customsFileUrl)}
+                        target="_blank"
+                        rel="noreferrer"
+                        download
+                        className="p-2 text-secondary-500 hover:bg-secondary-100 rounded-lg transition-colors"
+                      >
+                        <Download size={14} />
+                      </a>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           </section>

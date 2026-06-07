@@ -27,6 +27,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/too
 
 type Order = {
   id: string;
+  orderNumber?: string;
   userId: string;
   status: string;
   stlFileUrl: string | null;
@@ -135,7 +136,7 @@ export default function AdminOrderDetail() {
         <div>
           <h1 className="text-2xl font-bold text-secondary-900 flex items-center gap-3">
             <Package size={28} className="text-primary-500" />
-            Commande #{order.id.slice(-6)}
+            Commande #{order.orderNumber || order.id.slice(-6).toUpperCase()}
           </h1>
           <div className="flex items-center gap-4 mt-2 text-secondary-500">
             <span className="flex items-center gap-1.5">
@@ -366,8 +367,8 @@ export default function AdminOrderDetail() {
 
       {/* Preview Modal */}
       {previewUrl && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setPreviewUrl(null)}>
-          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-secondary-950/40 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setPreviewUrl(null)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 border-b border-secondary-200">
               <h3 className="font-semibold text-secondary-900">Aperçu du document</h3>
               <button onClick={() => setPreviewUrl(null)} className="p-2 hover:bg-secondary-100 rounded-lg">
@@ -442,8 +443,8 @@ function CloseOrderModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-xl max-w-lg w-full max-h-[90vh] overflow-auto" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-secondary-950/40 backdrop-blur-sm animate-in fade-in duration-200" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-auto animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between p-5 border-b border-secondary-200 sticky top-0 bg-white">
           <div>
             <h3 className="text-lg font-semibold text-secondary-900">Clôturer la commande</h3>

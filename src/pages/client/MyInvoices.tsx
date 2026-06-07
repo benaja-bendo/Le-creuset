@@ -15,13 +15,13 @@ import { getJSON, resolveUrl } from '../../api/client';
 type Invoice = {
   id: string;
   invoiceNumber: string;
-  orderId: string;
+  orderId: string | null;
   fileUrl: string;
   amount: number | null;
   issueDate: string;
   notes: string | null;
   createdAt: string;
-  order: { id: string; status: string; estimatedPrice: number | null };
+  order: { id: string; status: string; estimatedPrice: number | null } | null;
 };
 
 export default function MyInvoices() {
@@ -118,13 +118,15 @@ export default function MyInvoices() {
                         year: 'numeric'
                       })}
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <Package size={14} />
-                      Commande #{invoice.orderId.slice(-6)} 
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-secondary-100 text-secondary-600 ml-1">
-                        {getStatusLabel(invoice.order.status)}
-                      </span>
-                    </div>
+                    {invoice.orderId && invoice.order && (
+                      <div className="flex items-center gap-1.5">
+                        <Package size={14} />
+                        Commande #{invoice.orderId.slice(-6)} 
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-secondary-100 text-secondary-600 ml-1">
+                          {getStatusLabel(invoice.order.status)}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {invoice.notes && (
@@ -160,8 +162,8 @@ export default function MyInvoices() {
 
       {/* Preview Modal */}
       {previewUrl && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setPreviewUrl(null)}>
-          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-secondary-950/40 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setPreviewUrl(null)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 border-b border-secondary-200">
               <h3 className="font-semibold text-secondary-900">Aperçu de la facture</h3>
               <div className="flex items-center gap-2">

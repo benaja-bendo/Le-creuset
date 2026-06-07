@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { STLLoader } from 'three-stdlib';
 import { OBJLoader } from 'three-stdlib';
 import { OrbitControls, RoomEnvironment } from 'three-stdlib';
-import { Loader2, RotateCcw, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
+import { Loader2, RotateCcw, ZoomIn, ZoomOut, Maximize2, Shrink, Play } from 'lucide-react';
 
 interface STLViewerProps {
   fileUrl: string | null;
@@ -14,20 +14,20 @@ interface STLViewerProps {
 }
 
 const MATERIAL_CONFIG: Record<string, { color: number; metalness: number; density: number; isService?: boolean }> = {
-  'OR_JAUNE_375': { color: 0xF7E2A3, metalness: 1.0, density: 11.0 },
-  'OR_JAUNE_750': { color: 0xFFD700, metalness: 1.0, density: 15.0 },
-  'OR_ROSE_375': { color: 0xEDB8A8, metalness: 1.0, density: 11.0 },
-  'OR_ROSE_750': { color: 0xE0BFB8, metalness: 1.0, density: 15.0 },
-  'OR_GRIS_375': { color: 0xCccccc, metalness: 1.0, density: 11.0 },
-  'OR_GRIS_750': { color: 0xDCDCDC, metalness: 1.0, density: 15.0 },
-  'OR_GRIS_750_PALLADIE_13': { color: 0xE0E0E0, metalness: 1.0, density: 15.5 },
-  'OR_ROUGE_750': { color: 0xD4A373, metalness: 1.0, density: 15.0 },
-  'PLATINE_950': { color: 0xE5E4E2, metalness: 1.0, density: 21.0 },
-  'PALLADIUM': { color: 0xCED0DD, metalness: 1.0, density: 12.0 },
-  'ARGENT_925': { color: 0xC0C0C0, metalness: 1.0, density: 10.4 },
-  'LAITON': { color: 0xCDA434, metalness: 0.8, density: 8.5 },
-  'PROTO_VISUEL': { color: 0x3b82f6, metalness: 0.1, density: 1.2, isService: true },
-  'IMPRESSION_CIRE': { color: 0xFF5733, metalness: 0.0, density: 1.0, isService: true },
+  'OR_JAUNE_375': { color: 0xe6c57a, metalness: 1.0, density: 11.0 },
+  'OR_JAUNE_750': { color: 0xffd700, metalness: 1.0, density: 15.0 },
+  'OR_ROSE_375': { color: 0xe8a994, metalness: 1.0, density: 11.0 },
+  'OR_ROSE_750': { color: 0xdca696, metalness: 1.0, density: 15.0 },
+  'OR_GRIS_375': { color: 0xc0c0c0, metalness: 1.0, density: 11.0 },
+  'OR_GRIS_750': { color: 0xdadada, metalness: 1.0, density: 15.0 },
+  'OR_GRIS_750_PALLADIE_13': { color: 0xe6e6e6, metalness: 1.0, density: 15.5 },
+  'OR_ROUGE_750': { color: 0xc87560, metalness: 1.0, density: 15.0 },
+  'PLATINE_950': { color: 0xe5e4e2, metalness: 1.0, density: 21.0 },
+  'PALLADIUM': { color: 0xcbd0d5, metalness: 1.0, density: 12.0 },
+  'ARGENT_925': { color: 0xe3e4e5, metalness: 1.0, density: 10.4 },
+  'LAITON': { color: 0xb5a642, metalness: 0.9, density: 8.5 },
+  'PROTO_VISUEL': { color: 0x3b82f6, metalness: 0.0, density: 1.2, isService: true },
+  'IMPRESSION_CIRE': { color: 0xff5733, metalness: 0.0, density: 1.0, isService: true },
 };
 
 /**
@@ -81,6 +81,19 @@ export default function STLViewer({ fileUrl, fileName, materialType, finishType,
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [modelInfo, setModelInfo] = useState<{ volume: number; dimensions: { x: number; y: number; z: number } } | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Pour bloquer le défilement du body quand en plein écran
+  useEffect(() => {
+    if (isFullscreen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isFullscreen]);
 
   // Initialisation de la scène Three.js
   const initScene = useCallback(() => {
@@ -108,15 +121,17 @@ export default function STLViewer({ fileUrl, fileName, materialType, finishType,
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.8;
+    renderer.toneMappingExposure = 2.5; // Augmenté pour un rendu plus lumineux
     containerRef.current.innerHTML = '';
     containerRef.current.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
     const pmremGenerator = new THREE.PMREMGenerator(renderer);
     pmremGenerator.compileEquirectangularShader();
-    // Intensité de l'environnement augmentée pour éclaircir les métaux réfléchissants
-    scene.environment = pmremGenerator.fromScene(RoomEnvironment() as unknown as THREE.Scene, 0.1).texture;
+    
+    // Environnement pour les reflets métalliques
+    scene.environment = pmremGenerator.fromScene(RoomEnvironment() as unknown as THREE.Scene, 0.04).texture;
+    scene.environmentIntensity = 1.5; // Plus de brillance environnementale
 
     // Contrôles OrbitControls
     const controls = new OrbitControls(camera, renderer.domElement);
@@ -125,30 +140,39 @@ export default function STLViewer({ fileUrl, fileName, materialType, finishType,
     controls.enableZoom = true;
     controls.enablePan = true;
     controls.autoRotate = true;
-    controls.autoRotateSpeed = 1.0;
+    controls.autoRotateSpeed = 1.5;
     controlsRef.current = controls;
 
-    // Lumières
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+    // Lumières - Amélioration du setup studio
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
     scene.add(ambientLight);
 
-    const keyLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    const keyLight = new THREE.DirectionalLight(0xffffff, 2.5);
     keyLight.position.set(50, 100, 80);
     keyLight.castShadow = true;
+    keyLight.shadow.mapSize.width = 2048;
+    keyLight.shadow.mapSize.height = 2048;
+    keyLight.shadow.bias = -0.0001;
     scene.add(keyLight);
 
-    const fillLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    const fillLight = new THREE.DirectionalLight(0xfff0dd, 1.5);
     fillLight.position.set(-50, 50, -30);
     scene.add(fillLight);
 
-    const rimLight = new THREE.DirectionalLight(0xffaf7b, 0.4);
-    rimLight.position.set(0, -50, -50);
+    const backLight = new THREE.DirectionalLight(0xffffff, 2.0);
+    backLight.position.set(0, 50, -100);
+    scene.add(backLight);
+
+    const rimLight = new THREE.DirectionalLight(0xffffff, 1.5);
+    rimLight.position.set(0, -50, 50);
     scene.add(rimLight);
 
-    // Grille de fond
-    const gridHelper = new THREE.GridHelper(200, 20, 0x94a3b8, 0xcbd5e1);
+    // Grille de fond subtile
+    const gridHelper = new THREE.GridHelper(200, 20, 0xd4d4d4, 0xe5e5e5);
     gridHelper.rotation.x = Math.PI / 2;
     gridHelper.position.z = -50;
+    gridHelper.material.opacity = 0.5;
+    gridHelper.material.transparent = true;
     scene.add(gridHelper);
 
     // Animation loop
@@ -240,9 +264,8 @@ export default function STLViewer({ fileUrl, fileName, materialType, finishType,
       const material = new THREE.MeshPhysicalMaterial({
         color: config.color,
         metalness: config.metalness,
-        roughness: finishType === 'poli' ? 0.05 : 0.4,
-        clearcoat: finishType === 'poli' ? 0.8 : 0.0,
-        clearcoatRoughness: 0.1,
+        roughness: finishType === 'poli' ? (config.metalness > 0.5 ? 0.15 : 0.05) : 0.4,
+        clearcoat: 0.0,
         envMapIntensity: 2.0,
       });
 
@@ -285,9 +308,28 @@ export default function STLViewer({ fileUrl, fileName, materialType, finishType,
     const material = meshRef.current.material as THREE.MeshPhysicalMaterial;
     material.color.setHex(config.color);
     material.metalness = config.metalness;
-    material.roughness = finishType === 'poli' ? 0.05 : 0.4;
-    material.clearcoat = finishType === 'poli' ? 0.8 : 0.0;
+    material.roughness = finishType === 'poli' ? (config.metalness > 0.5 ? 0.15 : 0.05) : 0.4;
+    material.clearcoat = 0.0;
   }, [materialType, finishType]);
+
+  // Resize renderer when container size changes (e.g. fullscreen toggle)
+  useEffect(() => {
+    const handleResize = () => {
+      if (!containerRef.current || !rendererRef.current || !cameraRef.current) return;
+      const width = containerRef.current.clientWidth;
+      const height = containerRef.current.clientHeight;
+      
+      rendererRef.current.setSize(width, height);
+      cameraRef.current.aspect = width / height;
+      cameraRef.current.updateProjectionMatrix();
+    };
+
+    window.addEventListener('resize', handleResize);
+    // Also trigger immediately to handle state change
+    handleResize();
+
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isFullscreen]);
 
   // Initialiser la scène
   useEffect(() => {
@@ -334,8 +376,8 @@ export default function STLViewer({ fileUrl, fileName, materialType, finishType,
   const config = MATERIAL_CONFIG[materialType] || MATERIAL_CONFIG['OR_JAUNE_750'];
 
   return (
-    <div className="relative w-full h-full">
-      <div ref={containerRef} className="w-full h-full bg-slate-50 rounded-sm" />
+    <div className={`relative w-full h-full ${isFullscreen ? 'fixed inset-0 z-[100] bg-white' : ''}`}>
+      <div ref={containerRef} className="w-full h-full bg-slate-50 rounded-sm" style={{ touchAction: 'none' }} />
       
       {/* Contrôles du viewer */}
       <div className="absolute bottom-4 right-4 flex gap-2">
@@ -365,7 +407,14 @@ export default function STLViewer({ fileUrl, fileName, materialType, finishType,
           className="p-2 bg-white/80 hover:bg-white text-secondary-500 hover:text-primary-600 rounded-lg backdrop-blur-md transition-colors shadow-sm"
           title="Toggle rotation auto"
         >
-          <Maximize2 size={18} />
+          <Play size={18} />
+        </button>
+        <button
+          onClick={() => setIsFullscreen(!isFullscreen)}
+          className="p-2 bg-white/80 hover:bg-white text-secondary-500 hover:text-primary-600 rounded-lg backdrop-blur-md transition-colors shadow-sm"
+          title={isFullscreen ? "Quitter le plein écran" : "Plein écran"}
+        >
+          {isFullscreen ? <Shrink size={18} /> : <Maximize2 size={18} />}
         </button>
       </div>
 

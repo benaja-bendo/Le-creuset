@@ -6,6 +6,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/too
 
 type Order = {
   id: string;
+  orderNumber?: string;
   status: string;
   createdAt: string;
   stlFileUrl?: string;
@@ -13,6 +14,7 @@ type Order = {
   notes?: string;
   materialType?: string;
   invoiceGroupId?: string;
+  invoices?: { id: string }[];
   user?: {
     id: string;
     companyName: string;
@@ -36,12 +38,20 @@ export default function AdminOrders() {
   // States for Group Invoice
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
   const [isGrouping, setIsGrouping] = useState(false);
+  const [showGroupModal, setShowGroupModal] = useState(false);
+  const [groupForm, setGroupForm] = useState({
+    invoiceNumber: '',
+    amount: '',
+    file: null as File | null,
+    notes: ''
+  });
 
   // States for Manual Order Modal
   const [showManualModal, setShowManualModal] = useState(false);
   const [isSubmittingManual, setIsSubmittingManual] = useState(false);
   const [manualForm, setManualForm] = useState({
     userId: '',
+    orderNumber: `CMD-${Date.now().toString().slice(-6)}`,
     materialType: 'OR_750_JAUNE',
     notes: ''
   });
@@ -130,7 +140,7 @@ export default function AdminOrders() {
     setSelectedOrders(newSelection);
   };
 
-  const handleGroupOrders = async () => {
+  const handleGroupOrdersClick = () => {
     if (selectedOrders.size < 1) return;
     
     const selectedOrdersData = orders.filter(o => selectedOrders.has(o.id));
@@ -149,22 +159,45 @@ export default function AdminOrders() {
        }
     }
 
-    const manualInvoiceNumber = window.prompt("Entrez un numéro de facture groupée (Laisser vide pour autogénération):", "FAC-GRP-" + Date.now().toString().slice(-6));
-    if (manualInvoiceNumber === null) return; // annulation
+    const totalEstimated = selectedOrdersData.reduce((sum, o) => sum + (o.estimatedPrice || 0), 0);
+    setGroupForm({
+      invoiceNumber: "FAC-GRP-" + Date.now().toString().slice(-6),
+      amount: totalEstimated ? totalEstimated.toString() : '',
+      file: null,
+      notes: ''
+    });
+    setShowGroupModal(true);
+  };
 
+  const submitGroupOrders = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const selectedOrdersData = orders.filter(o => selectedOrders.has(o.id));
+    const firstOrder = selectedOrdersData[0];
+    
     setIsGrouping(true);
     try {
+      let fileUrl = null;
+      if (groupForm.file) {
+        // We need to import uploadFile at the top if it's not imported.
+        const { uploadFile } = await import('../../api/client');
+        const uploadRes = await uploadFile(groupForm.file);
+        fileUrl = uploadRes.url;
+      }
+
       const groupData = {
         orderIds: Array.from(selectedOrders),
         userId: firstOrder.user?.id,
-        invoiceNumber: manualInvoiceNumber || `INV-GRP-${Date.now()}`,
-        amount: selectedOrdersData.reduce((sum, o) => sum + (o.estimatedPrice || 0), 0)
+        invoiceNumber: groupForm.invoiceNumber,
+        amount: groupForm.amount ? parseFloat(groupForm.amount) : undefined,
+        fileUrl: fileUrl,
+        notes: groupForm.notes
       };
 
       await postJSON('/invoice-groups', groupData);
       
       await fetchData();
       setSelectedOrders(new Set());
+      setShowGroupModal(false);
       alert("Facturation groupée créée avec succès !");
     } catch (err) {
        alert(err instanceof Error ? err.message : "Erreur lors de la création du groupe de factures.");
@@ -220,6 +253,7 @@ export default function AdminOrders() {
       setShowManualModal(false);
       setManualForm({
         userId: '',
+        orderNumber: `CMD-${Date.now().toString().slice(-6)}`,
         materialType: 'OR_750_JAUNE',
         notes: ''
       });
@@ -282,9 +316,9 @@ export default function AdminOrders() {
               )}
             </div>
 
-            {selectedOrders.size > 0 && (
+              {selectedOrders.size > 0 && (
                 <button
-                onClick={handleGroupOrders}
+                onClick={handleGroupOrdersClick}
                 disabled={isGrouping}
                 className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg shadow-sm font-bold transition-colors cursor-pointer disabled:opacity-50"
                 >
@@ -293,7 +327,10 @@ export default function AdminOrders() {
                 </button>
             )}
             <button
-               onClick={() => setShowManualModal(true)}
+               onClick={() => {
+                 setManualForm(prev => ({ ...prev, orderNumber: `CMD-${Date.now().toString().slice(-6)}` }));
+                 setShowManualModal(true);
+               }}
                className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2.5 rounded-lg shadow-sm font-bold transition-colors shadow-primary-500/20"
             >
                <Plus size={18} /> Nouvelle Commande
@@ -308,9 +345,74 @@ export default function AdminOrders() {
         </div>
       )}
 
+      {/* Group Orders Modal */}
+      {showGroupModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-secondary-950/40 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowGroupModal(false)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b border-secondary-100 flex items-center justify-between">
+              <h3 className="font-bold text-lg text-secondary-900 flex items-center gap-2">
+                <Layers size={20} className="text-indigo-600" />
+                Créer une Facture Groupée
+              </h3>
+              <button onClick={() => setShowGroupModal(false)} className="text-secondary-400 hover:text-secondary-600">×</button>
+            </div>
+            <form onSubmit={submitGroupOrders} className="p-6 space-y-4 bg-secondary-50/50">
+              <div>
+                <label className="block text-sm font-medium text-secondary-700 mb-1">Numéro de Facture *</label>
+                <input 
+                  type="text"
+                  required
+                  value={groupForm.invoiceNumber}
+                  onChange={e => setGroupForm({...groupForm, invoiceNumber: e.target.value})}
+                  className="w-full px-4 py-2.5 bg-white border border-secondary-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-secondary-900"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-secondary-700 mb-1">Montant Total (€)</label>
+                <input 
+                  type="number"
+                  step="0.01"
+                  value={groupForm.amount}
+                  onChange={e => setGroupForm({...groupForm, amount: e.target.value})}
+                  className="w-full px-4 py-2.5 bg-white border border-secondary-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-secondary-900"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-secondary-700 mb-1">Fichier PDF (Facture)</label>
+                <input 
+                  type="file"
+                  accept=".pdf"
+                  onChange={e => setGroupForm({...groupForm, file: e.target.files ? e.target.files[0] : null})}
+                  className="w-full px-4 py-2 bg-white border border-secondary-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-secondary-900 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-secondary-700 mb-1">Notes</label>
+                <textarea 
+                  rows={2}
+                  value={groupForm.notes}
+                  onChange={e => setGroupForm({...groupForm, notes: e.target.value})}
+                  className="w-full px-4 py-2.5 bg-white border border-secondary-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-secondary-900 resize-none"
+                ></textarea>
+              </div>
+
+              <div className="pt-4 flex justify-end gap-3">
+                <button type="button" onClick={() => setShowGroupModal(false)} className="px-5 py-2.5 text-secondary-600 font-medium hover:bg-secondary-100 rounded-xl transition-colors">
+                  Annuler
+                </button>
+                <button type="submit" disabled={isGrouping} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md disabled:opacity-50 flex items-center gap-2">
+                  {isGrouping && <Loader2 size={16} className="animate-spin" />}
+                  Valider
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Manual Order Modal */}
       {showManualModal && (
-         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-secondary-950/40 backdrop-blur-sm" onClick={() => setShowManualModal(false)}>
+         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-secondary-950/40 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowManualModal(false)}>
            <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
              <div className="px-6 py-4 border-b border-secondary-100 flex items-center justify-between">
                 <h3 className="font-bold text-lg text-secondary-900 flex items-center gap-2">
@@ -320,6 +422,16 @@ export default function AdminOrders() {
                 <button onClick={() => setShowManualModal(false)} className="text-secondary-400 hover:text-secondary-600">×</button>
              </div>
              <form onSubmit={handleCreateManualOrder} className="p-6 space-y-4 bg-secondary-50/50">
+               <div>
+                  <label className="block text-sm font-medium text-secondary-700 mb-1">Numéro de Commande *</label>
+                  <input 
+                     type="text"
+                     required
+                     value={manualForm.orderNumber}
+                     onChange={e => setManualForm({...manualForm, orderNumber: e.target.value})}
+                     className="w-full px-4 py-2.5 bg-white border border-secondary-200 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none text-secondary-900"
+                  />
+               </div>
                <div>
                   <label className="block text-sm font-medium text-secondary-700 mb-1">Client *</label>
                   <select 
@@ -377,12 +489,12 @@ export default function AdminOrders() {
 
       {/* Edit Order Modal */}
       {editingOrder && (
-         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-secondary-950/40 backdrop-blur-sm" onClick={() => setEditingOrder(null)}>
+         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-secondary-950/40 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setEditingOrder(null)}>
            <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
              <div className="px-6 py-4 border-b border-secondary-100 flex items-center justify-between">
                 <h3 className="font-bold text-lg text-secondary-900 flex items-center gap-2">
                    <Pencil size={20} className="text-amber-600" />
-                   Modifier la commande #{editingOrder.id.slice(-6).toUpperCase()}
+                   Modifier la commande #{editingOrder.orderNumber || editingOrder.id.slice(-6).toUpperCase()}
                 </h3>
                 <button onClick={() => setEditingOrder(null)} className="text-secondary-400 hover:text-secondary-600">×</button>
              </div>
@@ -439,7 +551,7 @@ export default function AdminOrders() {
             </thead>
             <tbody className="divide-y divide-secondary-100">
               {filteredOrders.map((order) => {
-                  const isGrouped = !!order.invoiceGroupId;
+                  const isGrouped = !!order.invoiceGroupId || (order.invoices && order.invoices.length > 0);
                   const isSelected = selectedOrders.has(order.id);
                   const isManual = !order.stlFileUrl;
                   
@@ -466,7 +578,7 @@ export default function AdminOrders() {
                          {isManual ? <FilePlus size={18} /> : <Box size={20} />}
                        </div>
                        <div>
-                         <p className="text-xs font-mono text-secondary-400">#{order.id.slice(-6).toUpperCase()}</p>
+                         <p className="text-xs font-mono text-secondary-400">#{order.orderNumber || order.id.slice(-6).toUpperCase()}</p>
                          <div className="flex items-center gap-2 mt-0.5">
                             <span className="text-[10px] bg-secondary-100 text-secondary-600 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">{order.materialType || 'N/A'}</span>
                             {isGrouped && <span className="text-[10px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-bold uppercase flex items-center gap-1"><Layers size={10}/> Groupée</span>}
