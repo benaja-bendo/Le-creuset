@@ -683,14 +683,19 @@ export default function AdminOrders() {
 
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <button 
-                                onClick={() => handleUpdateStatus(order.id, 'EXPEDIE')}
+                              {/* Passer directement au statut EXPEDIE ici court-circuitait la
+                                  facture, le débit poids et l'email envoyés par /orders/:id/close
+                                  — et masquait ensuite le vrai bouton de clôture sur la fiche
+                                  commande (isCompleted = EXPEDIE). Le back refuse maintenant ce
+                                  statut sur cette route ; on renvoie donc vers la fiche. */}
+                              <Link
+                                to={`/client/admin/orders/${order.id}`}
                                 className={`p-2 rounded-lg transition-all ${order.status === 'EXPEDIE' ? 'bg-green-600 text-white shadow-lg' : 'bg-secondary-100 text-secondary-400 hover:bg-green-50 hover:text-green-600'}`}
                               >
                                 <Send size={18} />
-                              </button>
+                              </Link>
                             </TooltipTrigger>
-                            <TooltipContent>Clôturer (Expédier)</TooltipContent>
+                            <TooltipContent>{order.status === 'EXPEDIE' ? 'Commande expédiée' : 'Clôturer via la fiche commande'}</TooltipContent>
                           </Tooltip>
                           
                           {order.stlFileUrl && (
