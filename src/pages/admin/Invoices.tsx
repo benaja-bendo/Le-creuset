@@ -13,7 +13,7 @@ import {
   Plus,
   Layers
 } from 'lucide-react';
-import { getJSON, BASE_URL, getToken, resolveUrl } from '../../api/client';
+import { getJSON, deleteJSON, resolveUrl } from '../../api/client';
 import { orderRef } from '../../lib/orders';
 
 type LinkedOrder = {
@@ -124,18 +124,18 @@ export default function AdminInvoices() {
   const handleDelete = async (id: string, type: 'individual' | 'group' = 'individual') => {
     if (!confirm(`Supprimer cette facture ${type === 'group' ? 'groupée ' : ''}?`)) return;
     try {
+      // deleteJSON teste res.ok et décode l'erreur de l'API : un fetch brut
+      // ignorait un DELETE refusé (ex. facture liée à une commande expédiée)
+      // et retirait quand même la ligne de l'état local — faux succès, la
+      // facture réapparaissait au rechargement.
       if (type === 'group') {
-        await fetch(`${BASE_URL}/api/invoice-groups/${id}`, { method: 'DELETE', headers: {
-          'Authorization': `Bearer ${getToken()}`
-        } });
+        await deleteJSON(`/invoice-groups/${id}`);
       } else {
-        await fetch(`${BASE_URL}/api/invoices/${id}`, { method: 'DELETE', headers: {
-          'Authorization': `Bearer ${getToken()}`
-        } });
+        await deleteJSON(`/invoices/${id}`);
       }
       setInvoices(prev => prev.filter(i => i.id !== id));
-    } catch {
-      setError('Erreur lors de la suppression');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur lors de la suppression');
     }
   };
 

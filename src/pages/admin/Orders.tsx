@@ -143,7 +143,15 @@ export default function AdminOrders() {
 
   const handleGroupOrdersClick = () => {
     if (selectedOrders.size < 1) return;
-    
+
+    // Un groupe à 1 commande n'a aucun avantage sur une facture individuelle
+    // normale — et contrairement à elle, une facture groupée n'apparaît nulle
+    // part côté client (MyInvoices.tsx ne lit que /invoices/me).
+    if (selectedOrders.size < 2) {
+      alert("Sélectionnez au moins 2 commandes : une seule commande passe par une facture individuelle, pas par un groupe.");
+      return;
+    }
+
     const selectedOrdersData = orders.filter(o => selectedOrders.has(o.id));
     const firstOrder = selectedOrdersData[0];
     const allSameUser = selectedOrdersData.every(o => o.user?.id === firstOrder.user?.id);
