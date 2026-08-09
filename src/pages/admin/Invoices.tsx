@@ -14,11 +14,19 @@ import {
   Layers
 } from 'lucide-react';
 import { getJSON, BASE_URL, getToken, resolveUrl } from '../../api/client';
+import { orderRef } from '../../lib/orders';
+
+type LinkedOrder = {
+  id: string;
+  orderNumber?: string | null;
+  notes?: string | null;
+  status: string;
+  estimatedPrice: number | null;
+};
 
 type Invoice = {
   id: string;
   invoiceNumber: string;
-  orderId?: string;
   userId: string;
   fileUrl: string | null;
   amount: number | null;
@@ -26,8 +34,8 @@ type Invoice = {
   notes: string | null;
   createdAt: string;
   type?: 'individual' | 'group';
-  order?: { id: string; status: string; estimatedPrice: number | null };
-  orders?: { id: string; status: string; estimatedPrice: number | null }[];
+  order?: LinkedOrder;
+  orders?: LinkedOrder[];
   user: { id: string; email: string; companyName: string | null };
 };
 
@@ -40,8 +48,28 @@ type InvoiceGroup = {
   issueDate: string;
   notes: string | null;
   createdAt: string;
-  orders?: { id: string; status: string; estimatedPrice: number | null }[];
+  orders?: LinkedOrder[];
   user: { id: string; email: string; companyName: string | null };
+};
+
+
+/**
+ * Notes portées par les commandes rattachées à une facture.
+ *
+ * Distinctes de `Invoice.notes` / `InvoiceGroup.notes`, qui sont les notes de la
+ * facture elle-même : les deux coexistent, l'une ne remplace pas l'autre.
+ *
+ * Sur une facture groupée, la note est préfixée du numéro de sa commande dès
+ * que le groupe en contient plusieurs — même si une seule porte une note, sans
+ * quoi on ne saurait pas à laquelle elle se rapporte.
+ */
+const linkedOrderNotes = (inv: Invoice): { id: string; text: string }[] => {
+  const linked = inv.type === 'group' ? (inv.orders ?? []) : inv.order ? [inv.order] : [];
+  return linked.flatMap(o => {
+    const text = o.notes?.trim();
+    if (!text) return [];
+    return [{ id: o.id, text: linked.length > 1 ? `${orderRef(o)} : ${text}` : text }];
+  });
 };
 
 export default function AdminInvoices() {
@@ -224,23 +252,49 @@ export default function AdminInvoices() {
                   <td className="px-6 py-4">
                      {inv.type === 'group' ? (
                         <div className="text-xs text-secondary-500 flex flex-col gap-1">
-                           <span className="font-medium text-secondary-700">{inv.orders?.length} commandes stipulées</span>
+                           <span className="font-medium text-secondary-700">
+                             {inv.orders?.length ?? 0} commande{(inv.orders?.length ?? 0) > 1 ? 's' : ''} groupée{(inv.orders?.length ?? 0) > 1 ? 's' : ''}
+                           </span>
                            {inv.orders && inv.orders.length > 0 && (
-                               <span className="font-mono text-[10px] text-secondary-400 truncate w-32">
-                                  {inv.orders.map(o => `#${o.id.slice(-6)}`).join(', ')}
+                               <span
+                                 className="font-mono text-[10px] text-secondary-500 truncate max-w-[12rem]"
+                                 title={inv.orders.map(orderRef).join(', ')}
+                               >
+                                  {inv.orders.map(orderRef).join(', ')}
                                </span>
                            )}
                         </div>
+                     ) : inv.order ? (
+                        <span className="text-xs font-mono text-secondary-700">{orderRef(inv.order)}</span>
                      ) : (
-                        <span className="text-xs font-mono text-secondary-500">#{inv.orderId?.slice(-6) || ' N/A'}</span>
+                        <span className="text-xs text-secondary-300">—</span>
                      )}
                   </td>
                   <td className="px-6 py-4">
-                    {inv.notes ? (
-                      <span className="text-xs text-secondary-600 italic truncate block max-w-[150px]" title={inv.notes}>{inv.notes}</span>
-                    ) : (
-                      <span className="text-xs text-secondary-300">-</span>
-                    )}
+                    {(() => {
+                      const orderNotes = linkedOrderNotes(inv);
+                      if (!inv.notes && orderNotes.length === 0) {
+                        return <span className="text-xs text-secondary-300">-</span>;
+                      }
+                      return (
+                        <div className="flex flex-col gap-1 max-w-[16rem]">
+                          {inv.notes && (
+                            <span className="text-xs text-secondary-600 italic truncate" title={inv.notes}>
+                              {inv.notes}
+                            </span>
+                          )}
+                          {orderNotes.map(note => (
+                            <span
+                              key={note.id}
+                              className="text-[11px] text-secondary-600 truncate border-l-2 border-secondary-200 pl-2"
+                              title={note.text}
+                            >
+                              {note.text}
+                            </span>
+                          ))}
+                        </div>
+                      );
+                    })()}
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">

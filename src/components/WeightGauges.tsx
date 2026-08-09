@@ -1,11 +1,12 @@
-import { 
-  ArrowUpRight, 
-  ArrowDownLeft, 
+import {
+  ArrowUpRight,
+  ArrowDownLeft,
   History,
   TrendingDown,
   TrendingUp,
   AlertCircle
 } from 'lucide-react';
+import { formatGrams, toNumber } from '../lib/format';
 
 type Transaction = {
   id: string;
@@ -26,6 +27,18 @@ type MetalAccount = {
 interface WeightGaugesProps {
   accounts: MetalAccount[];
 }
+
+/**
+ * L'historique était rendu en flux normal : chaque nouvelle transaction
+ * allongeait la page entière. On plafonne désormais la hauteur de l'encadré
+ * pour laisser ~4 mouvements visibles, le reste étant accessible au défilement
+ * interne, sans impact sur le reste de la page.
+ *
+ * `HISTORY_MAX_HEIGHT` doit rester cohérent avec `VISIBLE_TRANSACTIONS` :
+ * une ligne mesure environ 4,5 rem (px-5 py-4 + icône 40px).
+ */
+const VISIBLE_TRANSACTIONS = 4;
+const HISTORY_MAX_HEIGHT = 'max-h-[19rem]';
 
 export default function WeightGauges({ accounts }: WeightGaugesProps) {
   const getMetalColor = (type: string, isNegative: boolean) => {
@@ -65,7 +78,7 @@ export default function WeightGauges({ accounts }: WeightGaugesProps) {
                 </div>
                 <div className="flex items-baseline gap-1 mt-auto">
                    <p className={`text-4xl lg:text-5xl font-black tracking-tighter ${isNegative ? 'text-red-100' : 'text-white'}`}>
-                     {acc.balance.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
+                     {formatGrams(acc.balance)}
                    </p>
                    <span className="text-lg font-bold opacity-70">g</span>
                 </div>
@@ -96,23 +109,42 @@ export default function WeightGauges({ accounts }: WeightGaugesProps) {
         </h2>
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-          {accounts.filter(a => a.transactions && a.transactions.length > 0).map(acc => (
+          {accounts.filter(a => a.transactions && a.transactions.length > 0).map(acc => {
+            const transactions = acc.transactions ?? [];
+            const hasOverflow = transactions.length > VISIBLE_TRANSACTIONS;
+            return (
             <div key={`history-${acc.id}`} className="bg-white rounded-2xl border border-secondary-200 shadow-sm overflow-hidden">
-              <div className="px-6 py-4 border-b border-secondary-100 bg-secondary-50/50 flex items-center justify-between">
-                <h3 className="font-bold text-secondary-900 uppercase tracking-widest text-sm text-secondary-500">
+              <div className="px-6 py-4 border-b border-secondary-100 bg-secondary-50/50 flex items-center justify-between gap-3">
+                <h3 className="font-bold text-secondary-900 uppercase tracking-widest text-sm">
                   {getMetalName(acc.metalType)}
                 </h3>
+                {/* L'API ne renvoie que les 10 derniers mouvements : on annonce
+                    « derniers » et jamais un total, qui serait faux au-delà. */}
+                <span className="text-xs font-medium text-secondary-500 shrink-0">
+                  {transactions.length} dernier{transactions.length > 1 ? 's' : ''} mouvement{transactions.length > 1 ? 's' : ''}
+                </span>
               </div>
-              <div className="divide-y divide-secondary-100">
-                {acc.transactions?.map((tx) => (
-                  <div key={tx.id} className="p-5 flex items-center justify-between hover:bg-secondary-50 transition-colors">
-                    <div className="flex items-center gap-4">
-                      <div className={`w-10 h-10 rounded-xl shadow-sm flex items-center justify-center border
+              {/* Hauteur plafonnée : l'encadré défile sur lui-même au lieu
+                  d'allonger la page à chaque nouvelle transaction.
+                  `tabIndex` + `role` : sans eux, Firefox et Safari ne rendent pas
+                  la zone focusable et les mouvements masqués sont inatteignables
+                  au clavier. Pas d'`overscroll-contain` : sous 1280px l'encadré
+                  occupe toute la largeur et bloquerait le défilement de la page. */}
+              <div
+                tabIndex={0}
+                role="region"
+                aria-label={`Historique des mouvements — ${getMetalName(acc.metalType)}`}
+                className={`divide-y divide-secondary-100 ${HISTORY_MAX_HEIGHT} overflow-y-auto focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-inset`}
+              >
+                {transactions.map((tx) => (
+                  <div key={tx.id} className="px-5 py-4 flex items-center justify-between gap-4 hover:bg-secondary-50 transition-colors">
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div className={`w-10 h-10 rounded-xl shadow-sm flex items-center justify-center border shrink-0
                         ${tx.type === 'CREDIT' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-red-50 text-red-600 border-red-100'}`}>
                         {tx.type === 'CREDIT' ? <ArrowDownLeft size={20} /> : <ArrowUpRight size={20} />}
                       </div>
-                      <div>
-                        <p className="font-bold text-secondary-900">{tx.label}</p>
+                      <div className="min-w-0">
+                        <p className="font-bold text-secondary-900 truncate" title={tx.label}>{tx.label}</p>
                         <p className="text-xs text-secondary-500 font-medium">
                           {new Date(tx.date).toLocaleDateString('fr-FR', {
                             day: '2-digit',
@@ -122,16 +154,22 @@ export default function WeightGauges({ accounts }: WeightGaugesProps) {
                         </p>
                       </div>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right shrink-0">
                       <p className={`font-black text-lg tracking-tighter ${tx.type === 'CREDIT' ? 'text-emerald-600' : 'text-red-600'}`}>
-                        {tx.type === 'CREDIT' ? '+' : '-'}{Math.abs(tx.amount).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} g
+                        {tx.type === 'CREDIT' ? '+' : '-'}{formatGrams(Math.abs(toNumber(tx.amount)))} g
                       </p>
                     </div>
                   </div>
                 ))}
               </div>
+              {hasOverflow && (
+                <p className="px-5 py-2.5 text-xs text-secondary-600 bg-secondary-50/50 border-t border-secondary-100 text-center">
+                  Faites défiler pour voir les mouvements plus anciens
+                </p>
+              )}
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

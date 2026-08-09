@@ -8,15 +8,20 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { getJSON, postJSON, uploadFile } from '../../api/client';
+import { orderRef, orderStatusLabel } from '../../lib/orders';
 
 type Order = {
   id: string;
+  orderNumber?: string | null;
+  notes?: string | null;
   status: string;
   userId: string;
   invoiceGroupId?: string;
   user?: { companyName: string; email: string };
   createdAt: string;
 };
+
+
 
 export default function AdminCreateInvoice() {
   const navigate = useNavigate();
@@ -204,7 +209,14 @@ export default function AdminCreateInvoice() {
                 <option value="DEPOT_METAL">⚙ Dépôt métal uniquement</option>
                 {availableOrders.map(o => (
                   <option key={o.id} value={o.id}>
-                    #{o.id.slice(-6)} - {o.status} ({new Date(o.createdAt).toLocaleDateString('fr-FR')})
+                    {[
+                      orderRef(o),
+                      orderStatusLabel(o.status),
+                      new Date(o.createdAt).toLocaleDateString('fr-FR'),
+                      o.notes?.trim() || null,
+                    ]
+                      .filter(Boolean)
+                      .join(' — ')}
                   </option>
                 ))}
               </select>

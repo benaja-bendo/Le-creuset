@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { getJSON, postJSON } from '../../api/client';
 import { Plus, Search, User, History, ArrowUpRight, ArrowDownLeft, Loader2, AlertCircle, TrendingDown, Scale } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
+import { formatGrams, toNumber } from '../../lib/format';
 
 type Transaction = {
   id: string;
@@ -266,7 +267,7 @@ export default function Weights() {
                             </span>
                             <div className="flex items-baseline gap-1 mt-auto">
                                 <span className={`text-xl font-black tracking-tighter ${isNegative ? 'text-red-700' : ''}`}>
-                                  {acc.balance.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
+                                  {formatGrams(acc.balance)}
                                 </span>
                                 <span className={`text-xs font-bold ${isNegative ? 'text-red-500' : 'opacity-60'}`}>g</span>
                             </div>
@@ -433,7 +434,7 @@ export default function Weights() {
                     <div className="px-5 py-3 border-b border-secondary-100 flex justify-between items-center bg-secondary-50/30">
                        <span className="font-bold text-secondary-900 uppercase tracking-wide text-sm">{getMetalName(acc.metalType)}</span>
                        <span className={`font-black tracking-tighter ${acc.balance < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
-                          Solde: {acc.balance.toLocaleString('fr-FR')} g
+                          Solde: {formatGrams(acc.balance)} g
                        </span>
                     </div>
                     <div className="divide-y divide-secondary-100">
@@ -455,7 +456,7 @@ export default function Weights() {
                              </div>
                              <div className="text-right">
                                 <p className={`font-black text-lg tracking-tighter ${tx.type === 'CREDIT' ? 'text-emerald-600' : 'text-red-600'}`}>
-                                   {tx.type === 'CREDIT' ? '+' : '-'}{Math.abs(tx.amount).toLocaleString('fr-FR')} g
+                                   {tx.type === 'CREDIT' ? '+' : '-'}{formatGrams(Math.abs(toNumber(tx.amount)))} g
                                 </p>
                              </div>
                           </div>

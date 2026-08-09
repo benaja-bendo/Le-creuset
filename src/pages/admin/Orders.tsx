@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { getJSON, patchJSON, postJSON, deleteJSON } from '../../api/client';
 import { Box, AlertCircle, Loader2, Download, Package, Flame, Send, Eye, FilePlus, Layers, Plus, Trash2, X, Pencil } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
+import { orderRef } from '../../lib/orders';
 
 type Order = {
   id: string;
@@ -159,7 +160,13 @@ export default function AdminOrders() {
        }
     }
 
-    const totalEstimated = selectedOrdersData.reduce((sum, o) => sum + (o.estimatedPrice || 0), 0);
+    // estimatedPrice est un Decimal Prisma : il arrive sérialisé en CHAÎNE dans
+    // le JSON. Sans Number(), le `+` concatène au lieu d'additionner et le
+    // montant pré-rempli de la facture groupée est faux dès deux commandes.
+    const totalEstimated = selectedOrdersData.reduce(
+      (sum, o) => sum + Number(o.estimatedPrice ?? 0),
+      0,
+    );
     setGroupForm({
       invoiceNumber: "FAC-GRP-" + Date.now().toString().slice(-6),
       amount: totalEstimated ? totalEstimated.toString() : '',
@@ -494,7 +501,7 @@ export default function AdminOrders() {
              <div className="px-6 py-4 border-b border-secondary-100 flex items-center justify-between">
                 <h3 className="font-bold text-lg text-secondary-900 flex items-center gap-2">
                    <Pencil size={20} className="text-amber-600" />
-                   Modifier la commande #{editingOrder.orderNumber || editingOrder.id.slice(-6).toUpperCase()}
+                   Modifier la commande {orderRef(editingOrder)}
                 </h3>
                 <button onClick={() => setEditingOrder(null)} className="text-secondary-400 hover:text-secondary-600">×</button>
              </div>
@@ -578,7 +585,7 @@ export default function AdminOrders() {
                          {isManual ? <FilePlus size={18} /> : <Box size={20} />}
                        </div>
                        <div>
-                         <p className="text-xs font-mono text-secondary-400">#{order.orderNumber || order.id.slice(-6).toUpperCase()}</p>
+                         <p className="text-xs font-mono text-secondary-400">{orderRef(order)}</p>
                          <div className="flex items-center gap-2 mt-0.5">
                             <span className="text-[10px] bg-secondary-100 text-secondary-600 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">{order.materialType || 'N/A'}</span>
                             {isGrouped && <span className="text-[10px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-bold uppercase flex items-center gap-1"><Layers size={10}/> Groupée</span>}

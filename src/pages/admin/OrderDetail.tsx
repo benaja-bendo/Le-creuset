@@ -24,6 +24,7 @@ import {
 import { getJSON, postJSON, resolveUrl, uploadFile } from '../../api/client';
 import STLViewer from '../../components/STLViewer';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
+import { orderRef } from '../../lib/orders';
 
 type Order = {
   id: string;
@@ -136,7 +137,7 @@ export default function AdminOrderDetail() {
         <div>
           <h1 className="text-2xl font-bold text-secondary-900 flex items-center gap-3">
             <Package size={28} className="text-primary-500" />
-            Commande #{order.orderNumber || order.id.slice(-6).toUpperCase()}
+            Commande {orderRef(order)}
           </h1>
           <div className="flex items-center gap-4 mt-2 text-secondary-500">
             <span className="flex items-center gap-1.5">

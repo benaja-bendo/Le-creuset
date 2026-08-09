@@ -10,6 +10,7 @@ import {
   Package
 } from 'lucide-react';
 import { getJSON, resolveUrl } from '../../api/client';
+import { orderRef, orderStatusLabel } from '../../lib/orders';
 
 type Invoice = {
   id: string;
@@ -20,8 +21,15 @@ type Invoice = {
   issueDate: string;
   notes: string | null;
   createdAt: string;
-  order: { id: string; status: string; estimatedPrice: number | null } | null;
+  order: {
+    id: string;
+    orderNumber?: string | null;
+    notes?: string | null;
+    status: string;
+    estimatedPrice: number | null;
+  } | null;
 };
+
 
 export default function MyInvoices() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -46,15 +54,6 @@ export default function MyInvoices() {
 
 
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'EN_ATTENTE': return 'En attente';
-      case 'TIRAGE_OK': return 'Cires prêtes';
-      case 'FONDU': return 'Fondu';
-      case 'EXPEDIE': return 'Expédié';
-      default: return status;
-    }
-  };
 
   if (loading) {
     return (
@@ -116,12 +115,12 @@ export default function MyInvoices() {
                         year: 'numeric'
                       })}
                     </div>
-                    {invoice.orderId && invoice.order && (
+                    {invoice.order && (
                       <div className="flex items-center gap-1.5">
                         <Package size={14} />
-                        Commande #{invoice.orderId.slice(-6)} 
+                        Commande {orderRef(invoice.order)}
                         <span className="text-xs px-2 py-0.5 rounded-full bg-secondary-100 text-secondary-600 ml-1">
-                          {getStatusLabel(invoice.order.status)}
+                          {orderStatusLabel(invoice.order.status)}
                         </span>
                       </div>
                     )}
@@ -129,6 +128,11 @@ export default function MyInvoices() {
 
                   {invoice.notes && (
                     <p className="text-sm text-secondary-500 mt-2 italic">{invoice.notes}</p>
+                  )}
+                  {invoice.order?.notes?.trim() && (
+                    <p className="text-sm text-secondary-500 mt-2 border-l-2 border-secondary-200 pl-3">
+                      {invoice.order.notes.trim()}
+                    </p>
                   )}
                 </div>
 

@@ -18,6 +18,7 @@ import {
 import WeightGauges from '../../components/WeightGauges';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
 import { uploadFile, patchJSON } from '../../api/client';
+import { formatAmount } from '../../lib/format';
 
 type ProfileUser = {
   id: string;
@@ -322,7 +323,7 @@ export default function AdminUserProfile() {
                         <p className="text-sm font-bold text-secondary-900">{inv.invoiceNumber}</p>
                         <p className="text-[11px] text-secondary-400 font-medium">
                           {new Date(inv.issueDate).toLocaleDateString('fr-FR')}
-                          {inv.amount && <span className="ml-2 font-bold text-secondary-600">• {inv.amount.toLocaleString()} €</span>}
+                          {inv.amount && <span className="ml-2 font-bold text-secondary-600">• {formatAmount(inv.amount)} €</span>}
                         </p>
                       </div>
                     </div>

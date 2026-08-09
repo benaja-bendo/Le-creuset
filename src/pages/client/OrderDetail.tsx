@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { getJSON, resolveUrl } from '../../api/client';
 import STLViewer from '../../components/STLViewer';
+import { orderRef } from '../../lib/orders';
 
 type Order = {
   id: string;
@@ -138,7 +139,7 @@ export default function OrderDetail() {
         <div>
           <h1 className="text-2xl font-bold text-secondary-900 flex items-center gap-3">
             <Package size={28} className="text-primary-500" />
-            Commande #{order.orderNumber || order.id.slice(-6).toUpperCase()}
+            Commande {orderRef(order)}
           </h1>
           <p className="text-secondary-500 mt-1">
             Créée le {new Date(order.createdAt).toLocaleDateString('fr-FR', { 

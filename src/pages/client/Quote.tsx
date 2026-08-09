@@ -37,21 +37,22 @@ const SectionTitle = ({ title, subtitle }: { title: string, subtitle: string }) 
   </div>
 );
 
-// Configuration des matériaux avec densité pour le calcul du poids
+/**
+ * Catalogue proposé au devis instantané.
+ *
+ * Restreint aux 7 matériaux réellement commercialisés (validé client, août 2026).
+ * `swatch` reprend volontairement l'hexadécimal de MATERIAL_CONFIG dans
+ * STLViewer : la pastille du sélecteur et l'aperçu 3D doivent montrer la même
+ * teinte. Toute modification ici doit être reportée là-bas, et inversement.
+ */
 const MATERIALS = [
-  { id: 'OR_JAUNE_375', label: 'Or Jaune 375 (9k)', color: 'bg-yellow-200', pricePerGram: 25, density: 11.0, isService: false },
-  { id: 'OR_JAUNE_750', label: 'Or Jaune 750 (18k)', color: 'bg-yellow-500', pricePerGram: 60, density: 15.0, isService: false },
-  { id: 'OR_ROSE_375', label: 'Or Rose 375 (9k)', color: 'bg-pink-300', pricePerGram: 25, density: 11.0, isService: false },
-  { id: 'OR_ROSE_750', label: 'Or Rose 750 (18k)', color: 'bg-pink-400', pricePerGram: 60, density: 15.0, isService: false },
-  { id: 'OR_GRIS_375', label: 'Or Gris 375 (9k)', color: 'bg-gray-300', pricePerGram: 25, density: 11.0, isService: false },
-  { id: 'OR_GRIS_750', label: 'Or Gris 750 (18k)', color: 'bg-gray-400', pricePerGram: 60, density: 15.0, isService: false },
-  { id: 'OR_GRIS_750_PALLADIE_13', label: 'Or Gris 750 (Palladié 13%)', color: 'bg-gray-200', pricePerGram: 70, density: 15.5, isService: false },
-  { id: 'OR_ROUGE_750', label: 'Or Rouge 750 (18k)', color: 'bg-red-400', pricePerGram: 60, density: 15.0, isService: false },
-  { id: 'PLATINE_950', label: 'Platine 950', color: 'bg-slate-300', pricePerGram: 45, density: 21.0, isService: false },
-  { id: 'ARGENT_925', label: 'Argent 925', color: 'bg-gray-100', pricePerGram: 1.5, density: 10.4, isService: false },
-  { id: 'LAITON', label: 'Laiton', color: 'bg-amber-300', pricePerGram: 0.5, density: 8.5, isService: false },
-  { id: 'PROTO_VISUEL', label: 'Prototype Visuel', color: 'bg-blue-300', pricePerGram: 0, density: 1.2, isService: true },
-  { id: 'IMPRESSION_CIRE', label: 'Prototype Résine', color: 'bg-orange-300', pricePerGram: 0, density: 1.0, isService: true },
+  { id: 'OR_JAUNE_750', label: 'Or Jaune 750 (18k)', swatch: '#d4a72c', pricePerGram: 60, density: 15.0, isService: false },
+  { id: 'OR_JAUNE_375', label: 'Or Jaune 375 (9k)', swatch: '#c9a86a', pricePerGram: 25, density: 11.0, isService: false },
+  { id: 'OR_GRIS_750_PALLADIE_13', label: 'Or Gris 750 (Palladié 13%)', swatch: '#c8cacb', pricePerGram: 70, density: 15.5, isService: false },
+  { id: 'PLATINE_950', label: 'Platine 950', swatch: '#b8b4ac', pricePerGram: 45, density: 21.0, isService: false },
+  { id: 'ARGENT_925', label: 'Argent 925', swatch: '#cfd2d4', pricePerGram: 1.5, density: 10.4, isService: false },
+  { id: 'LAITON', label: 'Laiton', swatch: '#b5a642', pricePerGram: 0.5, density: 8.5, isService: false },
+  { id: 'IMPRESSION_CIRE', label: 'Prototype Résine', swatch: '#ff5733', pricePerGram: 0, density: 1.0, isService: true },
 ];
 
 export default function Quote() {
@@ -102,8 +103,8 @@ export default function Quote() {
     if (!mat || !modelVolume) return null;
 
     if (mat.isService) {
-        // Prix fixe simplifié pour les services par volume
-        const serviceBasePrice = mat.id === 'PROTO_VISUEL' ? 30 : 40;
+        // Forfait de base par pièce pour le prototypage, majoré selon le volume
+        const serviceBasePrice = 40;
         return Math.round(serviceBasePrice * quantity + (modelVolume * 2));
     }
 
@@ -218,7 +219,7 @@ export default function Quote() {
                     } ${step === 1 ? 'opacity-40 cursor-not-allowed' : ''}`}
                     disabled={step === 1}
                   >
-                    <div className={`w-3 h-3 rounded-full ${m.color} shadow-sm shrink-0 border border-black/10`}></div>
+                    <div className="w-3 h-3 rounded-full shadow-sm shrink-0 border border-black/10" style={{ backgroundColor: m.swatch }}></div>
                     <span className="text-[10px] xl:text-xs font-bold uppercase tracking-tight truncate">{m.label}</span>
                   </button>
                 ))}
