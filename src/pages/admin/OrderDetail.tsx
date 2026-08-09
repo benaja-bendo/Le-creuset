@@ -358,6 +358,7 @@ export default function AdminOrderDetail() {
         <CloseOrderModal
           orderId={order.id}
           clientName={order.user.companyName || order.user.email}
+          materialType={order.materialType}
           onClose={() => setShowCloseModal(false)}
           onSuccess={() => {
             setShowCloseModal(false);
@@ -389,15 +390,35 @@ export default function AdminOrderDetail() {
 // ============================================
 // Close Order Modal Component
 // ============================================
-function CloseOrderModal({ 
-  orderId, 
+/**
+ * order.materialType peut venir de deux nomenclatures différentes selon qu'il
+ * a été saisi via admin/Orders.tsx (OR_750_JAUNE) ou correspond à l'enum
+ * MetalType (OR_JAUNE_750) — même incohérence que STLViewer.tsx. Seule la
+ * FAMILLE de métal compte ici : le débit poids ne suit que OR_FIN / ARGENT_FIN
+ * / PLATINE, donc on réplique le même test par préfixe que le mapping backend
+ * (orders.service#closeOrder) plutôt que de dépendre d'une correspondance
+ * exacte entre les deux nomenclatures.
+ */
+function resolveDefaultMetalType(materialType: string | null | undefined): string {
+  if (!materialType) return 'OR_JAUNE_750';
+  if (materialType.includes('OR_')) return 'OR_JAUNE_750';
+  if (materialType.includes('ARGENT_')) return 'ARGENT_925';
+  if (materialType.includes('PLATINE_')) return 'PLATINE_950';
+  if (materialType.includes('PALLADIUM')) return 'PALLADIUM';
+  return 'OR_JAUNE_750';
+}
+
+function CloseOrderModal({
+  orderId,
   clientName,
-  onClose, 
-  onSuccess 
-}: { 
-  orderId: string; 
+  materialType,
+  onClose,
+  onSuccess
+}: {
+  orderId: string;
   clientName: string;
-  onClose: () => void; 
+  materialType: string | null;
+  onClose: () => void;
   onSuccess: () => void;
 }) {
   const [form, setForm] = useState({
@@ -405,7 +426,7 @@ function CloseOrderModal({
     finalAmount: '',
     finalWeight: '',
     debitWeightAccount: false,
-    metalType: 'OR_JAUNE_750',
+    metalType: resolveDefaultMetalType(materialType),
   });
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -573,6 +594,21 @@ function CloseOrderModal({
                     ))}
                   </select>
                 </div>
+              </div>
+            )}
+
+            {/* Récapitulatif avant validation : le formulaire pré-remplit le
+                métal depuis la commande, mais un admin peut toujours changer
+                le sélecteur sans le relire — mieux vaut lui montrer noir sur
+                blanc ce qui va bouger avant qu'il ne clique. */}
+            {form.debitWeightAccount && form.finalWeight && (
+              <div className="flex items-center gap-2 px-3 py-2.5 bg-secondary-900 text-white rounded-lg text-sm">
+                <Scale size={16} className="text-primary-300 shrink-0" />
+                <span>
+                  Débit de <strong>{form.finalWeight} g</strong> de{' '}
+                  <strong>{METAL_TYPES.find(m => m.value === form.metalType)?.label ?? form.metalType}</strong> sur
+                  le compte de {clientName}.
+                </span>
               </div>
             )}
           </div>
