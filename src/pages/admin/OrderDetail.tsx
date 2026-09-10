@@ -65,10 +65,10 @@ const ORDER_STATUSES = [
 ];
 
 const METAL_TYPES = [
-  { value: 'OR_JAUNE_375', label: 'Or Jaune 375' },
-  { value: 'OR_JAUNE_750', label: 'Or Jaune 750' },
-  { value: 'OR_ROSE_750', label: 'Or Rose 750' },
-  { value: 'OR_GRIS_750', label: 'Or Gris 750' },
+  { value: 'OR_375_JAUNE', label: 'Or Jaune 375' },
+  { value: 'OR_750_JAUNE', label: 'Or Jaune 750' },
+  { value: 'OR_750_ROSE', label: 'Or Rose 750' },
+  { value: 'OR_750_GRIS', label: 'Or Gris 750' },
   { value: 'PLATINE_950', label: 'Platine 950' },
   { value: 'PALLADIUM', label: 'Palladium' },
   { value: 'ARGENT_925', label: 'Argent 925' },
@@ -396,21 +396,20 @@ export default function AdminOrderDetail() {
 // Close Order Modal Component
 // ============================================
 /**
- * order.materialType peut venir de deux nomenclatures différentes selon qu'il
- * a été saisi via admin/Orders.tsx (OR_750_JAUNE) ou correspond à l'enum
- * MetalType (OR_JAUNE_750) — même incohérence que STLViewer.tsx. Seule la
- * FAMILLE de métal compte ici : le débit poids ne suit que OR_FIN / ARGENT_FIN
- * / PLATINE, donc on réplique le même test par préfixe que le mapping backend
- * (orders.service#closeOrder) plutôt que de dépendre d'une correspondance
- * exacte entre les deux nomenclatures.
+ * Le débit de compte poids ne suit que la FAMILLE de métal (OR_FIN /
+ * ARGENT_FIN / PLATINE), pas l'alliage précis de la commande — une commande
+ * en Or Rose 375 débite le même compte "or" qu'une commande en Or Jaune 750.
+ * On réplique donc le même test par préfixe que le mapping backend
+ * (orders.service#closeOrder) plutôt que de chercher une correspondance
+ * exacte avec order.materialType.
  */
 function resolveDefaultMetalType(materialType: string | null | undefined): string {
-  if (!materialType) return 'OR_JAUNE_750';
-  if (materialType.includes('OR_')) return 'OR_JAUNE_750';
+  if (!materialType) return 'OR_750_JAUNE';
+  if (materialType.includes('OR_')) return 'OR_750_JAUNE';
   if (materialType.includes('ARGENT_')) return 'ARGENT_925';
   if (materialType.includes('PLATINE_')) return 'PLATINE_950';
   if (materialType.includes('PALLADIUM')) return 'PALLADIUM';
-  return 'OR_JAUNE_750';
+  return 'OR_750_JAUNE';
 }
 
 function CloseOrderModal({

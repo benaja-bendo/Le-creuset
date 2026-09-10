@@ -45,6 +45,7 @@ export default function AdminCreateInvoice() {
     invoiceNumber: '',
     orderId: initialOrderId || '',
     amount: '',
+    issueDate: '',
     notes: '',
   });
   
@@ -64,10 +65,11 @@ export default function AdminCreateInvoice() {
       try {
         // Les trois listes servent à peupler des menus déroulants : limite
         // explicite haute plutôt que la page par défaut de la pagination.
-        const [ordRes, invRes, usersRes] = await Promise.all([
-          getJSON<{ items: Order[] }>('/orders?limit=500'),
+        const [ordRes, invRes, usersRes, nextNumberRes] = await Promise.all([
+          getJSON<{ items: Order[] }>('/orders/all?limit=500'),
           getJSON<{ items: { orderId?: string }[] }>('/invoices?limit=500'),
           getJSON<{ items: User[] }>('/users/all?limit=500'),
+          getJSON<{ invoiceNumber: string }>('/invoices/next-number'),
         ]);
         setOrders(ordRes.items);
         setInvoicedOrderIds(new Set(invRes.items.filter(i => i.orderId).map(i => i.orderId as string)));
@@ -75,6 +77,7 @@ export default function AdminCreateInvoice() {
         // rien à y faire (/users/all les renvoie tous, contrairement à
         // l'ancienne liste dérivée des commandes, qui les excluait de fait).
         setUsers(usersRes.items.filter(u => u.role === 'CLIENT'));
+        setForm(prev => ({ ...prev, invoiceNumber: nextNumberRes.invoiceNumber }));
 
         if (initialOrderId) {
           const initialOrder = ordRes.items.find(o => o.id === initialOrderId);
@@ -123,6 +126,7 @@ export default function AdminCreateInvoice() {
         userId: selectedUserId,
         fileUrl: uploadRes.url,
         amount: form.amount ? parseFloat(form.amount) : undefined,
+        issueDate: form.issueDate || undefined,
         notes: form.notes || undefined,
         ...(includeMetal
           ? {
@@ -244,6 +248,21 @@ export default function AdminCreateInvoice() {
                 className="w-full px-4 py-2.5 border border-secondary-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-secondary-900"
                 placeholder="0.00"
               />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-secondary-700 mb-1.5">
+                Date d'émission
+              </label>
+              <input
+                type="date"
+                value={form.issueDate}
+                onChange={e => setForm({ ...form, issueDate: e.target.value })}
+                className="w-full px-4 py-2.5 border border-secondary-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-secondary-900"
+              />
+              <p className="text-xs text-secondary-500 mt-1">Laissez vide pour utiliser la date du jour.</p>
             </div>
           </div>
 

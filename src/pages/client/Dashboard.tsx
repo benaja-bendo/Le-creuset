@@ -249,7 +249,7 @@ function AdminDashboard() {
           // Ce widget n'a besoin que du compte total : demander une seule
           // ligne plutôt que de télécharger toutes les commandes pour un
           // .length, comme c'était le cas avant la pagination.
-          getJSON<{ total: number }>('/orders?limit=1'),
+          getJSON<{ total: number }>('/orders/all?limit=1'),
         ]);
         setPendingUsers(pending);
         setStats({

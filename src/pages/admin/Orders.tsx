@@ -18,6 +18,7 @@ type Order = {
   estimatedPrice?: number;
   notes?: string;
   materialType?: string;
+  quantity?: number;
   invoiceGroupId?: string;
   invoices?: { id: string }[];
   user?: {
@@ -58,17 +59,20 @@ export default function AdminOrders() {
   const [groupForm, setGroupForm] = useState({
     invoiceNumber: '',
     amount: '',
+    issueDate: '',
     file: null as File | null,
     notes: ''
   });
+  const [groupRecap, setGroupRecap] = useState<{ clientLabel: string; orderRefs: string[] } | null>(null);
 
   // States for Manual Order Modal
   const [showManualModal, setShowManualModal] = useState(false);
   const [isSubmittingManual, setIsSubmittingManual] = useState(false);
   const [manualForm, setManualForm] = useState({
     userId: '',
-    orderNumber: `CMD-${Date.now().toString().slice(-6)}`,
+    orderNumber: '',
     materialType: 'OR_750_JAUNE',
+    quantity: 1,
     notes: ''
   });
 
@@ -78,9 +82,17 @@ export default function AdminOrders() {
   // Edit Order Modal
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
-  const [editForm, setEditForm] = useState({ materialType: '', notes: '' });
+  const [editForm, setEditForm] = useState({ materialType: '', notes: '', quantity: 1 });
 
   const materialOptions = Object.entries(MATERIAL_TYPE_LABELS).map(([value, label]) => ({ value, label }));
+
+  // Remplace l'ancien `CMD-${Date.now()...}` / `FAC-GRP-${Date.now()...}` :
+  // une suggestion, pas une réservation — l'admin peut toujours l'éditer, et
+  // la contrainte @unique en base tranche en cas de double création concurrente.
+  const fetchNextOrderNumber = () =>
+    getJSON<{ orderNumber: string }>('/orders/next-number').then(res => res.orderNumber);
+  const fetchNextGroupInvoiceNumber = () =>
+    getJSON<{ invoiceNumber: string }>('/invoice-groups/next-number').then(res => res.invoiceNumber);
 
   // Le sélecteur client de la commande manuelle a besoin de TOUS les clients,
   // pas d'une page — limite explicite haute, indépendante de la pagination
@@ -141,17 +153,26 @@ export default function AdminOrders() {
     setSelectedOrders(newSelection);
   };
 
-  const openGroupModal = (selectedOrdersData: Order[]) => {
-    // estimatedPrice est un Decimal Prisma : il arrive sérialisé en CHAÎNE dans
-    // le JSON. Sans Number(), le `+` concatène au lieu d'additionner et le
-    // montant pré-rempli de la facture groupée est faux dès deux commandes.
-    const totalEstimated = selectedOrdersData.reduce(
-      (sum, o) => sum + Number(o.estimatedPrice ?? 0),
-      0,
-    );
+  const openGroupModal = async (selectedOrdersData: Order[]) => {
+    const firstOrder = selectedOrdersData[0];
+    setGroupRecap({
+      clientLabel: firstOrder.user?.companyName || firstOrder.user?.email || 'Client inconnu',
+      orderRefs: selectedOrdersData.map(o => orderRef(o)),
+    });
+    let invoiceNumber = '';
+    try {
+      invoiceNumber = await fetchNextGroupInvoiceNumber();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur lors de la génération du numéro de facture.');
+    }
+    // Les commandes manuelles n'ont jamais estimatedPrice renseigné (aucun
+    // champ prix dans le formulaire de saisie) : un pré-remplissage basé
+    // dessus valait 0 dans tous les cas réels, un faux montant qui semblait
+    // volontaire. Le montant réel de la facture groupée se saisit à la main.
     setGroupForm({
-      invoiceNumber: "FAC-GRP-" + Date.now().toString().slice(-6),
-      amount: totalEstimated ? totalEstimated.toString() : '',
+      invoiceNumber,
+      amount: '',
+      issueDate: '',
       file: null,
       notes: ''
     });
@@ -211,6 +232,7 @@ export default function AdminOrders() {
         userId: firstOrder.user?.id,
         invoiceNumber: groupForm.invoiceNumber,
         amount: groupForm.amount ? parseFloat(groupForm.amount) : undefined,
+        issueDate: groupForm.issueDate || undefined,
         fileUrl: fileUrl,
         notes: groupForm.notes
       };
@@ -248,7 +270,11 @@ export default function AdminOrders() {
 
   const openEditModal = (order: Order) => {
     setEditingOrder(order);
-    setEditForm({ materialType: order.materialType || '', notes: order.notes || '' });
+    setEditForm({
+      materialType: order.materialType || '',
+      notes: order.notes || '',
+      quantity: order.quantity || 1,
+    });
   };
 
   const handleUpdateOrder = async (e: React.FormEvent) => {
@@ -259,9 +285,10 @@ export default function AdminOrders() {
       await patchJSON(`/orders/${editingOrder.id}`, {
         materialType: editForm.materialType,
         notes: editForm.notes,
+        quantity: editForm.quantity,
       });
       setOrders(orders.map(o => o.id === editingOrder.id
-        ? { ...o, materialType: editForm.materialType, notes: editForm.notes }
+        ? { ...o, materialType: editForm.materialType, notes: editForm.notes, quantity: editForm.quantity }
         : o));
       setEditingOrder(null);
     } catch (err) {
@@ -283,8 +310,9 @@ export default function AdminOrders() {
       setShowManualModal(false);
       setManualForm({
         userId: '',
-        orderNumber: `CMD-${Date.now().toString().slice(-6)}`,
+        orderNumber: '',
         materialType: 'OR_750_JAUNE',
+        quantity: 1,
         notes: ''
       });
       await fetchOrders();
@@ -359,8 +387,14 @@ export default function AdminOrders() {
                 </button>
             )}
             <button
-               onClick={() => {
-                 setManualForm(prev => ({ ...prev, orderNumber: `CMD-${Date.now().toString().slice(-6)}` }));
+               onClick={async () => {
+                 let orderNumber = '';
+                 try {
+                   orderNumber = await fetchNextOrderNumber();
+                 } catch (err) {
+                   setError(err instanceof Error ? err.message : 'Erreur lors de la génération du numéro de commande.');
+                 }
+                 setManualForm(prev => ({ ...prev, orderNumber }));
                  setShowManualModal(true);
                }}
                className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2.5 rounded-lg shadow-sm font-bold transition-colors shadow-primary-500/20"
@@ -434,6 +468,14 @@ export default function AdminOrders() {
               <button onClick={() => setShowGroupModal(false)} className="text-secondary-400 hover:text-secondary-600">×</button>
             </div>
             <form onSubmit={submitGroupOrders} className="p-6 space-y-4 bg-secondary-50/50">
+              {groupRecap && (
+                <div className="rounded-xl border border-indigo-100 bg-indigo-50/60 px-4 py-3 text-sm">
+                  <p className="font-medium text-secondary-900">{groupRecap.clientLabel}</p>
+                  <p className="mt-1 text-secondary-600">
+                    {groupRecap.orderRefs.length} commande(s) : {groupRecap.orderRefs.join(', ')}
+                  </p>
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-secondary-700 mb-1">Numéro de Facture *</label>
                 <input 
@@ -446,13 +488,23 @@ export default function AdminOrders() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-secondary-700 mb-1">Montant Total (€)</label>
-                <input 
+                <input
                   type="number"
                   step="0.01"
                   value={groupForm.amount}
                   onChange={e => setGroupForm({...groupForm, amount: e.target.value})}
                   className="w-full px-4 py-2.5 bg-white border border-secondary-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-secondary-900"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-secondary-700 mb-1">Date d'émission</label>
+                <input
+                  type="date"
+                  value={groupForm.issueDate}
+                  onChange={e => setGroupForm({...groupForm, issueDate: e.target.value})}
+                  className="w-full px-4 py-2.5 bg-white border border-secondary-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-secondary-900"
+                />
+                <p className="text-xs text-secondary-500 mt-1">Laissez vide pour utiliser la date du jour.</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-secondary-700 mb-1">Fichier PDF (Facture)</label>
@@ -538,10 +590,22 @@ export default function AdminOrders() {
                   </select>
                </div>
 
+               <div>
+                  <label className="block text-sm font-medium text-secondary-700 mb-1">Quantité *</label>
+                  <input
+                     type="number"
+                     required
+                     min={1}
+                     step={1}
+                     value={manualForm.quantity}
+                     onChange={e => setManualForm({...manualForm, quantity: Number(e.target.value)})}
+                     className="w-full px-4 py-2.5 bg-white border border-secondary-200 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none text-secondary-900"
+                  />
+               </div>
 
                <div>
                   <label className="block text-sm font-medium text-secondary-700 mb-1">Notes internes / Description</label>
-                  <textarea 
+                  <textarea
                      rows={3}
                      value={manualForm.notes}
                      onChange={e => setManualForm({...manualForm, notes: e.target.value})}
@@ -588,6 +652,18 @@ export default function AdminOrders() {
                         <option key={m.value} value={m.value}>{m.label}</option>
                      ))}
                   </select>
+               </div>
+               <div>
+                  <label className="block text-sm font-medium text-secondary-700 mb-1">Quantité</label>
+                  <input
+                     type="number"
+                     required
+                     min={1}
+                     step={1}
+                     value={editForm.quantity}
+                     onChange={e => setEditForm({...editForm, quantity: Number(e.target.value)})}
+                     className="w-full px-4 py-2.5 bg-white border border-secondary-200 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none text-secondary-900"
+                  />
                </div>
                <div>
                   <label className="block text-sm font-medium text-secondary-700 mb-1">Notes internes / Description</label>
