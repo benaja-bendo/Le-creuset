@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getJSON } from '../../api/client';
 import { Box, Clock, ChevronRight, AlertCircle, Loader2, FileText, Eye, Mail } from 'lucide-react';
-import { orderRef } from '../../lib/orders';
+import { orderRef, orderStatusLabel, orderStatusStyle, materialTypeLabel } from '../../lib/orders';
+import { formatAmount } from '../../lib/format';
 
 type Invoice = {
   id: string;
@@ -15,7 +16,8 @@ type Order = {
   status: string;
   createdAt: string;
   stlFileUrl?: string;
-  estimatedPrice?: number;
+  estimatedPrice?: number | string | null;
+  materialType?: string | null;
   notes?: string;
   invoices?: Invoice[];
 };
@@ -38,26 +40,6 @@ export default function Orders() {
     }
     fetchOrders();
   }, []);
-
-  const getStatusStyle = (status: string) => {
-    switch (status) {
-      case 'EN_ATTENTE': return 'bg-orange-100 text-orange-700 border-orange-200';
-      case 'TIRAGE_OK': return 'bg-blue-100 text-blue-700 border-blue-200';
-      case 'FONDU': return 'bg-purple-100 text-purple-700 border-purple-200';
-      case 'EXPEDIE': return 'bg-green-100 text-green-700 border-green-200';
-      default: return 'bg-secondary-100 text-secondary-700 border-secondary-200';
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'EN_ATTENTE': return 'En attente';
-      case 'TIRAGE_OK': return 'Cires prêtes';
-      case 'FONDU': return 'Fondu';
-      case 'EXPEDIE': return 'Expédié';
-      default: return status;
-    }
-  };
 
   if (loading) {
     return (
@@ -115,8 +97,8 @@ export default function Orders() {
                     <div>
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <span className="font-mono text-sm font-bold text-secondary-900">{orderRef(order)}</span>
-                        <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full border ${getStatusStyle(order.status)}`}>
-                          {getStatusLabel(order.status)}
+                        <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full border ${orderStatusStyle(order.status)}`}>
+                          {orderStatusLabel(order.status)}
                         </span>
                         {hasInvoice && (
                           <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-primary-100 text-primary-700 border border-primary-200 flex items-center gap-1">
@@ -124,13 +106,19 @@ export default function Orders() {
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-4 text-xs text-secondary-500">
+                      <div className="flex items-center gap-4 text-xs text-secondary-500 flex-wrap">
                         <span className="flex items-center gap-1">
-                          <Clock size={12} /> 
-                          {new Date(order.createdAt).toLocaleDateString('fr-FR', { 
-                            day: 'numeric', month: 'short', year: 'numeric' 
+                          <Clock size={12} />
+                          {new Date(order.createdAt).toLocaleDateString('fr-FR', {
+                            day: 'numeric', month: 'short', year: 'numeric'
                           })}
                         </span>
+                        {order.materialType && (
+                          <span>{materialTypeLabel(order.materialType)}</span>
+                        )}
+                        {order.estimatedPrice != null && (
+                          <span className="font-medium text-secondary-700">{formatAmount(order.estimatedPrice)} €</span>
+                        )}
                       </div>
                     </div>
                   </div>

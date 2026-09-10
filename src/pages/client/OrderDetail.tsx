@@ -19,7 +19,8 @@ import {
 } from 'lucide-react';
 import { getJSON, resolveUrl } from '../../api/client';
 import STLViewer from '../../components/STLViewer';
-import { orderRef } from '../../lib/orders';
+import { orderRef, materialTypeLabel } from '../../lib/orders';
+import { formatAmount } from '../../lib/format';
 
 type Order = {
   id: string;
@@ -85,17 +86,6 @@ export default function OrderDetail() {
   const getCurrentStatusIndex = () => {
     if (!order) return -1;
     return ORDER_STATUSES.findIndex(s => s.key === order.status);
-  };
-
-  const getMaterialLabel = (type: string | null) => {
-    const labels: Record<string, string> = {
-      'or-jaune': 'Or Jaune',
-      'or-rose': 'Or Rose',
-      'argent': 'Argent 925',
-      'bronze': 'Bronze',
-      'resine': 'Résine',
-    };
-    return labels[type || ''] || type || 'Non spécifié';
   };
 
   const getFinishLabel = (type: string | null) => {
@@ -224,7 +214,7 @@ export default function OrderDetail() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-secondary-50 rounded-lg p-4">
                   <p className="text-xs text-secondary-500 uppercase tracking-wide mb-1">Métal</p>
-                  <p className="font-medium text-secondary-900">{getMaterialLabel(order.materialType)}</p>
+                  <p className="font-medium text-secondary-900">{materialTypeLabel(order.materialType)}</p>
                 </div>
                 <div className="bg-secondary-50 rounded-lg p-4">
                   <p className="text-xs text-secondary-500 uppercase tracking-wide mb-1">Finition</p>
@@ -284,7 +274,7 @@ export default function OrderDetail() {
                     {invoice.amount && (
                       <span className="flex items-center gap-1">
                         <DollarSign size={12} />
-                        {invoice.amount} €
+                        {formatAmount(invoice.amount)} €
                       </span>
                     )}
                   </div>

@@ -41,3 +41,19 @@ export function formatAmount(value: Numeric): string {
     maximumFractionDigits: 2,
   });
 }
+
+/**
+ * Libellé d'un métal de compte poids (`BaseMetalType`). Remplace le
+ * `type.replace(/_/g, ' ')` dupliqué dans Weights.tsx et WeightGauges.tsx,
+ * qui rendait "OR FIN" plutôt qu'un vrai libellé français.
+ */
+const BASE_METAL_LABELS: Record<string, string> = {
+  OR_FIN: 'Or fin',
+  ARGENT_FIN: 'Argent fin',
+  PLATINE: 'Platine',
+  PALLADIUM: 'Palladium',
+};
+
+export function baseMetalLabel(type: string): string {
+  return BASE_METAL_LABELS[type] ?? type.replace(/_/g, ' ');
+}

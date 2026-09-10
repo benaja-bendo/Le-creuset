@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { getJSON, deleteJSON, resolveUrl } from '../../api/client';
 import { orderRef } from '../../lib/orders';
+import { formatAmount } from '../../lib/format';
 import Pagination from '../../components/ui/Pagination';
 
 const PAGE_SIZE = 20;
@@ -223,7 +224,7 @@ export default function AdminInvoices() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-1.5 text-secondary-700">
-                       {inv.amount ? `${inv.amount} €` : '-'}
+                       {inv.amount ? `${formatAmount(inv.amount)} €` : '-'}
                     </div>
                   </td>
                   <td className="px-6 py-4">

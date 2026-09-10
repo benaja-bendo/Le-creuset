@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { getJSON, resolveUrl } from '../../api/client';
 import { orderRef, orderStatusLabel } from '../../lib/orders';
+import { formatAmount } from '../../lib/format';
 
 type Invoice = {
   id: string;
@@ -101,7 +102,7 @@ export default function MyInvoices() {
                     <h3 className="font-semibold text-secondary-900">{invoice.invoiceNumber}</h3>
                     {invoice.amount && (
                       <span className="text-lg font-bold text-secondary-900 flex items-center gap-1">
-                        {invoice.amount} €
+                        {formatAmount(invoice.amount)} €
                       </span>
                     )}
                   </div>

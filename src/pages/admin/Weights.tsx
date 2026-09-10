@@ -3,7 +3,7 @@ import { getJSON, postJSON } from '../../api/client';
 import { Plus, Search, User, History, ArrowUpRight, ArrowDownLeft, Loader2, AlertCircle, TrendingDown, Scale } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
 import Pagination from '../../components/ui/Pagination';
-import { formatGrams, toNumber } from '../../lib/format';
+import { formatGrams, toNumber, baseMetalLabel } from '../../lib/format';
 
 const PAGE_SIZE = 20;
 type Paginated<T> = { items: T[]; total: number; page: number; limit: number };
@@ -130,7 +130,6 @@ export default function Weights() {
     return 'bg-secondary-50 text-secondary-700 border-secondary-200';
   };
 
-  const getMetalName = (type: string) => type.replace(/_/g, ' ');
 
   const handleTransaction = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -282,7 +281,7 @@ export default function Weights() {
                         <div key={acc.id} className={`p-3 rounded-xl border flex flex-col justify-between
                             ${isNegative ? 'bg-red-50 border-red-200' : getMetalColor(acc.metalType)}`}>
                             <span className={`text-[10px] font-bold uppercase tracking-wider mb-1 ${isNegative ? 'text-red-700' : 'opacity-70'}`}>
-                                {getMetalName(acc.metalType)}
+                                {baseMetalLabel(acc.metalType)}
                             </span>
                             <div className="flex items-baseline gap-1 mt-auto">
                                 <span className={`text-xl font-black tracking-tighter ${isNegative ? 'text-red-700' : ''}`}>
@@ -341,7 +340,7 @@ export default function Weights() {
                  >
                     <option value="" disabled>Sélectionner le métal...</option>
                     {selectedUserForTx.accounts.map(acc => (
-                       <option key={acc.id} value={acc.metalType}>{getMetalName(acc.metalType)} (Solde: {acc.balance}g)</option>
+                       <option key={acc.id} value={acc.metalType}>{baseMetalLabel(acc.metalType)} (Solde: {acc.balance}g)</option>
                     ))}
                  </select>
               </div>
@@ -457,7 +456,7 @@ export default function Weights() {
                  selectedUserForHistory.accounts.filter(a => a.transactions?.length).map(acc => (
                  <div key={acc.id} className="bg-white rounded-xl border border-secondary-200 overflow-hidden shadow-sm">
                     <div className="px-5 py-3 border-b border-secondary-100 flex justify-between items-center bg-secondary-50/30">
-                       <span className="font-bold text-secondary-900 uppercase tracking-wide text-sm">{getMetalName(acc.metalType)}</span>
+                       <span className="font-bold text-secondary-900 uppercase tracking-wide text-sm">{baseMetalLabel(acc.metalType)}</span>
                        <span className={`font-black tracking-tighter ${acc.balance < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
                           Solde: {formatGrams(acc.balance)} g
                        </span>

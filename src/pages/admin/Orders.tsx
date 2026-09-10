@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { getJSON, patchJSON, postJSON, deleteJSON } from '../../api/client';
-import { Box, AlertCircle, Loader2, Download, Package, Flame, Send, Eye, FilePlus, Layers, Plus, Trash2, X, Pencil } from 'lucide-react';
+import { Box, AlertCircle, CheckCircle2, AlertTriangle, Loader2, Download, Package, Flame, Send, Eye, FilePlus, Layers, Plus, Trash2, X, Pencil } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
 import Pagination from '../../components/ui/Pagination';
-import { orderRef } from '../../lib/orders';
+import { orderRef, orderStatusLabel, orderStatusStyle, materialTypeLabel, MATERIAL_TYPE_LABELS } from '../../lib/orders';
 
 type Paginated<T> = { items: T[]; total: number; page: number; limit: number };
 const PAGE_SIZE = 20;
@@ -40,8 +40,17 @@ export default function AdminOrders() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
-  
+
+  // Modale de confirmation générique — remplace window.confirm, qui ne peut
+  // rappeler ni le numéro de commande ni le client concerné par l'action.
+  const [confirmState, setConfirmState] = useState<{
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  } | null>(null);
+
   // States for Group Invoice
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
   const [isGrouping, setIsGrouping] = useState(false);
@@ -71,20 +80,7 @@ export default function AdminOrders() {
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [editForm, setEditForm] = useState({ materialType: '', notes: '' });
 
-  const materialOptions = [
-    { value: 'OR_750_JAUNE', label: 'Or Jaune 750' },
-    { value: 'OR_375_JAUNE', label: 'Or Jaune 375' },
-    { value: 'OR_750_ROSE', label: 'Or Rose 750' },
-    { value: 'OR_375_ROSE', label: 'Or Rose 375' },
-    { value: 'OR_750_GRIS', label: 'Or Gris 750' },
-    { value: 'OR_375_GRIS', label: 'Or Gris 375' },
-    { value: 'OR_750_PALLADIE_13', label: 'Or Gris 750 Palladié 13%' },
-    { value: 'OR_750_ROUGE', label: 'Or Rouge 750' },
-    { value: 'ARGENT_925', label: 'Argent 925' },
-    { value: 'PLATINE_950', label: 'Platine 950' },
-    { value: 'LAITON', label: 'Laiton' },
-    { value: 'PROTOTYPE_RESINE', label: 'Prototype Résine' }
-  ];
+  const materialOptions = Object.entries(MATERIAL_TYPE_LABELS).map(([value, label]) => ({ value, label }));
 
   // Le sélecteur client de la commande manuelle a besoin de TOUS les clients,
   // pas d'une page — limite explicite haute, indépendante de la pagination
@@ -129,29 +125,9 @@ export default function AdminOrders() {
       await patchJSON(`/orders/${orderId}/status`, { status: newStatus });
       setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Erreur lors de la mise à jour');
+      setError(err instanceof Error ? err.message : 'Erreur lors de la mise à jour');
     } finally {
       setUpdatingId(null);
-    }
-  };
-
-  const getStatusStyle = (status: string) => {
-    switch (status) {
-      case 'EN_ATTENTE': return 'bg-orange-100 text-orange-700 border-orange-200';
-      case 'TIRAGE_OK': return 'bg-blue-100 text-blue-700 border-blue-200';
-      case 'FONDU': return 'bg-purple-100 text-purple-700 border-purple-200';
-      case 'EXPEDIE': return 'bg-green-100 text-green-700 border-green-200';
-      default: return 'bg-secondary-100 text-secondary-700 border-secondary-200';
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'EN_ATTENTE': return 'Attente';
-      case 'TIRAGE_OK': return 'Cires OK';
-      case 'FONDU': return 'Fondu';
-      case 'EXPEDIE': return 'Expédié';
-      default: return status;
     }
   };
 
@@ -165,33 +141,7 @@ export default function AdminOrders() {
     setSelectedOrders(newSelection);
   };
 
-  const handleGroupOrdersClick = () => {
-    if (selectedOrders.size < 1) return;
-
-    // Un groupe à 1 commande n'a aucun avantage sur une facture individuelle
-    // normale — et contrairement à elle, une facture groupée n'apparaît nulle
-    // part côté client (MyInvoices.tsx ne lit que /invoices/me).
-    if (selectedOrders.size < 2) {
-      alert("Sélectionnez au moins 2 commandes : une seule commande passe par une facture individuelle, pas par un groupe.");
-      return;
-    }
-
-    const selectedOrdersData = orders.filter(o => selectedOrders.has(o.id));
-    const firstOrder = selectedOrdersData[0];
-    const allSameUser = selectedOrdersData.every(o => o.user?.id === firstOrder.user?.id);
-    
-    if (!allSameUser) {
-      alert("Toutes les commandes groupées doivent appartenir au même client.");
-      return;
-    }
-
-    const allFinished = selectedOrdersData.every(o => o.status === 'EXPEDIE' || o.status === 'FONDU');
-    if (!allFinished) {
-       if(!window.confirm("Certaines commandes n'ont pas encore le statut FONDU ou EXPEDIE. Voulez-vous continuer la facturation ?")) {
-           return;
-       }
-    }
-
+  const openGroupModal = (selectedOrdersData: Order[]) => {
     // estimatedPrice est un Decimal Prisma : il arrive sérialisé en CHAÎNE dans
     // le JSON. Sans Number(), le `+` concatène au lieu d'additionner et le
     // montant pré-rempli de la facture groupée est faux dès deux commandes.
@@ -206,6 +156,39 @@ export default function AdminOrders() {
       notes: ''
     });
     setShowGroupModal(true);
+  };
+
+  const handleGroupOrdersClick = () => {
+    if (selectedOrders.size < 1) return;
+
+    // Un groupe à 1 commande n'a aucun avantage sur une facture individuelle
+    // normale — et contrairement à elle, une facture groupée n'apparaît nulle
+    // part côté client (MyInvoices.tsx ne lit que /invoices/me).
+    if (selectedOrders.size < 2) {
+      setError("Sélectionnez au moins 2 commandes : une seule commande passe par une facture individuelle, pas par un groupe.");
+      return;
+    }
+
+    const selectedOrdersData = orders.filter(o => selectedOrders.has(o.id));
+    const firstOrder = selectedOrdersData[0];
+    const allSameUser = selectedOrdersData.every(o => o.user?.id === firstOrder.user?.id);
+
+    if (!allSameUser) {
+      setError("Toutes les commandes groupées doivent appartenir au même client.");
+      return;
+    }
+
+    const allFinished = selectedOrdersData.every(o => o.status === 'EXPEDIE' || o.status === 'FONDU');
+    if (!allFinished) {
+      setConfirmState({
+        title: 'Commandes non finalisées',
+        message: `${selectedOrdersData.length} commande(s) sélectionnée(s) pour ${firstOrder.user?.companyName || firstOrder.user?.email} n'ont pas toutes le statut Fondu ou Expédié. Continuer la facturation groupée quand même ?`,
+        onConfirm: () => openGroupModal(selectedOrdersData),
+      });
+      return;
+    }
+
+    openGroupModal(selectedOrdersData);
   };
 
   const submitGroupOrders = async (e: React.FormEvent) => {
@@ -233,28 +216,34 @@ export default function AdminOrders() {
       };
 
       await postJSON('/invoice-groups', groupData);
-      
+
       await fetchOrders();
       setSelectedOrders(new Set());
       setShowGroupModal(false);
-      alert("Facturation groupée créée avec succès !");
+      setSuccessMessage(`Facture groupée ${groupData.invoiceNumber} créée pour ${firstOrder.user?.companyName || firstOrder.user?.email}.`);
     } catch (err) {
-       alert(err instanceof Error ? err.message : "Erreur lors de la création du groupe de factures.");
+       setError(err instanceof Error ? err.message : "Erreur lors de la création du groupe de factures.");
     } finally {
        setIsGrouping(false);
     }
   };
 
-  const handleDeleteOrder = async (orderId: string) => {
-    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cette commande ? Cette action est irréversible.')) return;
-    try {
-      await deleteJSON(`/orders/${orderId}`);
-      // Un simple filtre local désynchroniserait le total affiché par la
-      // pagination ; on recharge la page courante pour rester exact.
-      await fetchOrders();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Erreur lors de la suppression');
-    }
+  const handleDeleteOrder = (orderId: string) => {
+    const order = orders.find(o => o.id === orderId);
+    setConfirmState({
+      title: 'Supprimer la commande',
+      message: `Supprimer définitivement la commande ${order ? orderRef(order) : ''}${order?.user?.companyName ? ` de ${order.user.companyName}` : ''} ? Cette action est irréversible.`,
+      onConfirm: async () => {
+        try {
+          await deleteJSON(`/orders/${orderId}`);
+          // Un simple filtre local désynchroniserait le total affiché par la
+          // pagination ; on recharge la page courante pour rester exact.
+          await fetchOrders();
+        } catch (err) {
+          setError(err instanceof Error ? err.message : 'Erreur lors de la suppression');
+        }
+      },
+    });
   };
 
   const openEditModal = (order: Order) => {
@@ -276,7 +265,7 @@ export default function AdminOrders() {
         : o));
       setEditingOrder(null);
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Erreur lors de la modification');
+      setError(err instanceof Error ? err.message : 'Erreur lors de la modification');
     } finally {
       setIsSavingEdit(false);
     }
@@ -300,7 +289,7 @@ export default function AdminOrders() {
       });
       await fetchOrders();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Erreur lors de la création de la commande.");
+      setError(err instanceof Error ? err.message : "Erreur lors de la création de la commande.");
     } finally {
       setIsSubmittingManual(false);
     }
@@ -385,6 +374,51 @@ export default function AdminOrders() {
         <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-center gap-2">
           <AlertCircle size={20} />
           <p>{error}</p>
+          <button onClick={() => setError(null)} className="ml-auto text-red-500 hover:text-red-700">×</button>
+        </div>
+      )}
+
+      {successMessage && (
+        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg flex items-center gap-2">
+          <CheckCircle2 size={20} />
+          <p>{successMessage}</p>
+          <button onClick={() => setSuccessMessage(null)} className="ml-auto text-emerald-500 hover:text-emerald-700">×</button>
+        </div>
+      )}
+
+      {/* Confirmation Modal — remplace window.confirm */}
+      {confirmState && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-secondary-950/40 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setConfirmState(null)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b border-secondary-100 flex items-center gap-3">
+              <div className="p-2 bg-amber-100 text-amber-600 rounded-lg">
+                <AlertTriangle size={20} />
+              </div>
+              <h3 className="font-bold text-lg text-secondary-900">{confirmState.title}</h3>
+            </div>
+            <div className="p-6 space-y-6">
+              <p className="text-secondary-700">{confirmState.message}</p>
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setConfirmState(null)}
+                  className="px-5 py-2.5 text-secondary-600 font-medium hover:bg-secondary-100 rounded-xl transition-colors"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    confirmState.onConfirm();
+                    setConfirmState(null);
+                  }}
+                  className="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-md transition-colors"
+                >
+                  Confirmer
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -623,7 +657,7 @@ export default function AdminOrders() {
                        <div>
                          <p className="text-xs font-mono text-secondary-400">{orderRef(order)}</p>
                          <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-[10px] bg-secondary-100 text-secondary-600 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">{order.materialType || 'N/A'}</span>
+                            <span className="text-[10px] bg-secondary-100 text-secondary-600 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">{materialTypeLabel(order.materialType)}</span>
                             {isGrouped && <span className="text-[10px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-bold uppercase flex items-center gap-1"><Layers size={10}/> Groupée</span>}
                          </div>
                          <p className="text-xs text-secondary-600 italic truncate max-w-[200px] mt-1.5 leading-snug">{order.notes || 'Sans spécifications'}</p>
@@ -631,8 +665,8 @@ export default function AdminOrders() {
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-widest border ${getStatusStyle(order.status)}`}>
-                      {getStatusLabel(order.status)}
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-widest border ${orderStatusStyle(order.status)}`}>
+                      {orderStatusLabel(order.status)}
                     </span>
                   </td>
                   <td className="px-6 py-4">

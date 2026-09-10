@@ -6,7 +6,7 @@ import {
   TrendingUp,
   AlertCircle
 } from 'lucide-react';
-import { formatGrams, toNumber } from '../lib/format';
+import { formatGrams, toNumber, baseMetalLabel } from '../lib/format';
 
 type Transaction = {
   id: string;
@@ -51,7 +51,6 @@ export default function WeightGauges({ accounts }: WeightGaugesProps) {
     return 'bg-gradient-to-br from-secondary-800 to-secondary-900 border-secondary-800';
   };
 
-  const getMetalName = (type: string) => type.replace(/_/g, ' ');
 
   return (
     <div className="space-y-12">
@@ -68,7 +67,7 @@ export default function WeightGauges({ accounts }: WeightGaugesProps) {
               <div className="relative z-10 flex flex-col h-full justify-between">
                 <div className="flex justify-between items-start">
                    <p className="text-white/80 text-sm font-bold uppercase tracking-widest mb-2">
-                      {getMetalName(acc.metalType)}
+                      {baseMetalLabel(acc.metalType)}
                    </p>
                    {isNegative && (
                      <div className="px-2 py-0.5 bg-red-950/50 text-red-200 text-[10px] uppercase font-bold rounded-full border border-red-800/50">
@@ -116,7 +115,7 @@ export default function WeightGauges({ accounts }: WeightGaugesProps) {
             <div key={`history-${acc.id}`} className="bg-white rounded-2xl border border-secondary-200 shadow-sm overflow-hidden">
               <div className="px-6 py-4 border-b border-secondary-100 bg-secondary-50/50 flex items-center justify-between gap-3">
                 <h3 className="font-bold text-secondary-900 uppercase tracking-widest text-sm">
-                  {getMetalName(acc.metalType)}
+                  {baseMetalLabel(acc.metalType)}
                 </h3>
                 {/* L'API ne renvoie que les 10 derniers mouvements : on annonce
                     « derniers » et jamais un total, qui serait faux au-delà. */}
@@ -133,7 +132,7 @@ export default function WeightGauges({ accounts }: WeightGaugesProps) {
               <div
                 tabIndex={0}
                 role="region"
-                aria-label={`Historique des mouvements — ${getMetalName(acc.metalType)}`}
+                aria-label={`Historique des mouvements — ${baseMetalLabel(acc.metalType)}`}
                 className={`divide-y divide-secondary-100 ${HISTORY_MAX_HEIGHT} overflow-y-auto focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-inset`}
               >
                 {transactions.map((tx) => (

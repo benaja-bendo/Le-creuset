@@ -24,7 +24,8 @@ import {
 import { getJSON, postJSON, resolveUrl, uploadFile } from '../../api/client';
 import STLViewer from '../../components/STLViewer';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
-import { orderRef } from '../../lib/orders';
+import { orderRef, materialTypeLabel } from '../../lib/orders';
+import { formatAmount } from '../../lib/format';
 
 type Order = {
   id: string;
@@ -265,10 +266,14 @@ export default function AdminOrderDetail() {
           {/* Order Details */}
           <div className="bg-white rounded-xl border border-secondary-200 p-5">
             <h3 className="font-semibold text-secondary-900 mb-4">Détails commande</h3>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="bg-secondary-50 rounded-lg p-3">
+                <p className="text-xs text-secondary-500 mb-1">Alliage</p>
+                <p className="font-bold text-secondary-900">{materialTypeLabel(order.materialType)}</p>
+              </div>
               <div className="bg-secondary-50 rounded-lg p-3">
                 <p className="text-xs text-secondary-500 mb-1">Prix estimé</p>
-                <p className="font-bold text-secondary-900">{order.estimatedPrice ? `${order.estimatedPrice} €` : '-'}</p>
+                <p className="font-bold text-secondary-900">{order.estimatedPrice ? `${formatAmount(order.estimatedPrice)} €` : '-'}</p>
               </div>
               <div className="bg-secondary-50 rounded-lg p-3">
                 <p className="text-xs text-secondary-500 mb-1">Quantité</p>
@@ -317,7 +322,7 @@ export default function AdminOrderDetail() {
                   <p className="font-medium text-secondary-900">{invoice.invoiceNumber}</p>
                   <div className="flex items-center gap-3 text-sm text-secondary-500">
                     <span>{new Date(invoice.issueDate).toLocaleDateString('fr-FR')}</span>
-                    {invoice.amount && <span className="font-medium">{invoice.amount} €</span>}
+                    {invoice.amount && <span className="font-medium">{formatAmount(invoice.amount)} €</span>}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
