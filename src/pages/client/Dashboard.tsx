@@ -1,15 +1,10 @@
 import { useState, useEffect } from 'react';
-import { 
-  Activity, 
-  Box, 
-  Clock, 
-  FileText, 
+import {
+  Clock,
   TrendingUp,
-  TrendingDown, 
-  Users, 
-  ClipboardList, 
-  AlertCircle, 
-  Layers,
+  TrendingDown,
+  Users,
+  AlertCircle,
   Package,
   Scale,
   ArrowRight,
@@ -21,6 +16,8 @@ import {
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getJSON } from '../../api/client';
+import { orderRef, orderStatusLabel } from '../../lib/orders';
+import { formatGrams } from '../../lib/format';
 
 type MetalAccount = {
   id: string;
@@ -30,11 +27,11 @@ type MetalAccount = {
 
 type Order = {
   id: string;
+  orderNumber?: string | null;
   status: string;
   createdAt: string;
-  stlFileUrl?: string;
-  estimatedPrice?: number;
 };
+
 
 type User = {
   id: string;
@@ -115,13 +112,6 @@ function ClientDashboard() {
     fetchData();
   }, []);
 
-  const stats = [
-    { label: "Commandes en cours", value: orders.filter(o => o.status !== 'EXPEDIE').length.toString(), icon: Box, color: "text-blue-600", bg: "bg-blue-50" },
-    { label: "Devis en attente", value: orders.filter(o => o.status === 'EN_ATTENTE').length.toString(), icon: FileText, color: "text-orange-600", bg: "bg-orange-50" },
-    { label: "En production", value: orders.filter(o => o.status === 'FONDU').length.toString(), icon: Activity, color: "text-green-600", bg: "bg-green-50" },
-    { label: "Total expédiées", value: orders.filter(o => o.status === 'EXPEDIE').length.toString(), icon: Package, color: "text-purple-600", bg: "bg-purple-50" },
-  ];
-
   const getStatusStyle = (status: string) => {
     switch (status) {
       case 'EN_ATTENTE': return 'bg-orange-100 text-orange-700';
@@ -132,15 +122,6 @@ function ClientDashboard() {
     }
   };
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'EN_ATTENTE': return 'En attente';
-      case 'TIRAGE_OK': return 'Cires prêtes';
-      case 'FONDU': return 'Fondu';
-      case 'EXPEDIE': return 'Expédié';
-      default: return status;
-    }
-  };
 
   if (loading) {
     return (
@@ -167,13 +148,6 @@ function ClientDashboard() {
         <p className="text-secondary-500">Bienvenue ! Voici un aperçu de votre activité.</p>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, idx) => (
-          <StatCard key={idx} {...stat} />
-        ))}
-      </div>
-
       {/* Metal Accounts */}
       {weights.length > 0 && (
         <div>
@@ -198,7 +172,7 @@ function ClientDashboard() {
                   <p className="text-secondary-300 text-xs font-bold uppercase tracking-wider mb-2">{formattedName}</p>
                   <div className="flex items-baseline gap-1 mt-auto">
                      <p className={`text-4xl font-black tracking-tighter ${isNegative ? 'text-red-100' : 'text-white'}`}>
-                       {account.balance.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
+                       {formatGrams(account.balance)}
                      </p>
                      <span className="text-sm font-bold opacity-70">g</span>
                   </div>
@@ -213,59 +187,46 @@ function ClientDashboard() {
         </div>
       )}
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Orders Table */}
-        <div className="lg:col-span-2 bg-white rounded-xl border border-secondary-200 shadow-sm overflow-hidden">
-          <div className="p-6 border-b border-secondary-100 flex justify-between items-center">
-            <h2 className="text-lg font-bold text-secondary-900">Dernières commandes</h2>
-            <Link to="/client/orders" className="text-sm text-primary-600 font-medium hover:text-primary-700 flex items-center gap-1">
-              Voir tout <ArrowRight size={14} />
-            </Link>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="bg-secondary-50 text-secondary-500 font-medium">
-                <tr>
-                  <th className="px-6 py-4">ID</th>
-                  <th className="px-6 py-4">Date</th>
-                  <th className="px-6 py-4">État</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-secondary-100">
-                {orders.length === 0 ? (
-                  <tr>
-                    <td colSpan={3} className="px-6 py-12 text-center text-secondary-400">
-                      <Package size={40} className="mx-auto mb-3 opacity-30" />
-                      <p>Aucune commande en cours</p>
-                    </td>
-                  </tr>
-                ) : orders.slice(0, 5).map((order) => (
-                  <tr key={order.id} className="hover:bg-secondary-50/50 transition-colors">
-                    <td className="px-6 py-4 font-mono text-xs text-secondary-500">#{order.id.slice(-6)}</td>
-                    <td className="px-6 py-4 text-secondary-500 flex items-center gap-2">
-                      <Clock size={14} /> {new Date(order.createdAt).toLocaleDateString('fr-FR')}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusStyle(order.status)}`}>
-                        {getStatusLabel(order.status)}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      {/* Dernières commandes */}
+      <div className="bg-white rounded-xl border border-secondary-200 shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-secondary-100 flex justify-between items-center">
+          <h2 className="text-lg font-bold text-secondary-900">Dernières commandes</h2>
+          <Link to="/client/orders" className="text-sm text-primary-600 font-medium hover:text-primary-700 flex items-center gap-1">
+            Voir tout <ArrowRight size={14} />
+          </Link>
         </div>
-
-        {/* Quick Actions */}
-        <div className="bg-white rounded-xl border border-secondary-200 shadow-sm p-6">
-          <h2 className="text-lg font-bold text-secondary-900 mb-6">Actions Rapides</h2>
-          <div className="space-y-3">
-            <QuickAction to="/client/quote" icon={FileText} title="Nouveau Devis STL" subtitle="Uploadez votre modèle 3D" variant="primary" />
-            <QuickAction to="/client/molds" icon={Layers} title="Ma Bibliothèque" subtitle="Gérez vos moules" />
-            <QuickAction to="/client/orders" icon={ClipboardList} title="Historique" subtitle="Toutes vos commandes" />
-          </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead className="bg-secondary-50 text-secondary-500 font-medium">
+              <tr>
+                <th className="px-6 py-4">N° Commande</th>
+                <th className="px-6 py-4">Date</th>
+                <th className="px-6 py-4">État</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-secondary-100">
+              {orders.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="px-6 py-12 text-center text-secondary-400">
+                    <Package size={40} className="mx-auto mb-3 opacity-30" />
+                    <p>Aucune commande</p>
+                  </td>
+                </tr>
+              ) : orders.slice(0, 5).map((order) => (
+                <tr key={order.id} className="hover:bg-secondary-50/50 transition-colors">
+                  <td className="px-6 py-4 font-mono text-xs text-secondary-700">{orderRef(order)}</td>
+                  <td className="px-6 py-4 text-secondary-500 flex items-center gap-2">
+                    <Clock size={14} /> {new Date(order.createdAt).toLocaleDateString('fr-FR')}
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusStyle(order.status)}`}>
+                      {orderStatusLabel(order.status)}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -283,15 +244,18 @@ function AdminDashboard() {
   useEffect(() => {
     async function fetchAdminData() {
       try {
-        const [pending, allOrders] = await Promise.all([
+        const [pending, ordersRes] = await Promise.all([
           getJSON<User[]>('/users/pending'),
-          getJSON<Order[]>('/orders'),
+          // Ce widget n'a besoin que du compte total : demander une seule
+          // ligne plutôt que de télécharger toutes les commandes pour un
+          // .length, comme c'était le cas avant la pagination.
+          getJSON<{ total: number }>('/orders/all?limit=1'),
         ]);
         setPendingUsers(pending);
         setStats({
           users: 0, // TODO: endpoint /users/count
           pending: pending.length,
-          orders: allOrders.length,
+          orders: ordersRes.total,
         });
       } catch (err) {
         console.error('Error loading admin data:', err);

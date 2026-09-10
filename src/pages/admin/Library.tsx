@@ -56,8 +56,9 @@ export default function AdminLibrary() {
   const [savingEditStl, setSavingEditStl] = useState(false);
 
   useEffect(() => {
-    getJSON<User[]>('/users/all')
-      .then(setUsers)
+    // Sélecteur de client : a besoin de tout le monde, pas d'une page.
+    getJSON<{ items: User[] }>('/users/all?limit=500')
+      .then(res => setUsers(res.items))
       .catch(e => setError(e instanceof Error ? e.message : 'Erreur de chargement'))
       .finally(() => setLoading(false));
   }, []);
@@ -65,12 +66,14 @@ export default function AdminLibrary() {
   const loadClientData = useCallback(async (userId: string) => {
     if (!userId) return;
     try {
-      const [stl, allMolds] = await Promise.all([
+      const [stl, moldsRes] = await Promise.all([
         getJSON<LibraryFile[]>(`/library/user/${userId}`),
-        getJSON<Mold[]>('/molds/all'),
+        // Filtre serveur : /molds/all sans userId téléchargeait la
+        // bibliothèque de TOUS les clients pour n'en garder qu'un en mémoire.
+        getJSON<{ items: Mold[] }>(`/molds/all?userId=${userId}&limit=500`),
       ]);
       setStlFiles(stl);
-      setMolds(allMolds.filter(m => m.userId === userId));
+      setMolds(moldsRes.items);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erreur de chargement');
     }

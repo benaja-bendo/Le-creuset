@@ -1,8 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { getJSON, patchJSON, postJSON, deleteJSON } from '../../api/client';
-import { Box, AlertCircle, Loader2, Download, Package, Flame, Send, Eye, FilePlus, Layers, Plus, Trash2, X, Pencil } from 'lucide-react';
+import { Box, AlertCircle, CheckCircle2, AlertTriangle, Loader2, Download, Package, Flame, Send, Eye, FilePlus, Layers, Plus, Trash2, X, Pencil } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
+import Pagination from '../../components/ui/Pagination';
+import { orderRef, orderStatusLabel, orderStatusStyle, materialTypeLabel, MATERIAL_TYPE_LABELS } from '../../lib/orders';
+
+type Paginated<T> = { items: T[]; total: number; page: number; limit: number };
+const PAGE_SIZE = 20;
 
 type Order = {
   id: string;
@@ -13,6 +18,7 @@ type Order = {
   estimatedPrice?: number;
   notes?: string;
   materialType?: string;
+  quantity?: number;
   invoiceGroupId?: string;
   invoices?: { id: string }[];
   user?: {
@@ -30,11 +36,22 @@ type User = {
 
 export default function AdminOrders() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
-  
+
+  // Modale de confirmation générique — remplace window.confirm, qui ne peut
+  // rappeler ni le numéro de commande ni le client concerné par l'action.
+  const [confirmState, setConfirmState] = useState<{
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  } | null>(null);
+
   // States for Group Invoice
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
   const [isGrouping, setIsGrouping] = useState(false);
@@ -42,17 +59,20 @@ export default function AdminOrders() {
   const [groupForm, setGroupForm] = useState({
     invoiceNumber: '',
     amount: '',
+    issueDate: '',
     file: null as File | null,
     notes: ''
   });
+  const [groupRecap, setGroupRecap] = useState<{ clientLabel: string; orderRefs: string[] } | null>(null);
 
   // States for Manual Order Modal
   const [showManualModal, setShowManualModal] = useState(false);
   const [isSubmittingManual, setIsSubmittingManual] = useState(false);
   const [manualForm, setManualForm] = useState({
     userId: '',
-    orderNumber: `CMD-${Date.now().toString().slice(-6)}`,
+    orderNumber: '',
     materialType: 'OR_750_JAUNE',
+    quantity: 1,
     notes: ''
   });
 
@@ -62,41 +82,54 @@ export default function AdminOrders() {
   // Edit Order Modal
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
-  const [editForm, setEditForm] = useState({ materialType: '', notes: '' });
+  const [editForm, setEditForm] = useState({ materialType: '', notes: '', quantity: 1 });
 
-  const materialOptions = [
-    { value: 'OR_750_JAUNE', label: 'Or Jaune 750' },
-    { value: 'OR_375_JAUNE', label: 'Or Jaune 375' },
-    { value: 'OR_750_ROSE', label: 'Or Rose 750' },
-    { value: 'OR_375_ROSE', label: 'Or Rose 375' },
-    { value: 'OR_750_GRIS', label: 'Or Gris 750' },
-    { value: 'OR_375_GRIS', label: 'Or Gris 375' },
-    { value: 'OR_750_PALLADIE_13', label: 'Or Gris 750 Palladié 13%' },
-    { value: 'OR_750_ROUGE', label: 'Or Rouge 750' },
-    { value: 'ARGENT_925', label: 'Argent 925' },
-    { value: 'PLATINE_950', label: 'Platine 950' },
-    { value: 'LAITON', label: 'Laiton' },
-    { value: 'PROTOTYPE_RESINE', label: 'Prototype Résine' }
-  ];
+  const materialOptions = Object.entries(MATERIAL_TYPE_LABELS).map(([value, label]) => ({ value, label }));
 
+  // Remplace l'ancien `CMD-${Date.now()...}` / `FAC-GRP-${Date.now()...}` :
+  // une suggestion, pas une réservation — l'admin peut toujours l'éditer, et
+  // la contrainte @unique en base tranche en cas de double création concurrente.
+  const fetchNextOrderNumber = () =>
+    getJSON<{ orderNumber: string }>('/orders/next-number').then(res => res.orderNumber);
+  const fetchNextGroupInvoiceNumber = () =>
+    getJSON<{ invoiceNumber: string }>('/invoice-groups/next-number').then(res => res.invoiceNumber);
+
+  // Le sélecteur client de la commande manuelle a besoin de TOUS les clients,
+  // pas d'une page — limite explicite haute, indépendante de la pagination
+  // des commandes. Chargé une seule fois, ne dépend d'aucun filtre.
   useEffect(() => {
-    fetchData();
+    getJSON<Paginated<User>>('/users/all?limit=500')
+      .then(res => setUsers(res.items))
+      .catch(err => setError(err instanceof Error ? err.message : 'Erreur de chargement'));
   }, []);
 
-  async function fetchData() {
+  const fetchOrders = useCallback(async () => {
+    setLoading(true);
     try {
-      const [ordersData, usersData] = await Promise.all([
-        getJSON<Order[]>('/orders/all'),
-        getJSON<User[]>('/users/all')
-      ]);
-      setOrders(ordersData);
-      setUsers(usersData);
+      const params = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE) });
+      if (statusFilter) params.set('status', statusFilter);
+      const res = await getJSON<Paginated<Order>>(`/orders/all?${params}`);
+      setOrders(res.items);
+      setTotal(res.total);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur de chargement');
     } finally {
       setLoading(false);
     }
-  }
+  }, [page, statusFilter]);
+
+  useEffect(() => {
+    fetchOrders();
+    // La sélection de groupement référence des commandes de la page
+    // affichée : changer de page ou de filtre sans la vider validerait un
+    // groupe sur des lignes devenues invisibles, voire absentes de `orders`.
+    setSelectedOrders(new Set());
+  }, [fetchOrders]);
+
+  const handleStatusFilterChange = (value: string) => {
+    setStatusFilter(value);
+    setPage(1);
+  };
 
   const handleUpdateStatus = async (orderId: string, newStatus: string) => {
     setUpdatingId(orderId);
@@ -104,29 +137,9 @@ export default function AdminOrders() {
       await patchJSON(`/orders/${orderId}/status`, { status: newStatus });
       setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Erreur lors de la mise à jour');
+      setError(err instanceof Error ? err.message : 'Erreur lors de la mise à jour');
     } finally {
       setUpdatingId(null);
-    }
-  };
-
-  const getStatusStyle = (status: string) => {
-    switch (status) {
-      case 'EN_ATTENTE': return 'bg-orange-100 text-orange-700 border-orange-200';
-      case 'TIRAGE_OK': return 'bg-blue-100 text-blue-700 border-blue-200';
-      case 'FONDU': return 'bg-purple-100 text-purple-700 border-purple-200';
-      case 'EXPEDIE': return 'bg-green-100 text-green-700 border-green-200';
-      default: return 'bg-secondary-100 text-secondary-700 border-secondary-200';
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'EN_ATTENTE': return 'Attente';
-      case 'TIRAGE_OK': return 'Cires OK';
-      case 'FONDU': return 'Fondu';
-      case 'EXPEDIE': return 'Expédié';
-      default: return status;
     }
   };
 
@@ -140,33 +153,63 @@ export default function AdminOrders() {
     setSelectedOrders(newSelection);
   };
 
+  const openGroupModal = async (selectedOrdersData: Order[]) => {
+    const firstOrder = selectedOrdersData[0];
+    setGroupRecap({
+      clientLabel: firstOrder.user?.companyName || firstOrder.user?.email || 'Client inconnu',
+      orderRefs: selectedOrdersData.map(o => orderRef(o)),
+    });
+    let invoiceNumber = '';
+    try {
+      invoiceNumber = await fetchNextGroupInvoiceNumber();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur lors de la génération du numéro de facture.');
+    }
+    // Les commandes manuelles n'ont jamais estimatedPrice renseigné (aucun
+    // champ prix dans le formulaire de saisie) : un pré-remplissage basé
+    // dessus valait 0 dans tous les cas réels, un faux montant qui semblait
+    // volontaire. Le montant réel de la facture groupée se saisit à la main.
+    setGroupForm({
+      invoiceNumber,
+      amount: '',
+      issueDate: '',
+      file: null,
+      notes: ''
+    });
+    setShowGroupModal(true);
+  };
+
   const handleGroupOrdersClick = () => {
     if (selectedOrders.size < 1) return;
-    
+
+    // Un groupe à 1 commande n'a aucun avantage sur une facture individuelle
+    // normale — et contrairement à elle, une facture groupée n'apparaît nulle
+    // part côté client (MyInvoices.tsx ne lit que /invoices/me).
+    if (selectedOrders.size < 2) {
+      setError("Sélectionnez au moins 2 commandes : une seule commande passe par une facture individuelle, pas par un groupe.");
+      return;
+    }
+
     const selectedOrdersData = orders.filter(o => selectedOrders.has(o.id));
     const firstOrder = selectedOrdersData[0];
     const allSameUser = selectedOrdersData.every(o => o.user?.id === firstOrder.user?.id);
-    
+
     if (!allSameUser) {
-      alert("Toutes les commandes groupées doivent appartenir au même client.");
+      setError("Toutes les commandes groupées doivent appartenir au même client.");
       return;
     }
 
     const allFinished = selectedOrdersData.every(o => o.status === 'EXPEDIE' || o.status === 'FONDU');
     if (!allFinished) {
-       if(!window.confirm("Certaines commandes n'ont pas encore le statut FONDU ou EXPEDIE. Voulez-vous continuer la facturation ?")) {
-           return;
-       }
+      setConfirmState({
+        title: 'Commandes non finalisées',
+        message: `${selectedOrdersData.length} commande(s) sélectionnée(s) pour ${firstOrder.user?.companyName || firstOrder.user?.email} n'ont pas toutes le statut Fondu ou Expédié. Continuer la facturation groupée quand même ?`,
+        onConfirm: () => openGroupModal(selectedOrdersData),
+      });
+      return;
     }
 
-    const totalEstimated = selectedOrdersData.reduce((sum, o) => sum + (o.estimatedPrice || 0), 0);
-    setGroupForm({
-      invoiceNumber: "FAC-GRP-" + Date.now().toString().slice(-6),
-      amount: totalEstimated ? totalEstimated.toString() : '',
-      file: null,
-      notes: ''
-    });
-    setShowGroupModal(true);
+    openGroupModal(selectedOrdersData);
   };
 
   const submitGroupOrders = async (e: React.FormEvent) => {
@@ -189,36 +232,49 @@ export default function AdminOrders() {
         userId: firstOrder.user?.id,
         invoiceNumber: groupForm.invoiceNumber,
         amount: groupForm.amount ? parseFloat(groupForm.amount) : undefined,
+        issueDate: groupForm.issueDate || undefined,
         fileUrl: fileUrl,
         notes: groupForm.notes
       };
 
       await postJSON('/invoice-groups', groupData);
-      
-      await fetchData();
+
+      await fetchOrders();
       setSelectedOrders(new Set());
       setShowGroupModal(false);
-      alert("Facturation groupée créée avec succès !");
+      setSuccessMessage(`Facture groupée ${groupData.invoiceNumber} créée pour ${firstOrder.user?.companyName || firstOrder.user?.email}.`);
     } catch (err) {
-       alert(err instanceof Error ? err.message : "Erreur lors de la création du groupe de factures.");
+       setError(err instanceof Error ? err.message : "Erreur lors de la création du groupe de factures.");
     } finally {
        setIsGrouping(false);
     }
   };
 
-  const handleDeleteOrder = async (orderId: string) => {
-    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cette commande ? Cette action est irréversible.')) return;
-    try {
-      await deleteJSON(`/orders/${orderId}`);
-      setOrders(orders.filter(o => o.id !== orderId));
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Erreur lors de la suppression');
-    }
+  const handleDeleteOrder = (orderId: string) => {
+    const order = orders.find(o => o.id === orderId);
+    setConfirmState({
+      title: 'Supprimer la commande',
+      message: `Supprimer définitivement la commande ${order ? orderRef(order) : ''}${order?.user?.companyName ? ` de ${order.user.companyName}` : ''} ? Cette action est irréversible.`,
+      onConfirm: async () => {
+        try {
+          await deleteJSON(`/orders/${orderId}`);
+          // Un simple filtre local désynchroniserait le total affiché par la
+          // pagination ; on recharge la page courante pour rester exact.
+          await fetchOrders();
+        } catch (err) {
+          setError(err instanceof Error ? err.message : 'Erreur lors de la suppression');
+        }
+      },
+    });
   };
 
   const openEditModal = (order: Order) => {
     setEditingOrder(order);
-    setEditForm({ materialType: order.materialType || '', notes: order.notes || '' });
+    setEditForm({
+      materialType: order.materialType || '',
+      notes: order.notes || '',
+      quantity: order.quantity || 1,
+    });
   };
 
   const handleUpdateOrder = async (e: React.FormEvent) => {
@@ -229,13 +285,14 @@ export default function AdminOrders() {
       await patchJSON(`/orders/${editingOrder.id}`, {
         materialType: editForm.materialType,
         notes: editForm.notes,
+        quantity: editForm.quantity,
       });
       setOrders(orders.map(o => o.id === editingOrder.id
-        ? { ...o, materialType: editForm.materialType, notes: editForm.notes }
+        ? { ...o, materialType: editForm.materialType, notes: editForm.notes, quantity: editForm.quantity }
         : o));
       setEditingOrder(null);
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Erreur lors de la modification');
+      setError(err instanceof Error ? err.message : 'Erreur lors de la modification');
     } finally {
       setIsSavingEdit(false);
     }
@@ -253,29 +310,32 @@ export default function AdminOrders() {
       setShowManualModal(false);
       setManualForm({
         userId: '',
-        orderNumber: `CMD-${Date.now().toString().slice(-6)}`,
+        orderNumber: '',
         materialType: 'OR_750_JAUNE',
+        quantity: 1,
         notes: ''
       });
-      await fetchData();
+      await fetchOrders();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Erreur lors de la création de la commande.");
+      setError(err instanceof Error ? err.message : "Erreur lors de la création de la commande.");
     } finally {
       setIsSubmittingManual(false);
     }
   };
 
-  // Filter & sort orders: status filter + completed/invoiced at end
-  const filteredOrders = orders
-    .filter(o => !statusFilter || o.status === statusFilter)
-    .sort((a, b) => {
-      const aFinished = a.status === 'EXPEDIE' && !!a.invoiceGroupId;
-      const bFinished = b.status === 'EXPEDIE' && !!b.invoiceGroupId;
-      if (aFinished && !bFinished) return 1;
-      if (!aFinished && bFinished) return -1;
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
-
+  // Le filtre de statut est désormais appliqué côté serveur (nécessaire pour
+  // que la pagination reste cohérente — filtrer après coup ne verrait que la
+  // page courante). Il ne reste ici que le tri secondaire "terminé et facturé
+  // à la fin", qui ne s'applique plus qu'à l'intérieur de la page affichée :
+  // reproduire ce tri globalement demanderait un ORDER BY conditionnel côté
+  // base, pour un gain marginal sur une liste déjà triée par date récente.
+  const sortedOrders = [...orders].sort((a, b) => {
+    const aFinished = a.status === 'EXPEDIE' && !!a.invoiceGroupId;
+    const bFinished = b.status === 'EXPEDIE' && !!b.invoiceGroupId;
+    if (aFinished && !bFinished) return 1;
+    if (!aFinished && bFinished) return -1;
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
 
   if (loading) {
     return (
@@ -297,7 +357,7 @@ export default function AdminOrders() {
             <div className="relative">
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+                onChange={(e) => handleStatusFilterChange(e.target.value)}
                 className="appearance-none px-4 py-2.5 pr-8 bg-white border border-secondary-200 rounded-lg text-sm font-medium text-secondary-700 focus:ring-2 focus:ring-primary-500 outline-none cursor-pointer"
               >
                 <option value="">Tous les statuts</option>
@@ -307,8 +367,8 @@ export default function AdminOrders() {
                 <option value="EXPEDIE">Expédié</option>
               </select>
               {statusFilter && (
-                <button 
-                  onClick={() => setStatusFilter('')}
+                <button
+                  onClick={() => handleStatusFilterChange('')}
                   className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-secondary-400 hover:text-secondary-700 transition-colors"
                 >
                   <X size={14} />
@@ -327,8 +387,14 @@ export default function AdminOrders() {
                 </button>
             )}
             <button
-               onClick={() => {
-                 setManualForm(prev => ({ ...prev, orderNumber: `CMD-${Date.now().toString().slice(-6)}` }));
+               onClick={async () => {
+                 let orderNumber = '';
+                 try {
+                   orderNumber = await fetchNextOrderNumber();
+                 } catch (err) {
+                   setError(err instanceof Error ? err.message : 'Erreur lors de la génération du numéro de commande.');
+                 }
+                 setManualForm(prev => ({ ...prev, orderNumber }));
                  setShowManualModal(true);
                }}
                className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2.5 rounded-lg shadow-sm font-bold transition-colors shadow-primary-500/20"
@@ -342,6 +408,51 @@ export default function AdminOrders() {
         <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-center gap-2">
           <AlertCircle size={20} />
           <p>{error}</p>
+          <button onClick={() => setError(null)} className="ml-auto text-red-500 hover:text-red-700">×</button>
+        </div>
+      )}
+
+      {successMessage && (
+        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg flex items-center gap-2">
+          <CheckCircle2 size={20} />
+          <p>{successMessage}</p>
+          <button onClick={() => setSuccessMessage(null)} className="ml-auto text-emerald-500 hover:text-emerald-700">×</button>
+        </div>
+      )}
+
+      {/* Confirmation Modal — remplace window.confirm */}
+      {confirmState && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-secondary-950/40 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setConfirmState(null)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b border-secondary-100 flex items-center gap-3">
+              <div className="p-2 bg-amber-100 text-amber-600 rounded-lg">
+                <AlertTriangle size={20} />
+              </div>
+              <h3 className="font-bold text-lg text-secondary-900">{confirmState.title}</h3>
+            </div>
+            <div className="p-6 space-y-6">
+              <p className="text-secondary-700">{confirmState.message}</p>
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setConfirmState(null)}
+                  className="px-5 py-2.5 text-secondary-600 font-medium hover:bg-secondary-100 rounded-xl transition-colors"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    confirmState.onConfirm();
+                    setConfirmState(null);
+                  }}
+                  className="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-md transition-colors"
+                >
+                  Confirmer
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -357,6 +468,14 @@ export default function AdminOrders() {
               <button onClick={() => setShowGroupModal(false)} className="text-secondary-400 hover:text-secondary-600">×</button>
             </div>
             <form onSubmit={submitGroupOrders} className="p-6 space-y-4 bg-secondary-50/50">
+              {groupRecap && (
+                <div className="rounded-xl border border-indigo-100 bg-indigo-50/60 px-4 py-3 text-sm">
+                  <p className="font-medium text-secondary-900">{groupRecap.clientLabel}</p>
+                  <p className="mt-1 text-secondary-600">
+                    {groupRecap.orderRefs.length} commande(s) : {groupRecap.orderRefs.join(', ')}
+                  </p>
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-secondary-700 mb-1">Numéro de Facture *</label>
                 <input 
@@ -369,13 +488,23 @@ export default function AdminOrders() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-secondary-700 mb-1">Montant Total (€)</label>
-                <input 
+                <input
                   type="number"
                   step="0.01"
                   value={groupForm.amount}
                   onChange={e => setGroupForm({...groupForm, amount: e.target.value})}
                   className="w-full px-4 py-2.5 bg-white border border-secondary-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-secondary-900"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-secondary-700 mb-1">Date d'émission</label>
+                <input
+                  type="date"
+                  value={groupForm.issueDate}
+                  onChange={e => setGroupForm({...groupForm, issueDate: e.target.value})}
+                  className="w-full px-4 py-2.5 bg-white border border-secondary-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-secondary-900"
+                />
+                <p className="text-xs text-secondary-500 mt-1">Laissez vide pour utiliser la date du jour.</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-secondary-700 mb-1">Fichier PDF (Facture)</label>
@@ -461,10 +590,22 @@ export default function AdminOrders() {
                   </select>
                </div>
 
+               <div>
+                  <label className="block text-sm font-medium text-secondary-700 mb-1">Quantité *</label>
+                  <input
+                     type="number"
+                     required
+                     min={1}
+                     step={1}
+                     value={manualForm.quantity}
+                     onChange={e => setManualForm({...manualForm, quantity: Number(e.target.value)})}
+                     className="w-full px-4 py-2.5 bg-white border border-secondary-200 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none text-secondary-900"
+                  />
+               </div>
 
                <div>
                   <label className="block text-sm font-medium text-secondary-700 mb-1">Notes internes / Description</label>
-                  <textarea 
+                  <textarea
                      rows={3}
                      value={manualForm.notes}
                      onChange={e => setManualForm({...manualForm, notes: e.target.value})}
@@ -494,7 +635,7 @@ export default function AdminOrders() {
              <div className="px-6 py-4 border-b border-secondary-100 flex items-center justify-between">
                 <h3 className="font-bold text-lg text-secondary-900 flex items-center gap-2">
                    <Pencil size={20} className="text-amber-600" />
-                   Modifier la commande #{editingOrder.orderNumber || editingOrder.id.slice(-6).toUpperCase()}
+                   Modifier la commande {orderRef(editingOrder)}
                 </h3>
                 <button onClick={() => setEditingOrder(null)} className="text-secondary-400 hover:text-secondary-600">×</button>
              </div>
@@ -511,6 +652,18 @@ export default function AdminOrders() {
                         <option key={m.value} value={m.value}>{m.label}</option>
                      ))}
                   </select>
+               </div>
+               <div>
+                  <label className="block text-sm font-medium text-secondary-700 mb-1">Quantité</label>
+                  <input
+                     type="number"
+                     required
+                     min={1}
+                     step={1}
+                     value={editForm.quantity}
+                     onChange={e => setEditForm({...editForm, quantity: Number(e.target.value)})}
+                     className="w-full px-4 py-2.5 bg-white border border-secondary-200 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none text-secondary-900"
+                  />
                </div>
                <div>
                   <label className="block text-sm font-medium text-secondary-700 mb-1">Notes internes / Description</label>
@@ -550,7 +703,7 @@ export default function AdminOrders() {
               </tr>
             </thead>
             <tbody className="divide-y divide-secondary-100">
-              {filteredOrders.map((order) => {
+              {sortedOrders.map((order) => {
                   const isGrouped = !!order.invoiceGroupId || (order.invoices && order.invoices.length > 0);
                   const isSelected = selectedOrders.has(order.id);
                   const isManual = !order.stlFileUrl;
@@ -578,9 +731,9 @@ export default function AdminOrders() {
                          {isManual ? <FilePlus size={18} /> : <Box size={20} />}
                        </div>
                        <div>
-                         <p className="text-xs font-mono text-secondary-400">#{order.orderNumber || order.id.slice(-6).toUpperCase()}</p>
+                         <p className="text-xs font-mono text-secondary-400">{orderRef(order)}</p>
                          <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-[10px] bg-secondary-100 text-secondary-600 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">{order.materialType || 'N/A'}</span>
+                            <span className="text-[10px] bg-secondary-100 text-secondary-600 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">{materialTypeLabel(order.materialType)}</span>
                             {isGrouped && <span className="text-[10px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-bold uppercase flex items-center gap-1"><Layers size={10}/> Groupée</span>}
                          </div>
                          <p className="text-xs text-secondary-600 italic truncate max-w-[200px] mt-1.5 leading-snug">{order.notes || 'Sans spécifications'}</p>
@@ -588,8 +741,8 @@ export default function AdminOrders() {
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-widest border ${getStatusStyle(order.status)}`}>
-                      {getStatusLabel(order.status)}
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-widest border ${orderStatusStyle(order.status)}`}>
+                      {orderStatusLabel(order.status)}
                     </span>
                   </td>
                   <td className="px-6 py-4">
@@ -676,14 +829,19 @@ export default function AdminOrders() {
 
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <button 
-                                onClick={() => handleUpdateStatus(order.id, 'EXPEDIE')}
+                              {/* Passer directement au statut EXPEDIE ici court-circuitait la
+                                  facture, le débit poids et l'email envoyés par /orders/:id/close
+                                  — et masquait ensuite le vrai bouton de clôture sur la fiche
+                                  commande (isCompleted = EXPEDIE). Le back refuse maintenant ce
+                                  statut sur cette route ; on renvoie donc vers la fiche. */}
+                              <Link
+                                to={`/client/admin/orders/${order.id}`}
                                 className={`p-2 rounded-lg transition-all ${order.status === 'EXPEDIE' ? 'bg-green-600 text-white shadow-lg' : 'bg-secondary-100 text-secondary-400 hover:bg-green-50 hover:text-green-600'}`}
                               >
                                 <Send size={18} />
-                              </button>
+                              </Link>
                             </TooltipTrigger>
-                            <TooltipContent>Clôturer (Expédier)</TooltipContent>
+                            <TooltipContent>{order.status === 'EXPEDIE' ? 'Commande expédiée' : 'Clôturer via la fiche commande'}</TooltipContent>
                           </Tooltip>
                           
                           {order.stlFileUrl && (
@@ -710,11 +868,13 @@ export default function AdminOrders() {
             </tbody>
           </table>
         </div>
-        {orders.length === 0 && (
+        {orders.length === 0 ? (
           <div className="p-12 text-center text-secondary-400">
              <Box className="mx-auto mb-4 opacity-20" size={48} />
-             <p>Aucune commande à gérer pour le moment.</p>
+             <p>{statusFilter ? 'Aucune commande avec ce statut.' : 'Aucune commande à gérer pour le moment.'}</p>
           </div>
+        ) : (
+          <Pagination page={page} limit={PAGE_SIZE} total={total} onPageChange={setPage} />
         )}
       </div>
     </div>

@@ -19,6 +19,8 @@ import {
 } from 'lucide-react';
 import { getJSON, resolveUrl } from '../../api/client';
 import STLViewer from '../../components/STLViewer';
+import { orderRef, materialTypeLabel } from '../../lib/orders';
+import { formatAmount } from '../../lib/format';
 
 type Order = {
   id: string;
@@ -86,17 +88,6 @@ export default function OrderDetail() {
     return ORDER_STATUSES.findIndex(s => s.key === order.status);
   };
 
-  const getMaterialLabel = (type: string | null) => {
-    const labels: Record<string, string> = {
-      'or-jaune': 'Or Jaune',
-      'or-rose': 'Or Rose',
-      'argent': 'Argent 925',
-      'bronze': 'Bronze',
-      'resine': 'Résine',
-    };
-    return labels[type || ''] || type || 'Non spécifié';
-  };
-
   const getFinishLabel = (type: string | null) => {
     const labels: Record<string, string> = {
       'poli': 'Poli miroir',
@@ -138,7 +129,7 @@ export default function OrderDetail() {
         <div>
           <h1 className="text-2xl font-bold text-secondary-900 flex items-center gap-3">
             <Package size={28} className="text-primary-500" />
-            Commande #{order.orderNumber || order.id.slice(-6).toUpperCase()}
+            Commande {orderRef(order)}
           </h1>
           <p className="text-secondary-500 mt-1">
             Créée le {new Date(order.createdAt).toLocaleDateString('fr-FR', { 
@@ -223,7 +214,7 @@ export default function OrderDetail() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-secondary-50 rounded-lg p-4">
                   <p className="text-xs text-secondary-500 uppercase tracking-wide mb-1">Métal</p>
-                  <p className="font-medium text-secondary-900">{getMaterialLabel(order.materialType)}</p>
+                  <p className="font-medium text-secondary-900">{materialTypeLabel(order.materialType)}</p>
                 </div>
                 <div className="bg-secondary-50 rounded-lg p-4">
                   <p className="text-xs text-secondary-500 uppercase tracking-wide mb-1">Finition</p>
@@ -283,7 +274,7 @@ export default function OrderDetail() {
                     {invoice.amount && (
                       <span className="flex items-center gap-1">
                         <DollarSign size={12} />
-                        {invoice.amount} €
+                        {formatAmount(invoice.amount)} €
                       </span>
                     )}
                   </div>

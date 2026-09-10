@@ -8,9 +8,12 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { getJSON, postJSON, uploadFile } from '../../api/client';
+import { orderRef, orderStatusLabel } from '../../lib/orders';
 
 type Order = {
   id: string;
+  orderNumber?: string | null;
+  notes?: string | null;
   status: string;
   userId: string;
   invoiceGroupId?: string;
@@ -18,12 +21,22 @@ type Order = {
   createdAt: string;
 };
 
+type User = {
+  id: string;
+  email: string;
+  companyName: string | null;
+  role: 'CLIENT' | 'ADMIN';
+};
+
+
+
 export default function AdminCreateInvoice() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const initialOrderId = searchParams.get('orderId');
 
   const [orders, setOrders] = useState<Order[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [invoicedOrderIds, setInvoicedOrderIds] = useState<Set<string>>(new Set());
   const [loadingData, setLoadingData] = useState(true);
 
@@ -32,6 +45,7 @@ export default function AdminCreateInvoice() {
     invoiceNumber: '',
     orderId: initialOrderId || '',
     amount: '',
+    issueDate: '',
     notes: '',
   });
   
@@ -49,15 +63,24 @@ export default function AdminCreateInvoice() {
   useEffect(() => {
     async function load() {
       try {
-        const [ord, inv] = await Promise.all([
-          getJSON<Order[]>('/orders'),
-          getJSON<{ orderId?: string }[]>('/invoices'),
+        // Les trois listes servent à peupler des menus déroulants : limite
+        // explicite haute plutôt que la page par défaut de la pagination.
+        const [ordRes, invRes, usersRes, nextNumberRes] = await Promise.all([
+          getJSON<{ items: Order[] }>('/orders/all?limit=500'),
+          getJSON<{ items: { orderId?: string }[] }>('/invoices?limit=500'),
+          getJSON<{ items: User[] }>('/users/all?limit=500'),
+          getJSON<{ invoiceNumber: string }>('/invoices/next-number'),
         ]);
-        setOrders(ord);
-        setInvoicedOrderIds(new Set(inv.filter(i => i.orderId).map(i => i.orderId as string)));
-        
+        setOrders(ordRes.items);
+        setInvoicedOrderIds(new Set(invRes.items.filter(i => i.orderId).map(i => i.orderId as string)));
+        // Ce sélecteur sert à facturer un client : les comptes ADMIN n'ont
+        // rien à y faire (/users/all les renvoie tous, contrairement à
+        // l'ancienne liste dérivée des commandes, qui les excluait de fait).
+        setUsers(usersRes.items.filter(u => u.role === 'CLIENT'));
+        setForm(prev => ({ ...prev, invoiceNumber: nextNumberRes.invoiceNumber }));
+
         if (initialOrderId) {
-          const initialOrder = ord.find(o => o.id === initialOrderId);
+          const initialOrder = ordRes.items.find(o => o.id === initialOrderId);
           if (initialOrder) {
             setSelectedUserId(initialOrder.userId);
           }
@@ -70,11 +93,6 @@ export default function AdminCreateInvoice() {
     }
     load();
   }, [initialOrderId]);
-
-  // Get unique users from orders
-  const uniqueUsers = Array.from(
-    new Map(orders.filter(o => o.user).map(o => [o.user!.email, o.user!])).values()
-  );
 
   const availableOrders = orders.filter(o =>
     o.userId === selectedUserId &&
@@ -108,6 +126,7 @@ export default function AdminCreateInvoice() {
         userId: selectedUserId,
         fileUrl: uploadRes.url,
         amount: form.amount ? parseFloat(form.amount) : undefined,
+        issueDate: form.issueDate || undefined,
         notes: form.notes || undefined,
         ...(includeMetal
           ? {
@@ -180,8 +199,8 @@ export default function AdminCreateInvoice() {
                 required
               >
                 <option value="">Sélectionner un client</option>
-                {uniqueUsers.map(u => (
-                  <option key={u.email} value={orders.find(o => o.user?.email === u.email)?.userId || ''}>
+                {users.map(u => (
+                  <option key={u.id} value={u.id}>
                     {u.companyName || u.email}
                   </option>
                 ))}
@@ -204,7 +223,14 @@ export default function AdminCreateInvoice() {
                 <option value="DEPOT_METAL">⚙ Dépôt métal uniquement</option>
                 {availableOrders.map(o => (
                   <option key={o.id} value={o.id}>
-                    #{o.id.slice(-6)} - {o.status} ({new Date(o.createdAt).toLocaleDateString('fr-FR')})
+                    {[
+                      orderRef(o),
+                      orderStatusLabel(o.status),
+                      new Date(o.createdAt).toLocaleDateString('fr-FR'),
+                      o.notes?.trim() || null,
+                    ]
+                      .filter(Boolean)
+                      .join(' — ')}
                   </option>
                 ))}
               </select>
@@ -222,6 +248,21 @@ export default function AdminCreateInvoice() {
                 className="w-full px-4 py-2.5 border border-secondary-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-secondary-900"
                 placeholder="0.00"
               />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-secondary-700 mb-1.5">
+                Date d'émission
+              </label>
+              <input
+                type="date"
+                value={form.issueDate}
+                onChange={e => setForm({ ...form, issueDate: e.target.value })}
+                className="w-full px-4 py-2.5 border border-secondary-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-secondary-900"
+              />
+              <p className="text-xs text-secondary-500 mt-1">Laissez vide pour utiliser la date du jour.</p>
             </div>
           </div>
 

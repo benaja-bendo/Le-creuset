@@ -13,12 +13,25 @@ import {
   Plus,
   Layers
 } from 'lucide-react';
-import { getJSON, BASE_URL, getToken, resolveUrl } from '../../api/client';
+import { getJSON, deleteJSON, resolveUrl } from '../../api/client';
+import { orderRef } from '../../lib/orders';
+import { formatAmount } from '../../lib/format';
+import Pagination from '../../components/ui/Pagination';
+
+const PAGE_SIZE = 20;
+type Paginated<T> = { items: T[]; total: number; page: number; limit: number };
+
+type LinkedOrder = {
+  id: string;
+  orderNumber?: string | null;
+  notes?: string | null;
+  status: string;
+  estimatedPrice: number | null;
+};
 
 type Invoice = {
   id: string;
   invoiceNumber: string;
-  orderId?: string;
   userId: string;
   fileUrl: string | null;
   amount: number | null;
@@ -26,68 +39,72 @@ type Invoice = {
   notes: string | null;
   createdAt: string;
   type?: 'individual' | 'group';
-  order?: { id: string; status: string; estimatedPrice: number | null };
-  orders?: { id: string; status: string; estimatedPrice: number | null }[];
+  order?: LinkedOrder;
+  orders?: LinkedOrder[];
   user: { id: string; email: string; companyName: string | null };
 };
 
-type InvoiceGroup = {
-  id: string;
-  invoiceNumber: string;
-  userId: string;
-  fileUrl: string | null;
-  amount: number | null;
-  issueDate: string;
-  notes: string | null;
-  createdAt: string;
-  orders?: { id: string; status: string; estimatedPrice: number | null }[];
-  user: { id: string; email: string; companyName: string | null };
+
+/**
+ * Notes portées par les commandes rattachées à une facture.
+ *
+ * Distinctes de `Invoice.notes` / `InvoiceGroup.notes`, qui sont les notes de la
+ * facture elle-même : les deux coexistent, l'une ne remplace pas l'autre.
+ *
+ * Sur une facture groupée, la note est préfixée du numéro de sa commande dès
+ * que le groupe en contient plusieurs — même si une seule porte une note, sans
+ * quoi on ne saurait pas à laquelle elle se rapporte.
+ */
+const linkedOrderNotes = (inv: Invoice): { id: string; text: string }[] => {
+  const linked = inv.type === 'group' ? (inv.orders ?? []) : inv.order ? [inv.order] : [];
+  return linked.flatMap(o => {
+    const text = o.notes?.trim();
+    if (!text) return [];
+    return [{ id: o.id, text: linked.length > 1 ? `${orderRef(o)} : ${text}` : text }];
+  });
 };
 
 export default function AdminInvoices() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
   const initialOrderId = searchParams.get('orderId');
 
+  // Recherche déplacée côté serveur (couvre désormais aussi le numéro de
+  // commande lié — la recherche en mémoire précédente ne le faisait pas) :
+  // debounce pour ne pas déclencher un appel réseau à chaque frappe.
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch]);
+
   const loadData = useCallback(async () => {
+    setLoading(true);
     try {
-      const [inv, groups] = await Promise.all([
-        getJSON<Invoice[]>('/invoices'),
-        getJSON<InvoiceGroup[]>('/invoice-groups'),
-      ]);
-      
-      const formattedInv = inv.map(i => ({ ...i, type: 'individual' as const }));
-      const formattedGroups = groups.map(g => ({
-        ...g,
-        id: g.id,
-        invoiceNumber: g.invoiceNumber,
-        userId: g.userId,
-        fileUrl: g.fileUrl,
-        amount: g.amount,
-        issueDate: g.issueDate,
-        notes: g.notes,
-        createdAt: g.createdAt,
-        type: 'group' as const,
-        orders: g.orders,
-        user: g.user,
-      }));
-      
-      // Merge and sort
-      const allInvoices = [...formattedInv, ...formattedGroups].sort((a, b) => 
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-      
-      setInvoices(allInvoices);
+      const params = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE) });
+      if (debouncedSearch) params.set('search', debouncedSearch);
+      // Le back fusionne déjà factures individuelles et groupées, triées et
+      // paginées ensemble : aucune requête SQL ne trie deux tables ensemble
+      // nativement, donc c'est fait côté service (invoices.service#findAllCombined).
+      const res = await getJSON<Paginated<Invoice>>(`/invoices/combined?${params}`);
+      setInvoices(res.items);
+      setTotal(res.total);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur de chargement');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page, debouncedSearch]);
 
   useEffect(() => {
     void loadData();
@@ -96,26 +113,21 @@ export default function AdminInvoices() {
   const handleDelete = async (id: string, type: 'individual' | 'group' = 'individual') => {
     if (!confirm(`Supprimer cette facture ${type === 'group' ? 'groupée ' : ''}?`)) return;
     try {
+      // deleteJSON teste res.ok et décode l'erreur de l'API : un fetch brut
+      // ignorait un DELETE refusé (ex. facture liée à une commande expédiée)
+      // et retirait quand même la ligne de l'état local — faux succès, la
+      // facture réapparaissait au rechargement.
       if (type === 'group') {
-        await fetch(`${BASE_URL}/api/invoice-groups/${id}`, { method: 'DELETE', headers: {
-          'Authorization': `Bearer ${getToken()}`
-        } });
+        await deleteJSON(`/invoice-groups/${id}`);
       } else {
-        await fetch(`${BASE_URL}/api/invoices/${id}`, { method: 'DELETE', headers: {
-          'Authorization': `Bearer ${getToken()}`
-        } });
+        await deleteJSON(`/invoices/${id}`);
       }
-      setInvoices(prev => prev.filter(i => i.id !== id));
-    } catch {
-      setError('Erreur lors de la suppression');
+      // Un filtre local désynchroniserait le total affiché par la pagination.
+      await loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur lors de la suppression');
     }
   };
-
-  const filteredInvoices = invoices.filter(inv =>
-    inv.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    inv.user.companyName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    inv.user.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
 
 
@@ -157,7 +169,7 @@ export default function AdminInvoices() {
         <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-secondary-400" />
         <input
           type="text"
-          placeholder="Rechercher par numéro, client..."
+          placeholder="Rechercher par numéro (facture ou commande), client..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full pl-11 pr-4 py-3 border border-secondary-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 text-secondary-900"
@@ -181,14 +193,14 @@ export default function AdminInvoices() {
               </tr>
             </thead>
             <tbody className="divide-y divide-secondary-100">
-              {filteredInvoices.length === 0 ? (
+              {invoices.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-6 py-12 text-center text-secondary-400">
                     <FileText size={40} className="mx-auto mb-3 opacity-30" />
                     <p>Aucune facture</p>
                   </td>
                 </tr>
-              ) : filteredInvoices.map((inv) => (
+              ) : invoices.map((inv) => (
                 <tr key={inv.id} className="hover:bg-secondary-50/50 transition-colors">
                   <td className="px-6 py-4">
                     {inv.type === 'group' ? (
@@ -212,7 +224,7 @@ export default function AdminInvoices() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-1.5 text-secondary-700">
-                       {inv.amount ? `${inv.amount} €` : '-'}
+                       {inv.amount ? `${formatAmount(inv.amount)} €` : '-'}
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -224,23 +236,49 @@ export default function AdminInvoices() {
                   <td className="px-6 py-4">
                      {inv.type === 'group' ? (
                         <div className="text-xs text-secondary-500 flex flex-col gap-1">
-                           <span className="font-medium text-secondary-700">{inv.orders?.length} commandes stipulées</span>
+                           <span className="font-medium text-secondary-700">
+                             {inv.orders?.length ?? 0} commande{(inv.orders?.length ?? 0) > 1 ? 's' : ''} groupée{(inv.orders?.length ?? 0) > 1 ? 's' : ''}
+                           </span>
                            {inv.orders && inv.orders.length > 0 && (
-                               <span className="font-mono text-[10px] text-secondary-400 truncate w-32">
-                                  {inv.orders.map(o => `#${o.id.slice(-6)}`).join(', ')}
+                               <span
+                                 className="font-mono text-[10px] text-secondary-500 truncate max-w-[12rem]"
+                                 title={inv.orders.map(orderRef).join(', ')}
+                               >
+                                  {inv.orders.map(orderRef).join(', ')}
                                </span>
                            )}
                         </div>
+                     ) : inv.order ? (
+                        <span className="text-xs font-mono text-secondary-700">{orderRef(inv.order)}</span>
                      ) : (
-                        <span className="text-xs font-mono text-secondary-500">#{inv.orderId?.slice(-6) || ' N/A'}</span>
+                        <span className="text-xs text-secondary-300">—</span>
                      )}
                   </td>
                   <td className="px-6 py-4">
-                    {inv.notes ? (
-                      <span className="text-xs text-secondary-600 italic truncate block max-w-[150px]" title={inv.notes}>{inv.notes}</span>
-                    ) : (
-                      <span className="text-xs text-secondary-300">-</span>
-                    )}
+                    {(() => {
+                      const orderNotes = linkedOrderNotes(inv);
+                      if (!inv.notes && orderNotes.length === 0) {
+                        return <span className="text-xs text-secondary-300">-</span>;
+                      }
+                      return (
+                        <div className="flex flex-col gap-1 max-w-[16rem]">
+                          {inv.notes && (
+                            <span className="text-xs text-secondary-600 italic truncate" title={inv.notes}>
+                              {inv.notes}
+                            </span>
+                          )}
+                          {orderNotes.map(note => (
+                            <span
+                              key={note.id}
+                              className="text-[11px] text-secondary-600 truncate border-l-2 border-secondary-200 pl-2"
+                              title={note.text}
+                            >
+                              {note.text}
+                            </span>
+                          ))}
+                        </div>
+                      );
+                    })()}
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
@@ -281,6 +319,9 @@ export default function AdminInvoices() {
             </tbody>
           </table>
         </div>
+        {invoices.length > 0 && (
+          <Pagination page={page} limit={PAGE_SIZE} total={total} onPageChange={setPage} />
+        )}
       </div>
 
       {/* Preview Modal */}

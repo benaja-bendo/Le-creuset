@@ -24,6 +24,8 @@ import {
 import { getJSON, postJSON, resolveUrl, uploadFile } from '../../api/client';
 import STLViewer from '../../components/STLViewer';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
+import { orderRef, materialTypeLabel } from '../../lib/orders';
+import { formatAmount } from '../../lib/format';
 
 type Order = {
   id: string;
@@ -63,10 +65,10 @@ const ORDER_STATUSES = [
 ];
 
 const METAL_TYPES = [
-  { value: 'OR_JAUNE_375', label: 'Or Jaune 375' },
-  { value: 'OR_JAUNE_750', label: 'Or Jaune 750' },
-  { value: 'OR_ROSE_750', label: 'Or Rose 750' },
-  { value: 'OR_GRIS_750', label: 'Or Gris 750' },
+  { value: 'OR_375_JAUNE', label: 'Or Jaune 375' },
+  { value: 'OR_750_JAUNE', label: 'Or Jaune 750' },
+  { value: 'OR_750_ROSE', label: 'Or Rose 750' },
+  { value: 'OR_750_GRIS', label: 'Or Gris 750' },
   { value: 'PLATINE_950', label: 'Platine 950' },
   { value: 'PALLADIUM', label: 'Palladium' },
   { value: 'ARGENT_925', label: 'Argent 925' },
@@ -136,7 +138,7 @@ export default function AdminOrderDetail() {
         <div>
           <h1 className="text-2xl font-bold text-secondary-900 flex items-center gap-3">
             <Package size={28} className="text-primary-500" />
-            Commande #{order.orderNumber || order.id.slice(-6).toUpperCase()}
+            Commande {orderRef(order)}
           </h1>
           <div className="flex items-center gap-4 mt-2 text-secondary-500">
             <span className="flex items-center gap-1.5">
@@ -264,10 +266,14 @@ export default function AdminOrderDetail() {
           {/* Order Details */}
           <div className="bg-white rounded-xl border border-secondary-200 p-5">
             <h3 className="font-semibold text-secondary-900 mb-4">Détails commande</h3>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="bg-secondary-50 rounded-lg p-3">
+                <p className="text-xs text-secondary-500 mb-1">Alliage</p>
+                <p className="font-bold text-secondary-900">{materialTypeLabel(order.materialType)}</p>
+              </div>
               <div className="bg-secondary-50 rounded-lg p-3">
                 <p className="text-xs text-secondary-500 mb-1">Prix estimé</p>
-                <p className="font-bold text-secondary-900">{order.estimatedPrice ? `${order.estimatedPrice} €` : '-'}</p>
+                <p className="font-bold text-secondary-900">{order.estimatedPrice ? `${formatAmount(order.estimatedPrice)} €` : '-'}</p>
               </div>
               <div className="bg-secondary-50 rounded-lg p-3">
                 <p className="text-xs text-secondary-500 mb-1">Quantité</p>
@@ -316,7 +322,7 @@ export default function AdminOrderDetail() {
                   <p className="font-medium text-secondary-900">{invoice.invoiceNumber}</p>
                   <div className="flex items-center gap-3 text-sm text-secondary-500">
                     <span>{new Date(invoice.issueDate).toLocaleDateString('fr-FR')}</span>
-                    {invoice.amount && <span className="font-medium">{invoice.amount} €</span>}
+                    {invoice.amount && <span className="font-medium">{formatAmount(invoice.amount)} €</span>}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -357,6 +363,7 @@ export default function AdminOrderDetail() {
         <CloseOrderModal
           orderId={order.id}
           clientName={order.user.companyName || order.user.email}
+          materialType={order.materialType}
           onClose={() => setShowCloseModal(false)}
           onSuccess={() => {
             setShowCloseModal(false);
@@ -388,15 +395,34 @@ export default function AdminOrderDetail() {
 // ============================================
 // Close Order Modal Component
 // ============================================
-function CloseOrderModal({ 
-  orderId, 
+/**
+ * Le débit de compte poids ne suit que la FAMILLE de métal (OR_FIN /
+ * ARGENT_FIN / PLATINE), pas l'alliage précis de la commande — une commande
+ * en Or Rose 375 débite le même compte "or" qu'une commande en Or Jaune 750.
+ * On réplique donc le même test par préfixe que le mapping backend
+ * (orders.service#closeOrder) plutôt que de chercher une correspondance
+ * exacte avec order.materialType.
+ */
+function resolveDefaultMetalType(materialType: string | null | undefined): string {
+  if (!materialType) return 'OR_750_JAUNE';
+  if (materialType.includes('OR_')) return 'OR_750_JAUNE';
+  if (materialType.includes('ARGENT_')) return 'ARGENT_925';
+  if (materialType.includes('PLATINE_')) return 'PLATINE_950';
+  if (materialType.includes('PALLADIUM')) return 'PALLADIUM';
+  return 'OR_750_JAUNE';
+}
+
+function CloseOrderModal({
+  orderId,
   clientName,
-  onClose, 
-  onSuccess 
-}: { 
-  orderId: string; 
+  materialType,
+  onClose,
+  onSuccess
+}: {
+  orderId: string;
   clientName: string;
-  onClose: () => void; 
+  materialType: string | null;
+  onClose: () => void;
   onSuccess: () => void;
 }) {
   const [form, setForm] = useState({
@@ -404,7 +430,7 @@ function CloseOrderModal({
     finalAmount: '',
     finalWeight: '',
     debitWeightAccount: false,
-    metalType: 'OR_JAUNE_750',
+    metalType: resolveDefaultMetalType(materialType),
   });
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -572,6 +598,21 @@ function CloseOrderModal({
                     ))}
                   </select>
                 </div>
+              </div>
+            )}
+
+            {/* Récapitulatif avant validation : le formulaire pré-remplit le
+                métal depuis la commande, mais un admin peut toujours changer
+                le sélecteur sans le relire — mieux vaut lui montrer noir sur
+                blanc ce qui va bouger avant qu'il ne clique. */}
+            {form.debitWeightAccount && form.finalWeight && (
+              <div className="flex items-center gap-2 px-3 py-2.5 bg-secondary-900 text-white rounded-lg text-sm">
+                <Scale size={16} className="text-primary-300 shrink-0" />
+                <span>
+                  Débit de <strong>{form.finalWeight} g</strong> de{' '}
+                  <strong>{METAL_TYPES.find(m => m.value === form.metalType)?.label ?? form.metalType}</strong> sur
+                  le compte de {clientName}.
+                </span>
               </div>
             )}
           </div>

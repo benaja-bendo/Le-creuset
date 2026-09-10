@@ -1,23 +1,26 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getJSON, resolveUrl } from '../../api/client';
-import { 
-  ArrowLeft, 
-  Loader2, 
-  AlertCircle, 
-  FileText, 
-  Mail, 
-  Phone, 
-  Building2, 
-  Calendar, 
-  Download, 
-  Eye, 
+import {
+  ArrowLeft,
+  Loader2,
+  AlertCircle,
+  FileText,
+  Mail,
+  Phone,
+  Building2,
+  Calendar,
+  Download,
+  Eye,
   Scale,
-  Upload
+  Upload,
+  Pencil,
+  X
 } from 'lucide-react';
 import WeightGauges from '../../components/WeightGauges';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
 import { uploadFile, patchJSON } from '../../api/client';
+import { formatAmount } from '../../lib/format';
 
 type ProfileUser = {
   id: string;
@@ -66,6 +69,10 @@ export default function AdminUserProfile() {
   const [error, setError] = useState<string | null>(null);
   const [uploadingKbis, setUploadingKbis] = useState(false);
   const [uploadingCustoms, setUploadingCustoms] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState({ name: '', companyName: '', phone: '', address: '' });
+  const [isSaving, setIsSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -133,6 +140,33 @@ export default function AdminUserProfile() {
 
   const { user, accounts, invoices } = data;
 
+  const openEditModal = () => {
+    setEditForm({
+      name: user.name || '',
+      companyName: user.companyName || '',
+      phone: user.phone || '',
+      address: user.address || '',
+    });
+    setEditError(null);
+    setShowEditModal(true);
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!id) return;
+    setIsSaving(true);
+    setEditError(null);
+    try {
+      await patchJSON(`/users/${id}/profile`, editForm);
+      setShowEditModal(false);
+      await load();
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : 'Erreur lors de la modification');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <div className="space-y-8">
       {/* Back link & Header */}
@@ -186,10 +220,23 @@ export default function AdminUserProfile() {
         <div className="space-y-8">
           {/* Company Details */}
           <section className="bg-white rounded-2xl border border-secondary-200 shadow-sm p-6 space-y-4">
-            <h3 className="font-bold text-secondary-900 flex items-center gap-2">
-              <Building2 size={18} className="text-primary-500" />
-              Détails Entreprise
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-secondary-900 flex items-center gap-2">
+                <Building2 size={18} className="text-primary-500" />
+                Détails Entreprise
+              </h3>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={openEditModal}
+                    className="p-2 text-secondary-400 hover:bg-amber-50 hover:text-amber-600 rounded-lg transition-all"
+                  >
+                    <Pencil size={16} />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Modifier les informations</TooltipContent>
+              </Tooltip>
+            </div>
             <div className="space-y-3 text-sm">
               <div className="flex justify-between py-2 border-b border-secondary-50">
                 <span className="text-secondary-500">Nom commercial</span>
@@ -322,7 +369,7 @@ export default function AdminUserProfile() {
                         <p className="text-sm font-bold text-secondary-900">{inv.invoiceNumber}</p>
                         <p className="text-[11px] text-secondary-400 font-medium">
                           {new Date(inv.issueDate).toLocaleDateString('fr-FR')}
-                          {inv.amount && <span className="ml-2 font-bold text-secondary-600">• {inv.amount.toLocaleString()} €</span>}
+                          {inv.amount && <span className="ml-2 font-bold text-secondary-600">• {formatAmount(inv.amount)} €</span>}
                         </p>
                       </div>
                     </div>
@@ -361,6 +408,83 @@ export default function AdminUserProfile() {
           </section>
         </div>
       </div>
+
+      {/* Edit User Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-secondary-950/40 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowEditModal(false)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b border-secondary-100 flex items-center justify-between">
+              <h3 className="font-bold text-lg text-secondary-900 flex items-center gap-2">
+                <Pencil size={20} className="text-amber-600" />
+                Modifier les informations
+              </h3>
+              <button onClick={() => setShowEditModal(false)} className="text-secondary-400 hover:text-secondary-600">
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleSaveEdit} className="p-6 space-y-4 bg-secondary-50/50">
+              {editError && (
+                <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg flex items-center gap-2">
+                  <AlertCircle size={16} />
+                  {editError}
+                </div>
+              )}
+
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800 flex items-start gap-2">
+                <Mail size={14} className="mt-0.5 shrink-0" />
+                <span>Le client sera notifié par email de cette modification.</span>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-secondary-700 mb-1">Nom commercial</label>
+                <input
+                  type="text"
+                  value={editForm.companyName}
+                  onChange={e => setEditForm({ ...editForm, companyName: e.target.value })}
+                  className="w-full px-4 py-2.5 bg-white border border-secondary-200 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none text-secondary-900"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-secondary-700 mb-1">Contact principal</label>
+                <input
+                  type="text"
+                  value={editForm.name}
+                  onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+                  className="w-full px-4 py-2.5 bg-white border border-secondary-200 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none text-secondary-900"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-secondary-700 mb-1">Téléphone</label>
+                <input
+                  type="text"
+                  value={editForm.phone}
+                  onChange={e => setEditForm({ ...editForm, phone: e.target.value })}
+                  className="w-full px-4 py-2.5 bg-white border border-secondary-200 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none text-secondary-900"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-secondary-700 mb-1">Adresse</label>
+                <textarea
+                  rows={2}
+                  value={editForm.address}
+                  onChange={e => setEditForm({ ...editForm, address: e.target.value })}
+                  className="w-full px-4 py-2.5 bg-white border border-secondary-200 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none text-secondary-900 resize-none"
+                />
+              </div>
+
+              <div className="pt-4 flex justify-end gap-3">
+                <button type="button" onClick={() => setShowEditModal(false)} className="px-5 py-2.5 text-secondary-600 font-medium hover:bg-secondary-100 rounded-xl transition-colors">
+                  Annuler
+                </button>
+                <button type="submit" disabled={isSaving} className="px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl shadow-md disabled:opacity-50 flex items-center gap-2">
+                  {isSaving && <Loader2 size={16} className="animate-spin" />}
+                  Enregistrer
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

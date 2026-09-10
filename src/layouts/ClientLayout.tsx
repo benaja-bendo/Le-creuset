@@ -58,6 +58,7 @@ export default function ClientLayout() {
   const menuItems = isAdmin ? adminMenuItems : clientMenuItems;
 
   const handleLogout = () => {
+    if (!window.confirm('Voulez-vous vraiment vous déconnecter ?')) return;
     fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
     logout();
     navigate('/login');

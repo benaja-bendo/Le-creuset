@@ -13,22 +13,80 @@ interface STLViewerProps {
   onVolumeCalculated?: (volume: number, dimensions: { x: number; y: number; z: number }) => void;
 }
 
-const MATERIAL_CONFIG: Record<string, { color: number; metalness: number; density: number; isService?: boolean }> = {
-  'OR_JAUNE_375': { color: 0xe6c57a, metalness: 1.0, density: 11.0 },
-  'OR_JAUNE_750': { color: 0xffd700, metalness: 1.0, density: 15.0 },
-  'OR_ROSE_375': { color: 0xe8a994, metalness: 1.0, density: 11.0 },
-  'OR_ROSE_750': { color: 0xdca696, metalness: 1.0, density: 15.0 },
-  'OR_GRIS_375': { color: 0xc0c0c0, metalness: 1.0, density: 11.0 },
-  'OR_GRIS_750': { color: 0xdadada, metalness: 1.0, density: 15.0 },
-  'OR_GRIS_750_PALLADIE_13': { color: 0xe6e6e6, metalness: 1.0, density: 15.5 },
-  'OR_ROUGE_750': { color: 0xc87560, metalness: 1.0, density: 15.0 },
-  'PLATINE_950': { color: 0xe5e4e2, metalness: 1.0, density: 21.0 },
-  'PALLADIUM': { color: 0xcbd0d5, metalness: 1.0, density: 12.0 },
-  'ARGENT_925': { color: 0xe3e4e5, metalness: 1.0, density: 10.4 },
-  'LAITON': { color: 0xb5a642, metalness: 0.9, density: 8.5 },
-  'PROTO_VISUEL': { color: 0x3b82f6, metalness: 0.0, density: 1.2, isService: true },
-  'IMPRESSION_CIRE': { color: 0xff5733, metalness: 0.0, density: 1.0, isService: true },
+type MaterialConfig = {
+  color: number;
+  metalness: number;
+  roughness: number;
+  density: number;
+  isService?: boolean;
 };
+
+/**
+ * Palette de rendu 3D.
+ *
+ * Le pipeline est volontairement lumineux (toneMappingExposure 2.5,
+ * environmentIntensity 1.5, envMapIntensity 2.0, 5 sources). À `metalness: 1.0`
+ * un MeshPhysicalMaterial n'a plus aucune composante diffuse : sa teinte ne
+ * vient que du reflet d'environnement, qui sature en blanc dès que la couleur
+ * de base est claire. C'est pourquoi les métaux blancs (argent, platine, or
+ * gris) apparaissaient délavés alors que le laiton — seul matériau à 0.9 avec
+ * une couleur de base sombre et saturée — rendait correctement.
+ *
+ * Tous les métaux sont donc alignés sur le traitement du laiton : `metalness`
+ * à 0.9 pour conserver un reste de diffus qui porte la teinte, et albédos
+ * ramenés à des valeurs de réflectance plausibles (plus sombres et plus
+ * saturées).
+ *
+ * `roughness` devient explicite par matériau au lieu d'être déduit d'un seuil
+ * sur `metalness` — mais les valeurs reproduisent exactement celles que
+ * l'ancienne formule produisait (0.15 pour les métaux, 0.05 pour les services),
+ * afin que le rendu du laiton, validé par le client, reste identique au pixel.
+ */
+const MATERIAL_CONFIG: Record<string, MaterialConfig> = {
+  'OR_JAUNE_375': { color: 0xc9a86a, metalness: 0.9, roughness: 0.15, density: 11.0 },
+  'OR_JAUNE_750': { color: 0xd4a72c, metalness: 0.9, roughness: 0.15, density: 15.0 },
+  'OR_ROSE_375': { color: 0xc99177, metalness: 0.9, roughness: 0.15, density: 11.0 },
+  'OR_ROSE_750': { color: 0xc48a72, metalness: 0.9, roughness: 0.15, density: 15.0 },
+  'OR_GRIS_375': { color: 0xb3b5b8, metalness: 0.9, roughness: 0.15, density: 11.0 },
+  'OR_GRIS_750': { color: 0xc2c4c6, metalness: 0.9, roughness: 0.15, density: 15.0 },
+  'OR_GRIS_750_PALLADIE_13': { color: 0xc8cacb, metalness: 0.9, roughness: 0.15, density: 15.5 },
+  'OR_ROUGE_750': { color: 0xb06a52, metalness: 0.9, roughness: 0.15, density: 15.0 },
+  'PLATINE_950': { color: 0xb8b4ac, metalness: 0.9, roughness: 0.15, density: 21.0 },
+  'PALLADIUM': { color: 0xa8adb2, metalness: 0.9, roughness: 0.15, density: 12.0 },
+  'ARGENT_925': { color: 0xcfd2d4, metalness: 0.9, roughness: 0.15, density: 10.4 },
+  // Référence validée par le client : ces trois valeurs rendent exactement
+  // comme avant la refonte. Ne pas les modifier sans nouvelle validation.
+  'LAITON': { color: 0xb5a642, metalness: 0.9, roughness: 0.15, density: 8.5 },
+  'PROTO_VISUEL': { color: 0x3b82f6, metalness: 0.0, roughness: 0.05, density: 1.2, isService: true },
+  'IMPRESSION_CIRE': { color: 0xff5733, metalness: 0.0, roughness: 0.05, density: 1.0, isService: true },
+};
+
+/**
+ * Les commandes créées depuis l'admin utilisent une nomenclature différente
+ * (`OR_750_JAUNE` au lieu de `OR_JAUNE_750`) et ces valeurs sont déjà en base.
+ * Sans ce mappage elles retombent toutes sur l'or jaune 18k par défaut.
+ */
+const MATERIAL_ALIASES: Record<string, string> = {
+  'OR_750_JAUNE': 'OR_JAUNE_750',
+  'OR_375_JAUNE': 'OR_JAUNE_375',
+  'OR_750_ROSE': 'OR_ROSE_750',
+  'OR_375_ROSE': 'OR_ROSE_375',
+  'OR_750_GRIS': 'OR_GRIS_750',
+  'OR_375_GRIS': 'OR_GRIS_375',
+  'OR_750_PALLADIE_13': 'OR_GRIS_750_PALLADIE_13',
+  'OR_750_ROUGE': 'OR_ROUGE_750',
+  'PROTOTYPE_RESINE': 'IMPRESSION_CIRE',
+};
+
+function resolveMaterial(materialType: string): MaterialConfig {
+  const key = MATERIAL_ALIASES[materialType] ?? materialType;
+  return MATERIAL_CONFIG[key] || MATERIAL_CONFIG['OR_JAUNE_750'];
+}
+
+/** La rugosité par matériau ne s'applique qu'au fini poli ; le fini brut reste uniforme. */
+function resolveRoughness(config: MaterialConfig, finishType: string): number {
+  return finishType === 'poli' ? config.roughness : 0.4;
+}
 
 /**
  * Calcule le volume d'une géométrie en cm³
@@ -260,11 +318,11 @@ export default function STLViewer({ fileUrl, fileName, materialType, finishType,
       onVolumeCalculated?.(volume, dimensions);
 
       // Créer le matériau
-      const config = MATERIAL_CONFIG[materialType] || MATERIAL_CONFIG['OR_JAUNE_750'];
+      const config = resolveMaterial(materialType);
       const material = new THREE.MeshPhysicalMaterial({
         color: config.color,
         metalness: config.metalness,
-        roughness: finishType === 'poli' ? (config.metalness > 0.5 ? 0.15 : 0.05) : 0.4,
+        roughness: resolveRoughness(config, finishType),
         clearcoat: 0.0,
         envMapIntensity: 2.0,
       });
@@ -304,11 +362,11 @@ export default function STLViewer({ fileUrl, fileName, materialType, finishType,
   useEffect(() => {
     if (!meshRef.current) return;
     
-    const config = MATERIAL_CONFIG[materialType] || MATERIAL_CONFIG['OR_JAUNE_750'];
+    const config = resolveMaterial(materialType);
     const material = meshRef.current.material as THREE.MeshPhysicalMaterial;
     material.color.setHex(config.color);
     material.metalness = config.metalness;
-    material.roughness = finishType === 'poli' ? (config.metalness > 0.5 ? 0.15 : 0.05) : 0.4;
+    material.roughness = resolveRoughness(config, finishType);
     material.clearcoat = 0.0;
   }, [materialType, finishType]);
 
@@ -373,7 +431,11 @@ export default function STLViewer({ fileUrl, fileName, materialType, finishType,
     }
   };
 
-  const config = MATERIAL_CONFIG[materialType] || MATERIAL_CONFIG['OR_JAUNE_750'];
+  // Passer par resolveMaterial et pas par MATERIAL_CONFIG directement : sans
+  // les alias, une commande créée depuis l'admin (`PROTOTYPE_RESINE`,
+  // `OR_750_JAUNE`…) retomberait sur la densité de l'or jaune et le panneau
+  // d'infos annoncerait une masse estimée fausse.
+  const config = resolveMaterial(materialType);
 
   return (
     <div className={`relative w-full h-full ${isFullscreen ? 'fixed inset-0 z-[100] bg-white' : ''}`}>
