@@ -15,6 +15,10 @@ import {
 } from 'lucide-react';
 import { getJSON, deleteJSON, resolveUrl } from '../../api/client';
 import { orderRef } from '../../lib/orders';
+import Pagination from '../../components/ui/Pagination';
+
+const PAGE_SIZE = 20;
+type Paginated<T> = { items: T[]; total: number; page: number; limit: number };
 
 type LinkedOrder = {
   id: string;
@@ -35,19 +39,6 @@ type Invoice = {
   createdAt: string;
   type?: 'individual' | 'group';
   order?: LinkedOrder;
-  orders?: LinkedOrder[];
-  user: { id: string; email: string; companyName: string | null };
-};
-
-type InvoiceGroup = {
-  id: string;
-  invoiceNumber: string;
-  userId: string;
-  fileUrl: string | null;
-  amount: number | null;
-  issueDate: string;
-  notes: string | null;
-  createdAt: string;
   orders?: LinkedOrder[];
   user: { id: string; email: string; companyName: string | null };
 };
@@ -74,48 +65,45 @@ const linkedOrderNotes = (inv: Invoice): { id: string; text: string }[] => {
 
 export default function AdminInvoices() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
   const initialOrderId = searchParams.get('orderId');
 
+  // Recherche déplacée côté serveur (couvre désormais aussi le numéro de
+  // commande lié — la recherche en mémoire précédente ne le faisait pas) :
+  // debounce pour ne pas déclencher un appel réseau à chaque frappe.
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch]);
+
   const loadData = useCallback(async () => {
+    setLoading(true);
     try {
-      const [inv, groups] = await Promise.all([
-        getJSON<Invoice[]>('/invoices'),
-        getJSON<InvoiceGroup[]>('/invoice-groups'),
-      ]);
-      
-      const formattedInv = inv.map(i => ({ ...i, type: 'individual' as const }));
-      const formattedGroups = groups.map(g => ({
-        ...g,
-        id: g.id,
-        invoiceNumber: g.invoiceNumber,
-        userId: g.userId,
-        fileUrl: g.fileUrl,
-        amount: g.amount,
-        issueDate: g.issueDate,
-        notes: g.notes,
-        createdAt: g.createdAt,
-        type: 'group' as const,
-        orders: g.orders,
-        user: g.user,
-      }));
-      
-      // Merge and sort
-      const allInvoices = [...formattedInv, ...formattedGroups].sort((a, b) => 
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-      
-      setInvoices(allInvoices);
+      const params = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE) });
+      if (debouncedSearch) params.set('search', debouncedSearch);
+      // Le back fusionne déjà factures individuelles et groupées, triées et
+      // paginées ensemble : aucune requête SQL ne trie deux tables ensemble
+      // nativement, donc c'est fait côté service (invoices.service#findAllCombined).
+      const res = await getJSON<Paginated<Invoice>>(`/invoices/combined?${params}`);
+      setInvoices(res.items);
+      setTotal(res.total);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur de chargement');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page, debouncedSearch]);
 
   useEffect(() => {
     void loadData();
@@ -133,17 +121,12 @@ export default function AdminInvoices() {
       } else {
         await deleteJSON(`/invoices/${id}`);
       }
-      setInvoices(prev => prev.filter(i => i.id !== id));
+      // Un filtre local désynchroniserait le total affiché par la pagination.
+      await loadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de la suppression');
     }
   };
-
-  const filteredInvoices = invoices.filter(inv =>
-    inv.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    inv.user.companyName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    inv.user.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
 
 
@@ -185,7 +168,7 @@ export default function AdminInvoices() {
         <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-secondary-400" />
         <input
           type="text"
-          placeholder="Rechercher par numéro, client..."
+          placeholder="Rechercher par numéro (facture ou commande), client..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full pl-11 pr-4 py-3 border border-secondary-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 text-secondary-900"
@@ -209,14 +192,14 @@ export default function AdminInvoices() {
               </tr>
             </thead>
             <tbody className="divide-y divide-secondary-100">
-              {filteredInvoices.length === 0 ? (
+              {invoices.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-6 py-12 text-center text-secondary-400">
                     <FileText size={40} className="mx-auto mb-3 opacity-30" />
                     <p>Aucune facture</p>
                   </td>
                 </tr>
-              ) : filteredInvoices.map((inv) => (
+              ) : invoices.map((inv) => (
                 <tr key={inv.id} className="hover:bg-secondary-50/50 transition-colors">
                   <td className="px-6 py-4">
                     {inv.type === 'group' ? (
@@ -335,6 +318,9 @@ export default function AdminInvoices() {
             </tbody>
           </table>
         </div>
+        {invoices.length > 0 && (
+          <Pagination page={page} limit={PAGE_SIZE} total={total} onPageChange={setPage} />
+        )}
       </div>
 
       {/* Preview Modal */}

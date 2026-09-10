@@ -244,15 +244,18 @@ function AdminDashboard() {
   useEffect(() => {
     async function fetchAdminData() {
       try {
-        const [pending, allOrders] = await Promise.all([
+        const [pending, ordersRes] = await Promise.all([
           getJSON<User[]>('/users/pending'),
-          getJSON<Order[]>('/orders'),
+          // Ce widget n'a besoin que du compte total : demander une seule
+          // ligne plutôt que de télécharger toutes les commandes pour un
+          // .length, comme c'était le cas avant la pagination.
+          getJSON<{ total: number }>('/orders?limit=1'),
         ]);
         setPendingUsers(pending);
         setStats({
           users: 0, // TODO: endpoint /users/count
           pending: pending.length,
-          orders: allOrders.length,
+          orders: ordersRes.total,
         });
       } catch (err) {
         console.error('Error loading admin data:', err);

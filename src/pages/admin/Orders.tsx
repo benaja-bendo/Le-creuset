@@ -1,9 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { getJSON, patchJSON, postJSON, deleteJSON } from '../../api/client';
 import { Box, AlertCircle, Loader2, Download, Package, Flame, Send, Eye, FilePlus, Layers, Plus, Trash2, X, Pencil } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
+import Pagination from '../../components/ui/Pagination';
 import { orderRef } from '../../lib/orders';
+
+type Paginated<T> = { items: T[]; total: number; page: number; limit: number };
+const PAGE_SIZE = 20;
 
 type Order = {
   id: string;
@@ -31,6 +35,8 @@ type User = {
 
 export default function AdminOrders() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -80,24 +86,42 @@ export default function AdminOrders() {
     { value: 'PROTOTYPE_RESINE', label: 'Prototype Résine' }
   ];
 
+  // Le sélecteur client de la commande manuelle a besoin de TOUS les clients,
+  // pas d'une page — limite explicite haute, indépendante de la pagination
+  // des commandes. Chargé une seule fois, ne dépend d'aucun filtre.
   useEffect(() => {
-    fetchData();
+    getJSON<Paginated<User>>('/users/all?limit=500')
+      .then(res => setUsers(res.items))
+      .catch(err => setError(err instanceof Error ? err.message : 'Erreur de chargement'));
   }, []);
 
-  async function fetchData() {
+  const fetchOrders = useCallback(async () => {
+    setLoading(true);
     try {
-      const [ordersData, usersData] = await Promise.all([
-        getJSON<Order[]>('/orders/all'),
-        getJSON<User[]>('/users/all')
-      ]);
-      setOrders(ordersData);
-      setUsers(usersData);
+      const params = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE) });
+      if (statusFilter) params.set('status', statusFilter);
+      const res = await getJSON<Paginated<Order>>(`/orders/all?${params}`);
+      setOrders(res.items);
+      setTotal(res.total);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur de chargement');
     } finally {
       setLoading(false);
     }
-  }
+  }, [page, statusFilter]);
+
+  useEffect(() => {
+    fetchOrders();
+    // La sélection de groupement référence des commandes de la page
+    // affichée : changer de page ou de filtre sans la vider validerait un
+    // groupe sur des lignes devenues invisibles, voire absentes de `orders`.
+    setSelectedOrders(new Set());
+  }, [fetchOrders]);
+
+  const handleStatusFilterChange = (value: string) => {
+    setStatusFilter(value);
+    setPage(1);
+  };
 
   const handleUpdateStatus = async (orderId: string, newStatus: string) => {
     setUpdatingId(orderId);
@@ -210,7 +234,7 @@ export default function AdminOrders() {
 
       await postJSON('/invoice-groups', groupData);
       
-      await fetchData();
+      await fetchOrders();
       setSelectedOrders(new Set());
       setShowGroupModal(false);
       alert("Facturation groupée créée avec succès !");
@@ -225,7 +249,9 @@ export default function AdminOrders() {
     if (!window.confirm('Êtes-vous sûr de vouloir supprimer cette commande ? Cette action est irréversible.')) return;
     try {
       await deleteJSON(`/orders/${orderId}`);
-      setOrders(orders.filter(o => o.id !== orderId));
+      // Un simple filtre local désynchroniserait le total affiché par la
+      // pagination ; on recharge la page courante pour rester exact.
+      await fetchOrders();
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Erreur lors de la suppression');
     }
@@ -272,7 +298,7 @@ export default function AdminOrders() {
         materialType: 'OR_750_JAUNE',
         notes: ''
       });
-      await fetchData();
+      await fetchOrders();
     } catch (err) {
       alert(err instanceof Error ? err.message : "Erreur lors de la création de la commande.");
     } finally {
@@ -280,17 +306,19 @@ export default function AdminOrders() {
     }
   };
 
-  // Filter & sort orders: status filter + completed/invoiced at end
-  const filteredOrders = orders
-    .filter(o => !statusFilter || o.status === statusFilter)
-    .sort((a, b) => {
-      const aFinished = a.status === 'EXPEDIE' && !!a.invoiceGroupId;
-      const bFinished = b.status === 'EXPEDIE' && !!b.invoiceGroupId;
-      if (aFinished && !bFinished) return 1;
-      if (!aFinished && bFinished) return -1;
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
-
+  // Le filtre de statut est désormais appliqué côté serveur (nécessaire pour
+  // que la pagination reste cohérente — filtrer après coup ne verrait que la
+  // page courante). Il ne reste ici que le tri secondaire "terminé et facturé
+  // à la fin", qui ne s'applique plus qu'à l'intérieur de la page affichée :
+  // reproduire ce tri globalement demanderait un ORDER BY conditionnel côté
+  // base, pour un gain marginal sur une liste déjà triée par date récente.
+  const sortedOrders = [...orders].sort((a, b) => {
+    const aFinished = a.status === 'EXPEDIE' && !!a.invoiceGroupId;
+    const bFinished = b.status === 'EXPEDIE' && !!b.invoiceGroupId;
+    if (aFinished && !bFinished) return 1;
+    if (!aFinished && bFinished) return -1;
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
 
   if (loading) {
     return (
@@ -312,7 +340,7 @@ export default function AdminOrders() {
             <div className="relative">
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+                onChange={(e) => handleStatusFilterChange(e.target.value)}
                 className="appearance-none px-4 py-2.5 pr-8 bg-white border border-secondary-200 rounded-lg text-sm font-medium text-secondary-700 focus:ring-2 focus:ring-primary-500 outline-none cursor-pointer"
               >
                 <option value="">Tous les statuts</option>
@@ -322,8 +350,8 @@ export default function AdminOrders() {
                 <option value="EXPEDIE">Expédié</option>
               </select>
               {statusFilter && (
-                <button 
-                  onClick={() => setStatusFilter('')}
+                <button
+                  onClick={() => handleStatusFilterChange('')}
                   className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-secondary-400 hover:text-secondary-700 transition-colors"
                 >
                   <X size={14} />
@@ -565,7 +593,7 @@ export default function AdminOrders() {
               </tr>
             </thead>
             <tbody className="divide-y divide-secondary-100">
-              {filteredOrders.map((order) => {
+              {sortedOrders.map((order) => {
                   const isGrouped = !!order.invoiceGroupId || (order.invoices && order.invoices.length > 0);
                   const isSelected = selectedOrders.has(order.id);
                   const isManual = !order.stlFileUrl;
@@ -730,11 +758,13 @@ export default function AdminOrders() {
             </tbody>
           </table>
         </div>
-        {orders.length === 0 && (
+        {orders.length === 0 ? (
           <div className="p-12 text-center text-secondary-400">
              <Box className="mx-auto mb-4 opacity-20" size={48} />
-             <p>Aucune commande à gérer pour le moment.</p>
+             <p>{statusFilter ? 'Aucune commande avec ce statut.' : 'Aucune commande à gérer pour le moment.'}</p>
           </div>
+        ) : (
+          <Pagination page={page} limit={PAGE_SIZE} total={total} onPageChange={setPage} />
         )}
       </div>
     </div>

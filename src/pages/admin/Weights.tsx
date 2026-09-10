@@ -1,8 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { getJSON, postJSON } from '../../api/client';
 import { Plus, Search, User, History, ArrowUpRight, ArrowDownLeft, Loader2, AlertCircle, TrendingDown, Scale } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
+import Pagination from '../../components/ui/Pagination';
 import { formatGrams, toNumber } from '../../lib/format';
+
+const PAGE_SIZE = 20;
+type Paginated<T> = { items: T[]; total: number; page: number; limit: number };
 
 type Transaction = {
   id: string;
@@ -34,10 +38,22 @@ type UserWithAccounts = {
 
 export default function Weights() {
   const [groupedUsers, setGroupedUsers] = useState<UserWithAccounts[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
-  
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch]);
+
   // Transaction Modal State
   const [showTxModal, setShowTxModal] = useState(false);
   const [selectedUserForTx, setSelectedUserForTx] = useState<UserWithAccounts | null>(null);
@@ -55,15 +71,19 @@ export default function Weights() {
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [selectedUserForHistory, setSelectedUserForHistory] = useState<UserWithAccounts | null>(null);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       setLoading(true);
-      // Backend actually returns a flat list of accounts. We group them here.
-      const data = await getJSON<MetalAccount[]>('/weights/all');
-      
+      // Le back paginate par CLIENT (jusqu'à 3 comptes chacun), pas par ligne
+      // de compte brute, pour ne jamais couper un client au milieu d'une
+      // page. On regroupe ici les comptes de la page reçue.
+      const params = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE) });
+      if (debouncedSearch) params.set('search', debouncedSearch);
+      const res = await getJSON<Paginated<MetalAccount>>(`/weights/all?${params}`);
+
       const userMap = new Map<string, UserWithAccounts>();
-      
-      data.forEach(acc => {
+
+      res.items.forEach(acc => {
         if (!userMap.has(acc.user.id)) {
           userMap.set(acc.user.id, {
             userId: acc.user.id,
@@ -74,35 +94,34 @@ export default function Weights() {
         }
         userMap.get(acc.user.id)!.accounts.push(acc);
       });
-      
-      // Sort users by name, but prioritize those with negative balances
-      const sortedUsers = Array.from(userMap.values() || []).sort((a, b) => {
+
+      // Tri "dettes d'abord" : ne s'applique plus qu'à l'intérieur de cette
+      // page (le back trie par client alphabétique) — reproduire ce tri
+      // globalement demanderait un agrégat sur relation en SQL, pour un gain
+      // marginal sur une liste bornée par le nombre de clients.
+      const sortedUsers = Array.from(userMap.values()).sort((a, b) => {
         const aHasDebt = a.accounts.some(acc => acc.balance < 0);
         const bHasDebt = b.accounts.some(acc => acc.balance < 0);
         if (aHasDebt && !bHasDebt) return -1;
         if (!aHasDebt && bHasDebt) return 1;
-        
+
         const nameA = (a.companyName || a.email).toLowerCase();
         const nameB = (b.companyName || b.email).toLowerCase();
         return nameA.localeCompare(nameB);
       });
 
       setGroupedUsers(sortedUsers);
+      setTotal(res.total);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erreur de chargement');
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, debouncedSearch]);
 
   useEffect(() => {
     load();
-  }, []);
-
-  const filteredUsers = groupedUsers.filter(u => 
-    u.companyName?.toLowerCase().includes(search.toLowerCase()) ||
-    u.email.toLowerCase().includes(search.toLowerCase())
-  );
+  }, [load]);
 
   const getMetalColor = (type: string) => {
     if (type.includes('OR')) return 'bg-amber-50 text-amber-700 border-amber-200';
@@ -201,13 +220,13 @@ export default function Weights() {
 
       {/* Grid of Users */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        {filteredUsers.length === 0 ? (
+        {groupedUsers.length === 0 ? (
           <div className="col-span-full p-12 text-center text-secondary-400 bg-white rounded-2xl border border-secondary-200">
             <User size={48} className="mx-auto mb-4 opacity-20" />
             <p>Aucun client trouvé</p>
           </div>
         ) : (
-          filteredUsers.map(user => {
+          groupedUsers.map(user => {
             const hasDebt = user.accounts.some(a => a.balance < 0);
             
             return (
@@ -290,6 +309,12 @@ export default function Weights() {
           })
         )}
       </div>
+
+      {groupedUsers.length > 0 && (
+        <div className="bg-white rounded-2xl border border-secondary-200 shadow-sm">
+          <Pagination page={page} limit={PAGE_SIZE} total={total} onPageChange={setPage} />
+        </div>
+      )}
 
       {/* Transaction Modal (Same logic but adapted for user selection visually) */}
       {showTxModal && selectedUserForTx && (

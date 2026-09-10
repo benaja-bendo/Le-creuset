@@ -21,6 +21,13 @@ type Order = {
   createdAt: string;
 };
 
+type User = {
+  id: string;
+  email: string;
+  companyName: string | null;
+  role: 'CLIENT' | 'ADMIN';
+};
+
 
 
 export default function AdminCreateInvoice() {
@@ -29,6 +36,7 @@ export default function AdminCreateInvoice() {
   const initialOrderId = searchParams.get('orderId');
 
   const [orders, setOrders] = useState<Order[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [invoicedOrderIds, setInvoicedOrderIds] = useState<Set<string>>(new Set());
   const [loadingData, setLoadingData] = useState(true);
 
@@ -54,15 +62,22 @@ export default function AdminCreateInvoice() {
   useEffect(() => {
     async function load() {
       try {
-        const [ord, inv] = await Promise.all([
-          getJSON<Order[]>('/orders'),
-          getJSON<{ orderId?: string }[]>('/invoices'),
+        // Les trois listes servent à peupler des menus déroulants : limite
+        // explicite haute plutôt que la page par défaut de la pagination.
+        const [ordRes, invRes, usersRes] = await Promise.all([
+          getJSON<{ items: Order[] }>('/orders?limit=500'),
+          getJSON<{ items: { orderId?: string }[] }>('/invoices?limit=500'),
+          getJSON<{ items: User[] }>('/users/all?limit=500'),
         ]);
-        setOrders(ord);
-        setInvoicedOrderIds(new Set(inv.filter(i => i.orderId).map(i => i.orderId as string)));
-        
+        setOrders(ordRes.items);
+        setInvoicedOrderIds(new Set(invRes.items.filter(i => i.orderId).map(i => i.orderId as string)));
+        // Ce sélecteur sert à facturer un client : les comptes ADMIN n'ont
+        // rien à y faire (/users/all les renvoie tous, contrairement à
+        // l'ancienne liste dérivée des commandes, qui les excluait de fait).
+        setUsers(usersRes.items.filter(u => u.role === 'CLIENT'));
+
         if (initialOrderId) {
-          const initialOrder = ord.find(o => o.id === initialOrderId);
+          const initialOrder = ordRes.items.find(o => o.id === initialOrderId);
           if (initialOrder) {
             setSelectedUserId(initialOrder.userId);
           }
@@ -75,11 +90,6 @@ export default function AdminCreateInvoice() {
     }
     load();
   }, [initialOrderId]);
-
-  // Get unique users from orders
-  const uniqueUsers = Array.from(
-    new Map(orders.filter(o => o.user).map(o => [o.user!.email, o.user!])).values()
-  );
 
   const availableOrders = orders.filter(o =>
     o.userId === selectedUserId &&
@@ -185,8 +195,8 @@ export default function AdminCreateInvoice() {
                 required
               >
                 <option value="">Sélectionner un client</option>
-                {uniqueUsers.map(u => (
-                  <option key={u.email} value={orders.find(o => o.user?.email === u.email)?.userId || ''}>
+                {users.map(u => (
+                  <option key={u.id} value={u.id}>
                     {u.companyName || u.email}
                   </option>
                 ))}

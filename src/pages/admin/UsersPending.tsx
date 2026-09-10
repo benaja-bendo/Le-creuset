@@ -1,9 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { deleteJSON, getJSON, patchJSON, resolveUrl } from '../../api/client';
 import { Link } from 'react-router-dom';
 import { Trash2, CheckCircle2, XCircle, FileSignature, Users, UserPlus, UserCheck, Mail, Phone, Clock, Search, Shield, AlertTriangle, Loader2, Ban, Power, Eye } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
+import Pagination from '../../components/ui/Pagination';
 import { useAuth } from '../../context/AuthContext';
+
+const PAGE_SIZE = 20;
+type Paginated<T> = { items: T[]; total: number; page: number; limit: number };
 
 type User = {
   id: string;
@@ -43,11 +47,23 @@ const Tab = ({ active, onClick, children, count }: { active: boolean; onClick: (
 export default function UsersManagement() {
   const [activeTab, setActiveTab] = useState<'active' | 'pending'>('active');
   const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [allUsersTotal, setAllUsersTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [pendingUsers, setPendingUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch]);
+
   // Role change state
   const { user: currentUser } = useAuth();
   const [showRoleModal, setShowRoleModal] = useState(false);
@@ -59,24 +75,37 @@ export default function UsersManagement() {
   // Hard delete confirmation modal
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
 
+  // Les demandes en attente restent chargées une seule fois : leur nombre est
+  // naturellement borné (des inscriptions en cours de validation), à la
+  // différence du tableau des utilisateurs actifs.
   useEffect(() => {
-    const load = async () => {
-      try {
-        const [all, pending] = await Promise.all([
-          getJSON<User[]>('/users/all'),
-          getJSON<User[]>('/users/pending'),
-        ]);
-        setAllUsers(all.filter(u => u.status === 'ACTIVE' || u.status === 'SUSPENDED'));
-        setPendingUsers(pending);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Erreur de chargement');
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
+    getJSON<User[]>('/users/pending')
+      .then(setPendingUsers)
+      .catch(e => setError(e instanceof Error ? e.message : 'Erreur de chargement'));
   }, []);
 
+  const loadActiveUsers = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: String(PAGE_SIZE),
+        status: 'ACTIVE,SUSPENDED',
+      });
+      if (debouncedSearch) params.set('search', debouncedSearch);
+      const res = await getJSON<Paginated<User>>(`/users/all?${params}`);
+      setAllUsers(res.items);
+      setAllUsersTotal(res.total);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erreur de chargement');
+    } finally {
+      setLoading(false);
+    }
+  }, [page, debouncedSearch]);
+
+  useEffect(() => {
+    loadActiveUsers();
+  }, [loadActiveUsers]);
 
 
   const updateStatus = async (id: string, status: 'ACTIVE' | 'REJECTED') => {
@@ -88,11 +117,10 @@ export default function UsersManagement() {
 
       await patchJSON(`/users/${id}/status`, { status });
 
+      // Une insertion locale désynchroniserait allUsersTotal (affiché par la
+      // pagination) ; on recharge la page courante des utilisateurs actifs.
       if (status === 'ACTIVE') {
-        const user = pendingUsers.find(u => u.id === id);
-        if (user) {
-          setAllUsers(prev => [...prev, { ...user, status: 'ACTIVE' }]);
-        }
+        await loadActiveUsers();
       }
       setPendingUsers(prev => prev.filter(u => u.id !== id));
     } catch (e) {
@@ -129,18 +157,13 @@ export default function UsersManagement() {
     if (!userToDelete) return;
     try {
       await deleteJSON(`/users/${userToDelete.id}`);
-      setAllUsers(prev => prev.filter(u => u.id !== userToDelete.id));
+      // Un filtre local désynchroniserait allUsersTotal.
+      await loadActiveUsers();
       setUserToDelete(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erreur lors de la suppression');
     }
   };
-
-  const filteredActiveUsers = allUsers.filter(u => 
-    u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    u.companyName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    u.name?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
   if (loading) {
     return (
@@ -181,7 +204,7 @@ export default function UsersManagement() {
           <Tab 
             active={activeTab === 'active'} 
             onClick={() => setActiveTab('active')}
-            count={allUsers.length}
+            count={allUsersTotal}
           >
             <UserCheck size={16} /> Utilisateurs actifs
           </Tab>
@@ -319,7 +342,7 @@ export default function UsersManagement() {
                 </div>
               </div>
 
-              {filteredActiveUsers.length === 0 ? (
+              {allUsers.length === 0 ? (
                 <div className="py-12 text-center text-secondary-400">
                   <Users size={48} className="mx-auto mb-4 opacity-30" />
                   <p className="font-medium text-secondary-600">
@@ -339,7 +362,7 @@ export default function UsersManagement() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-secondary-100">
-                      {filteredActiveUsers.map((user) => (
+                      {allUsers.map((user) => (
                         <tr key={user.id} className="hover:bg-secondary-50/50 transition-colors">
                           <td className="px-4 py-4">
                             <div className="flex items-center gap-3">
@@ -444,6 +467,9 @@ export default function UsersManagement() {
                     </tbody>
                   </table>
                 </div>
+              )}
+              {allUsers.length > 0 && (
+                <Pagination page={page} limit={PAGE_SIZE} total={allUsersTotal} onPageChange={setPage} />
               )}
             </>
           )}
