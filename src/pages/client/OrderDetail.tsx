@@ -211,7 +211,7 @@ export default function OrderDetail() {
             <h3 className="font-semibold text-secondary-900 mb-4">Détails de la commande</h3>
             
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="bg-secondary-50 rounded-lg p-4">
                   <p className="text-xs text-secondary-500 uppercase tracking-wide mb-1">Métal</p>
                   <p className="font-medium text-secondary-900">{materialTypeLabel(order.materialType)}</p>
@@ -219,10 +219,6 @@ export default function OrderDetail() {
                 <div className="bg-secondary-50 rounded-lg p-4">
                   <p className="text-xs text-secondary-500 uppercase tracking-wide mb-1">Finition</p>
                   <p className="font-medium text-secondary-900">{getFinishLabel(order.finishType)}</p>
-                </div>
-                <div className="bg-secondary-50 rounded-lg p-4">
-                  <p className="text-xs text-secondary-500 uppercase tracking-wide mb-1">Quantité</p>
-                  <p className="font-medium text-secondary-900">{order.quantity} pièce(s)</p>
                 </div>
                 <div className="bg-secondary-50 rounded-lg p-4">
                   <p className="text-xs text-secondary-500 uppercase tracking-wide mb-1">Dernière MAJ</p>
