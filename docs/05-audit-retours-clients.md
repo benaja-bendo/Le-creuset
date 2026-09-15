@@ -6,6 +6,38 @@ Audit initial réalisé le **9 août 2026** sur `develop` (`79369cb`). Ce docume
 
 ---
 
+## Retours de septembre 2026
+
+Retour du 15/09 après mise à jour de la dev pour test client. Verbatim et
+décorticage complet dans `sites/retours-clients/2026-09-15-retour-dev.md`
+(non versionné, hors de ce repo).
+
+### ✅ Quantité affichée en trop dans le détail de commande client
+
+Tuile "Quantité" retirée de [`src/pages/client/OrderDetail.tsx`](../src/pages/client/OrderDetail.tsx) — reste une donnée interne, déjà éditable côté admin depuis le lot 5 de l'audit d'août.
+
+### ✅ Devis STL absent du menu admin
+
+"Devis STL" ajouté à `adminMenuItems` dans [`src/layouts/ClientLayout.tsx`](../src/layouts/ClientLayout.tsx). La route `/client/quote` était déjà accessible par URL directe (non restreinte par rôle) — il manquait seulement l'entrée de menu.
+
+### ✅ Boutons KBIS/Douanes vides sur une demande d'inscription
+
+**Cause racine** : dans [`src/pages/admin/UsersPending.tsx`](../src/pages/admin/UsersPending.tsx), les boutons KBIS et Douanes étaient rendus sans condition. Ces deux champs sont optionnels à l'inscription (`src/pages/public/Register.tsx`) ; quand le document manque, `resolveUrl(undefined)` renvoie `''` → `href=""` → le clic ouvre l'app elle-même sans rien afficher. `admin/UserProfile.tsx` gérait déjà correctement ce cas.
+
+**Correction** : boutons conditionnés à la présence du fichier, pastille "non fourni" grisée sinon.
+
+### ✅ Modale "Historique" de admin/Weights.tsx non plafonnée
+
+Fermeture du point explicitement laissé ouvert par l'audit d'août, voir plus bas ("Historique du compte poids qui allongeait la page") : *« La modale d'historique de `admin/Weights.tsx` est un troisième historique indépendant, non modifié. »*
+
+**Correction** : [`src/pages/admin/Weights.tsx`](../src/pages/admin/Weights.tsx) applique désormais le même plafond que [`WeightGauges.tsx`](../src/components/WeightGauges.tsx) (`VISIBLE_TRANSACTIONS`/`HISTORY_MAX_HEIGHT`, exportées et réutilisées plutôt que dupliquées). Titre corrigé de "Historique complet" (faux — l'API plafonne à 10) en "Historique des mouvements".
+
+> Le point client équivalent côté client (`client/WeightAccount.tsx`) était déjà correct : ce composant partage le même `WeightGauges.tsx` que `admin/UserProfile.tsx`, auquel le client comparait. Aucun changement nécessaire là.
+
+PR [`Le-creuset#11`](https://github.com/benaja-bendo/Le-creuset/pull/11), déployée en prod le 15/09.
+
+---
+
 ## Retours d'août 2026 — corrigés
 
 ### ✅ Catalogue du devis instantané restreint à 7 matériaux
@@ -91,7 +123,7 @@ Le client voyait donc `12.5 g` au lieu de `12,50 g` — sur *Mon Compte Poids*, 
 
 **Correction** : hauteur plafonnée à `max-h-[19rem]` (~4 mouvements visibles) avec `overflow-y-auto overscroll-contain`. L'en-tête affiche le nombre de mouvements, et un pied de carte annonce combien de mouvements plus anciens sont accessibles au défilement.
 
-> `WeightGauges` est **partagé** avec la fiche client côté admin (`admin/UserProfile.tsx`) : le plafonnement s'y applique aussi. La modale d'historique de `admin/Weights.tsx` est un **troisième** historique indépendant, non modifié.
+> `WeightGauges` est **partagé** avec la fiche client côté admin (`admin/UserProfile.tsx`) : le plafonnement s'y applique aussi. La modale d'historique de `admin/Weights.tsx` était un **troisième** historique indépendant, non modifié — corrigé en septembre, voir "Retours de septembre 2026" ci-dessus.
 
 > ⚠️ **Plafond API à 10.** `weights.service.ts` limite à `take: 10` transactions par compte. L'encadré scrollable ne peut donc pas montrer plus de 10 mouvements, quel que soit l'historique réel. Non modifié ici (le client demandait moins de hauteur, pas plus d'historique) — à revoir si « voir plus » doit signifier « tout l'historique ».
 
