@@ -3,7 +3,8 @@ import * as THREE from 'three';
 import { STLLoader } from 'three-stdlib';
 import { OBJLoader } from 'three-stdlib';
 import { OrbitControls } from 'three-stdlib';
-import { Loader2, RotateCcw, ZoomIn, ZoomOut, Maximize2, Shrink, Play } from 'lucide-react';
+import { Loader2, RotateCcw, ZoomIn, ZoomOut, Maximize2, Shrink, Play, AlertTriangle } from 'lucide-react';
+import ErrorBoundary from './ErrorBoundary';
 
 interface STLViewerProps {
   fileUrl: string | null;
@@ -186,20 +187,20 @@ const MATERIAL_ALIASES: Record<string, string> = {
   'PROTOTYPE_RESINE': 'IMPRESSION_CIRE',
 };
 
-function resolveMaterial(materialType: string): MaterialConfig {
+export function resolveMaterial(materialType: string): MaterialConfig {
   const key = MATERIAL_ALIASES[materialType] ?? materialType;
   return MATERIAL_CONFIG[key] || MATERIAL_CONFIG['OR_JAUNE_750'];
 }
 
 /** La rugosité par matériau ne s'applique qu'au fini poli ; le fini brut reste uniforme. */
-function resolveRoughness(config: MaterialConfig, finishType: string): number {
+export function resolveRoughness(config: MaterialConfig, finishType: string): number {
   return finishType === 'poli' ? config.roughness : 0.4;
 }
 
 /**
  * Calcule le volume d'une géométrie en cm³
  */
-function calculateVolume(geometry: THREE.BufferGeometry): number {
+export function calculateVolume(geometry: THREE.BufferGeometry): number {
   const position = geometry.getAttribute('position');
   if (!position) return 0;
 
@@ -223,7 +224,7 @@ function calculateVolume(geometry: THREE.BufferGeometry): number {
 /**
  * Calcule les dimensions du bounding box en mm
  */
-function calculateDimensions(geometry: THREE.BufferGeometry): { x: number; y: number; z: number } {
+export function calculateDimensions(geometry: THREE.BufferGeometry): { x: number; y: number; z: number } {
   geometry.computeBoundingBox();
   const bb = geometry.boundingBox;
   if (!bb) return { x: 0, y: 0, z: 0 };
@@ -235,7 +236,7 @@ function calculateDimensions(geometry: THREE.BufferGeometry): { x: number; y: nu
   };
 }
 
-export default function STLViewer({ fileUrl, fileName, materialType, finishType, onVolumeCalculated }: STLViewerProps) {
+function STLViewerCanvas({ fileUrl, fileName, materialType, finishType, onVolumeCalculated }: STLViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
@@ -272,13 +273,20 @@ export default function STLViewer({ fileUrl, fileName, materialType, finishType,
   }, [isFullscreen]);
 
   // Initialisation de la scène Three.js
+  //
+  // Tout ce bloc tourne dans un useEffect, hors du try/catch de loadModel :
+  // sans son propre try/catch, une erreur ici (WebGL indisponible, contexte
+  // refusé par le pilote graphique...) remonterait telle quelle jusqu'au
+  // routeur et remplacerait toute la page par l'écran d'erreur générique. Le
+  // ErrorBoundary autour de STLViewer rattrape aussi ce cas, mais afficher
+  // le message d'erreur existant du composant est plus informatif.
   const initScene = useCallback(() => {
     if (!containerRef.current) return;
 
+    try {
     // Scène
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xfafafa);
-    sceneRef.current = scene;
 
     // Caméra
     const camera = new THREE.PerspectiveCamera(
@@ -301,6 +309,15 @@ export default function STLViewer({ fileUrl, fileName, materialType, finishType,
     containerRef.current.innerHTML = '';
     containerRef.current.appendChild(renderer.domElement);
     rendererRef.current = renderer;
+
+    // N'assigner sceneRef qu'une fois le renderer WebGL obtenu avec succès :
+    // `loadModel` teste `!sceneRef.current` pour savoir si la scène est
+    // utilisable. Si `WebGLRenderer` avait jeté et que sceneRef pointait déjà
+    // vers cette scène orpheline, loadModel continuerait quand même —
+    // parsant le fichier et calculant volume/dimensions avec succès dans un
+    // panneau d'infos sans aucun rendu visible, en écrasant au passage le
+    // message d'erreur ci-dessous via son propre `setError(null)`.
+    sceneRef.current = scene;
 
     const pmremGenerator = new THREE.PMREMGenerator(renderer);
     pmremGenerator.compileEquirectangularShader();
@@ -371,6 +388,15 @@ export default function STLViewer({ fileUrl, fileName, materialType, finishType,
     return () => {
       window.removeEventListener('resize', handleResize);
     };
+    } catch (err) {
+      // Le message brut (souvent minifié en prod, ex. "e is not a
+      // function" pour un échec de création de contexte WebGL) n'est pas
+      // exploitable par l'utilisateur — seule la console le garde, pour le
+      // diagnostic.
+      console.error('Error initializing 3D scene:', err);
+      setError("Impossible d'initialiser le rendu 3D sur cet appareil ou ce navigateur.");
+      return undefined;
+    }
   }, []);
 
   // Chargement du modèle 3D avec authentification
@@ -380,14 +406,18 @@ export default function STLViewer({ fileUrl, fileName, materialType, finishType,
     setLoading(true);
     setError(null);
 
-    // Supprimer l'ancien mesh si présent
-    if (meshRef.current) {
-      sceneRef.current.remove(meshRef.current);
-      meshRef.current.geometry.dispose();
-      (meshRef.current.material as THREE.Material).dispose();
-    }
-
     try {
+      // Supprimer l'ancien mesh si présent — à l'intérieur du try : une
+      // exception ici (ex. matériau déjà disposé par un chargement
+      // concurrent) doit finir en message d'erreur affiché, pas en
+      // rejet de promesse non intercepté qui abat toute la page.
+      if (meshRef.current) {
+        sceneRef.current.remove(meshRef.current);
+        meshRef.current.geometry.dispose();
+        (meshRef.current.material as THREE.Material).dispose();
+        meshRef.current = null;
+      }
+
       // Récupérer le token depuis localStorage
       const token = localStorage.getItem('lagrenaille_token');
       
@@ -647,5 +677,34 @@ export default function STLViewer({ fileUrl, fileName, materialType, finishType,
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Le rendu 3D (three.js/WebGL) reste plus fragile que le reste de l'app —
+ * pilote graphique, fichier corrompu, dépendance instable. Sans ce
+ * ErrorBoundary, une exception y échappant à `STLViewerCanvas` (ex. dans la
+ * boucle `requestAnimationFrame`, hors du try/catch de `loadModel`) remonte
+ * jusqu'au routeur et remplace toute la page par l'écran d'erreur générique,
+ * au lieu de rester confinée à la vignette de l'aperçu 3D. `key={fileUrl}`
+ * force un remontage propre — état d'erreur inclus — quand l'utilisateur
+ * dépose un nouveau fichier après un échec.
+ */
+export default function STLViewer(props: STLViewerProps) {
+  return (
+    <ErrorBoundary
+      key={props.fileUrl ?? 'no-file'}
+      fallback={
+        <div className="relative w-full h-full bg-slate-50 rounded-sm flex items-center justify-center">
+          <div className="text-center p-6 max-w-sm">
+            <AlertTriangle className="text-red-500 mx-auto mb-3" size={40} />
+            <p className="text-red-500 font-medium">Impossible d'afficher l'aperçu 3D.</p>
+            <p className="text-secondary-500 text-sm mt-2">Vérifiez que le fichier est un modèle 3D valide, ou réessayez.</p>
+          </div>
+        </div>
+      }
+    >
+      <STLViewerCanvas {...props} />
+    </ErrorBoundary>
   );
 }

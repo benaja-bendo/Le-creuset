@@ -59,7 +59,7 @@ export default function Quote() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [step, setStep] = useState(1);
-  const [fileData, setFileData] = useState<{name: string, url: string, objectName: string} | null>(null);
+  const [fileData, setFileData] = useState<{name: string, url: string, storagePath: string} | null>(null);
   const [material, setMaterial] = useState('OR_JAUNE_750');
   const [quantity, setQuantity] = useState(1);
   const [isUploading, setIsUploading] = useState(false);
@@ -80,10 +80,10 @@ export default function Quote() {
     setError(null);
     try {
       const response = await uploadFile(file);
-      setFileData({ 
-        name: file.name, 
+      setFileData({
+        name: file.name,
         url: `${BASE_URL}${response.url}`,
-        objectName: response.objectName 
+        storagePath: response.storagePath
       });
       setStep(2);
     } catch (err) {

@@ -94,7 +94,7 @@ export async function patchJSON<T>(path: string, body: unknown): Promise<T> {
   }
   return res.json();
 }
-export async function uploadFile(file: File): Promise<{ url: string; objectName: string }> {
+export async function uploadFile(file: File): Promise<{ url: string; storagePath: string }> {
   const formData = new FormData();
   formData.append('file', file);
 
