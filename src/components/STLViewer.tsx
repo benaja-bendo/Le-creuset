@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { STLLoader } from 'three-stdlib';
 import { OBJLoader } from 'three-stdlib';
-import { OrbitControls, RoomEnvironment } from 'three-stdlib';
+import { OrbitControls } from 'three-stdlib';
 import { Loader2, RotateCcw, ZoomIn, ZoomOut, Maximize2, Shrink, Play } from 'lucide-react';
 
 interface STLViewerProps {
@@ -22,15 +22,124 @@ type MaterialConfig = {
 };
 
 /**
+ * Budget lumineux du viewer.
+ *
+ * La refonte d'août avait assombri les albédos (`MATERIAL_CONFIG` ci-dessous)
+ * mais délibérément laissé le pipeline d'éclairage intact pour ne pas changer
+ * l'apparence des 5 écrans qui utilisent le viewer. Insuffisant : à ce niveau
+ * d'exposition (2.5) cumulé à l'intensité d'environnement (1.5),
+ * l'`envMapIntensity` du matériau (2.0) et ~7.5 d'intensité directionnelle
+ * cumulée, les métaux clairs (argent, platine, or gris) saturaient quand même
+ * en blanc — un albédo plus sombre ne change rien si la lumière qui le porte
+ * est elle-même saturante.
+ *
+ * Un premier passage s'est contenté de baisser ces multiplicateurs (~moitié
+ * sur les 4 à la fois). Insuffisant dans l'autre sens : à `metalness: 0.9`
+ * un métal reflète presque exclusivement l'environnement — la baisse
+ * uniforme assombrissait tout au lieu de faire ressortir la couleur, et
+ * `RoomEnvironment` (three-stdlib) baigne l'objet d'une lumière blanche
+ * plate et peu contrastée (panneaux 17 à 100 de la même teinte, un point
+ * light à 900) : bien pour du mobilier, pas pour un bijou qui doit accrocher
+ * la lumière sous plusieurs angles distincts.
+ *
+ * D'où `createJewelryStudioEnvironment()` ci-dessous, qui remplace
+ * `RoomEnvironment` : quelques panneaux à fort contraste, positionnés comme
+ * un studio bijouterie (deux clés à ~45°, un fill zénithal doux, un rim
+ * arrière) plutôt qu'un éclairage plat isotrope — cf. les conventions du
+ * secteur (rendu bijouterie : contraste fort avec lumière neutre, jamais un
+ * flat light). Avec un environnement qui porte déjà le contraste,
+ * l'exposition globale peut remonter sans re-saturer les métaux clairs.
+ *
+ * Le laiton (`LAITON`), seule référence validée par le client, sert de
+ * repère : il doit rester reconnaissable, même s'il n'est plus garanti
+ * identique au pixel — l'ancien réglage ne peut pas survivre tel quel à la
+ * fois pour lui et pour les métaux clairs.
+ */
+const TONE_MAPPING_EXPOSURE = 1.8;
+const ENVIRONMENT_INTENSITY = 1.3;
+const MATERIAL_ENV_MAP_INTENSITY = 1.5;
+const AMBIENT_LIGHT_INTENSITY = 0.5;
+const KEY_LIGHT_INTENSITY = 1.6;
+const FILL_LIGHT_INTENSITY = 0.9;
+const BACK_LIGHT_INTENSITY = 1.1;
+const RIM_LIGHT_INTENSITY = 0.7;
+
+/**
+ * Environnement de studio dédié, en remplacement de `RoomEnvironment`
+ * (three-stdlib). Même technique — une scène de panneaux émissifs baked en
+ * PMREM via `PMREMGenerator.fromScene()`, cf. la source de `RoomEnvironment`
+ * — mais disposition et contraste pensés pour un petit objet réfléchissant
+ * (bijou) plutôt que pour du mobilier : deux lumières clés à 45° d'intensité
+ * inégale (asymétrie clé/remplissage classique en photo produit) pour que la
+ * courbure de la pièce accroche la lumière à plusieurs endroits distincts au
+ * lieu d'un unique point chaud, un fill zénithal doux, un rim arrière pour
+ * détacher la silhouette, et un léger rebond au sol pour ne pas laisser le
+ * dessous du bijou totalement noir.
+ */
+function createJewelryStudioEnvironment(): THREE.Scene {
+  const scene = new THREE.Scene();
+
+  const geometry = new THREE.BoxGeometry();
+  geometry.deleteAttribute('uv');
+
+  const createPanel = (intensity: number, color = 0xffffff) =>
+    new THREE.MeshLambertMaterial({ color: 0x000000, emissive: color, emissiveIntensity: intensity });
+
+  // Enceinte englobante : sert surtout à donner à l'environnement un
+  // "extérieur" cohérent (murs sombres neutres) pour que les zones hors
+  // panneaux ne soient pas un vide, comme dans RoomEnvironment.
+  const room = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0x1a1a1a, side: THREE.BackSide }));
+  room.scale.set(40, 40, 40);
+  scene.add(room);
+
+  // Clé principale à 45°, avant-gauche-haut — la plus intense, warm-neutre.
+  const key = new THREE.Mesh(geometry, createPanel(90, 0xfff2df));
+  key.position.set(-11, 10, 9);
+  key.scale.set(6, 8, 0.2);
+  key.lookAt(0, 0, 0);
+  scene.add(key);
+
+  // Clé secondaire à 45°, avant-droit-haut — plus faible que la clé
+  // principale (asymétrie clé/remplissage), légèrement plus froide.
+  const fillKey = new THREE.Mesh(geometry, createPanel(55, 0xf3f6ff));
+  fillKey.position.set(11, 8, 9);
+  fillKey.scale.set(6, 7, 0.2);
+  fillKey.lookAt(0, 0, 0);
+  scene.add(fillKey);
+
+  // Fill zénithal doux : adoucit les ombres, évite que le dessus reste noir
+  // entre les deux clés.
+  const topFill = new THREE.Mesh(geometry, createPanel(35, 0xffffff));
+  topFill.position.set(0, 18, 0);
+  topFill.scale.set(14, 0.2, 14);
+  scene.add(topFill);
+
+  // Rim arrière : détache la silhouette de l'objet de l'arrière-plan, un
+  // classique de la photo produit.
+  const rim = new THREE.Mesh(geometry, createPanel(60, 0xf0f4ff));
+  rim.position.set(0, 9, -13);
+  rim.scale.set(10, 8, 0.2);
+  scene.add(rim);
+
+  // Léger rebond au sol, chaud et faible : évite un dessous totalement noir
+  // sans recréer un flat light.
+  const bounce = new THREE.Mesh(geometry, createPanel(12, 0xfff0dd));
+  bounce.position.set(0, -10, 4);
+  bounce.scale.set(10, 0.2, 8);
+  scene.add(bounce);
+
+  return scene;
+}
+
+/**
  * Palette de rendu 3D.
  *
- * Le pipeline est volontairement lumineux (toneMappingExposure 2.5,
- * environmentIntensity 1.5, envMapIntensity 2.0, 5 sources). À `metalness: 1.0`
- * un MeshPhysicalMaterial n'a plus aucune composante diffuse : sa teinte ne
- * vient que du reflet d'environnement, qui sature en blanc dès que la couleur
- * de base est claire. C'est pourquoi les métaux blancs (argent, platine, or
- * gris) apparaissaient délavés alors que le laiton — seul matériau à 0.9 avec
- * une couleur de base sombre et saturée — rendait correctement.
+ * À `metalness: 1.0` un MeshPhysicalMaterial n'a plus aucune composante
+ * diffuse : sa teinte ne vient que du reflet d'environnement, qui sature en
+ * blanc dès que la couleur de base est claire. C'est pourquoi les métaux
+ * blancs (argent, platine, or gris) apparaissaient délavés alors que le
+ * laiton — seul matériau à 0.9 avec une couleur de base sombre et saturée —
+ * rendait correctement.
  *
  * Tous les métaux sont donc alignés sur le traitement du laiton : `metalness`
  * à 0.9 pour conserver un reste de diffus qui porte la teinte, et albédos
@@ -39,8 +148,7 @@ type MaterialConfig = {
  *
  * `roughness` devient explicite par matériau au lieu d'être déduit d'un seuil
  * sur `metalness` — mais les valeurs reproduisent exactement celles que
- * l'ancienne formule produisait (0.15 pour les métaux, 0.05 pour les services),
- * afin que le rendu du laiton, validé par le client, reste identique au pixel.
+ * l'ancienne formule produisait (0.15 pour les métaux, 0.05 pour les services).
  */
 const MATERIAL_CONFIG: Record<string, MaterialConfig> = {
   'OR_JAUNE_375': { color: 0xc9a86a, metalness: 0.9, roughness: 0.15, density: 11.0 },
@@ -141,6 +249,16 @@ export default function STLViewer({ fileUrl, fileName, materialType, finishType,
   const [modelInfo, setModelInfo] = useState<{ volume: number; dimensions: { x: number; y: number; z: number } } | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
+  // Lu par loadModel() pour le matériau initial, sans figurer dans ses
+  // dépendances : le changement de matériau est déjà géré à chaud par le
+  // useEffect plus bas (mutation du mesh existant), et ne doit jamais
+  // redéclencher un rechargement complet du fichier. Les refs se mettent à
+  // jour à chaque rendu, pas besoin d'effet dédié.
+  const materialTypeRef = useRef(materialType);
+  const finishTypeRef = useRef(finishType);
+  materialTypeRef.current = materialType;
+  finishTypeRef.current = finishType;
+
   // Pour bloquer le défilement du body quand en plein écran
   useEffect(() => {
     if (isFullscreen) {
@@ -179,7 +297,7 @@ export default function STLViewer({ fileUrl, fileName, materialType, finishType,
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 2.5; // Augmenté pour un rendu plus lumineux
+    renderer.toneMappingExposure = TONE_MAPPING_EXPOSURE;
     containerRef.current.innerHTML = '';
     containerRef.current.appendChild(renderer.domElement);
     rendererRef.current = renderer;
@@ -188,8 +306,8 @@ export default function STLViewer({ fileUrl, fileName, materialType, finishType,
     pmremGenerator.compileEquirectangularShader();
     
     // Environnement pour les reflets métalliques
-    scene.environment = pmremGenerator.fromScene(RoomEnvironment() as unknown as THREE.Scene, 0.04).texture;
-    scene.environmentIntensity = 1.5; // Plus de brillance environnementale
+    scene.environment = pmremGenerator.fromScene(createJewelryStudioEnvironment(), 0.04).texture;
+    scene.environmentIntensity = ENVIRONMENT_INTENSITY;
 
     // Contrôles OrbitControls
     const controls = new OrbitControls(camera, renderer.domElement);
@@ -201,11 +319,11 @@ export default function STLViewer({ fileUrl, fileName, materialType, finishType,
     controls.autoRotateSpeed = 1.5;
     controlsRef.current = controls;
 
-    // Lumières - Amélioration du setup studio
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
+    // Lumières - setup studio
+    const ambientLight = new THREE.AmbientLight(0xffffff, AMBIENT_LIGHT_INTENSITY);
     scene.add(ambientLight);
 
-    const keyLight = new THREE.DirectionalLight(0xffffff, 2.5);
+    const keyLight = new THREE.DirectionalLight(0xffffff, KEY_LIGHT_INTENSITY);
     keyLight.position.set(50, 100, 80);
     keyLight.castShadow = true;
     keyLight.shadow.mapSize.width = 2048;
@@ -213,15 +331,15 @@ export default function STLViewer({ fileUrl, fileName, materialType, finishType,
     keyLight.shadow.bias = -0.0001;
     scene.add(keyLight);
 
-    const fillLight = new THREE.DirectionalLight(0xfff0dd, 1.5);
+    const fillLight = new THREE.DirectionalLight(0xfff0dd, FILL_LIGHT_INTENSITY);
     fillLight.position.set(-50, 50, -30);
     scene.add(fillLight);
 
-    const backLight = new THREE.DirectionalLight(0xffffff, 2.0);
+    const backLight = new THREE.DirectionalLight(0xffffff, BACK_LIGHT_INTENSITY);
     backLight.position.set(0, 50, -100);
     scene.add(backLight);
 
-    const rimLight = new THREE.DirectionalLight(0xffffff, 1.5);
+    const rimLight = new THREE.DirectionalLight(0xffffff, RIM_LIGHT_INTENSITY);
     rimLight.position.set(0, -50, 50);
     scene.add(rimLight);
 
@@ -317,14 +435,14 @@ export default function STLViewer({ fileUrl, fileName, materialType, finishType,
       setModelInfo({ volume, dimensions });
       onVolumeCalculated?.(volume, dimensions);
 
-      // Créer le matériau
-      const config = resolveMaterial(materialType);
+      // Créer le matériau (valeur courante via ref, cf. commentaire plus haut)
+      const config = resolveMaterial(materialTypeRef.current);
       const material = new THREE.MeshPhysicalMaterial({
         color: config.color,
         metalness: config.metalness,
-        roughness: resolveRoughness(config, finishType),
+        roughness: resolveRoughness(config, finishTypeRef.current),
         clearcoat: 0.0,
-        envMapIntensity: 2.0,
+        envMapIntensity: MATERIAL_ENV_MAP_INTENSITY,
       });
 
       const mesh = new THREE.Mesh(geometry, material);
@@ -356,7 +474,7 @@ export default function STLViewer({ fileUrl, fileName, materialType, finishType,
     } finally {
       setLoading(false);
     }
-  }, [fileUrl, fileName, materialType, finishType, onVolumeCalculated]);
+  }, [fileUrl, fileName, onVolumeCalculated]);
 
   // Mise à jour du matériau quand le type change
   useEffect(() => {
