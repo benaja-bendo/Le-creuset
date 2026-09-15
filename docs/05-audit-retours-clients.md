@@ -36,6 +36,22 @@ Fermeture du point explicitement laissé ouvert par l'audit d'août, voir plus b
 
 PR [`Le-creuset#11`](https://github.com/benaja-bendo/Le-creuset/pull/11), déployée en prod le 15/09.
 
+### ✅ Couleurs des métaux dans le devis STL — toujours fausses malgré le correctif d'août
+
+Le client a signalé que le problème persistait après la correction ci-dessous ("Harmonisation du rendu 3D des métaux") : celle-ci avait assombri les albédos mais explicitement laissé le pipeline d'éclairage intact. Insuffisant — à `toneMappingExposure: 2.5` / `environmentIntensity: 1.5` / `envMapIntensity: 2.0` / ~7.5 d'intensité directionnelle cumulée, les métaux clairs (argent, platine, or gris) saturaient toujours en blanc, quel que soit leur albédo.
+
+**Deux itérations, la deuxième après recherche** :
+1. Un premier correctif s'est contenté de réduire uniformément les 4 multiplicateurs — corrige la saturation blanche, mais rendu jugé trop sombre par Benji pour un outil de visualisation bijouterie professionnelle.
+2. Recherche faite sur les conventions de rendu bijouterie pro (studios à fort contraste, plusieurs sources à 45°, jamais un éclairage plat isotrope — *"metal is fully specular… appearance depends entirely on lighting and the environment"*, [Light Tracer](https://lighttracer.org/blog/tutorial-jewelry-rendering/)). Cause plus profonde identifiée : [`RoomEnvironment`](https://github.com/mrdoob/three.js/blob/master/examples/jsm/environments/RoomEnvironment.js) (three-stdlib) est un environnement générique plat et peu contrasté (panneaux blancs uniformes, conçu pour du mobilier via model-viewer), pas pour un bijou qui doit accrocher la lumière sous plusieurs angles.
+
+**Correction retenue** : `createJewelryStudioEnvironment()` dans [`src/components/STLViewer.tsx`](../src/components/STLViewer.tsx) remplace `RoomEnvironment` — même technique (panneaux émissifs bakés en PMREM) mais disposition studio bijouterie (deux clés à 45° d'intensité inégale, fill zénithal, rim arrière, léger rebond au sol). Avec un environnement qui porte déjà le contraste, l'exposition globale a pu remonter sans re-saturer les métaux clairs.
+
+**Bug annexe corrigé au passage** : `loadModel` avait `materialType`/`finishType` dans ses dépendances alors qu'un `useEffect` séparé met déjà le matériau à jour à chaud sur le mesh existant — chaque clic sur un métal re-téléchargeait donc le fichier et recadrait la caméra, rendant la comparaison de teintes pénible. Corrigé (lecture via ref, retirées des dépendances).
+
+> **Limite connue, non résolue** : argent, platine et or gris palladié restent visuellement proches entre eux même après correctif — limite physique du rendu à `metalness: 0.9` (réflexion d'environnement dominante, peu de composante diffuse portant l'albédo), pas quelque chose qu'un réglage de lumière peut résoudre seul.
+
+Validé visuellement par Benji sur planche de comparaison avant merge (2 itérations). PR [`Le-creuset#15`](https://github.com/benaja-bendo/Le-creuset/pull/15), déployée en prod le 15/09.
+
 ---
 
 ## Retours d'août 2026 — corrigés
@@ -60,7 +76,11 @@ Retirés du devis : Or Rose 375/750, Or Gris 375, Or Gris 750 (nu), Or Rouge 750
 
 Les pastilles de couleur du sélecteur passent de classes Tailwind à l'hexadécimal exact de `MATERIAL_CONFIG` : la pastille et l'aperçu 3D montrent désormais la même teinte.
 
-> ⚠️ **Validation visuelle client requise.** Les valeurs sont physiquement plausibles mais n'ont pas été validées à l'œil sur un modèle réel.
+> ~~⚠️ Validation visuelle client requise.~~ Le client a effectivement signalé
+> en septembre que les métaux clairs restaient délavés malgré cette
+> correction — voir "Retours de septembre 2026" ci-dessus : la cause plus
+> profonde était le pipeline d'éclairage lui-même (volontairement non touché
+> ici), pas seulement les albédos. Corrigé et validé par le client le 15/09.
 
 ### ✅ Numéros de commande faux sur les factures
 
