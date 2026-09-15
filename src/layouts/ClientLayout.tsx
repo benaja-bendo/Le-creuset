@@ -50,6 +50,7 @@ export default function ClientLayout() {
     { name: 'Vue globale', path: '/client', icon: LayoutDashboard },
     { name: 'Utilisateurs', path: '/client/admin/users', icon: Users },
     { name: 'Comptes Poids', path: '/client/admin/weights', icon: Scale },
+    { name: 'Devis STL', path: '/client/quote', icon: FileText },
     { name: 'Commandes', path: '/client/admin/orders', icon: Package },
     { name: 'Factures', path: '/client/admin/invoices', icon: FileText },
     { name: 'Bibliothèque', path: '/client/admin/library', icon: Layers },

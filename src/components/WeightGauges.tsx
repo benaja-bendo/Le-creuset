@@ -36,9 +36,13 @@ interface WeightGaugesProps {
  *
  * `HISTORY_MAX_HEIGHT` doit rester cohérent avec `VISIBLE_TRANSACTIONS` :
  * une ligne mesure environ 4,5 rem (px-5 py-4 + icône 40px).
+ *
+ * Exportées : `admin/Weights.tsx` applique le même plafond à sa modale
+ * "Historique" plutôt que de dupliquer les valeurs — un seul endroit à
+ * ajuster si la densité change.
  */
-const VISIBLE_TRANSACTIONS = 4;
-const HISTORY_MAX_HEIGHT = 'max-h-[19rem]';
+export const VISIBLE_TRANSACTIONS = 4;
+export const HISTORY_MAX_HEIGHT = 'max-h-[19rem]';
 
 export default function WeightGauges({ accounts }: WeightGaugesProps) {
   const getMetalColor = (type: string, isNegative: boolean) => {
