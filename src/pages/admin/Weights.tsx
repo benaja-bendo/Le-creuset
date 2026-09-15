@@ -4,6 +4,7 @@ import { Plus, Search, User, History, ArrowUpRight, ArrowDownLeft, Loader2, Aler
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
 import Pagination from '../../components/ui/Pagination';
 import { formatGrams, toNumber, baseMetalLabel } from '../../lib/format';
+import { VISIBLE_TRANSACTIONS, HISTORY_MAX_HEIGHT } from '../../components/WeightGauges';
 
 const PAGE_SIZE = 20;
 type Paginated<T> = { items: T[]; total: number; page: number; limit: number };
@@ -437,7 +438,7 @@ export default function Weights() {
              <div>
                 <h3 className="text-xl font-bold text-secondary-900 flex items-center gap-2">
                    <History className="text-primary-500" />
-                   Historique complet
+                   Historique des mouvements
                 </h3>
                 <p className="text-secondary-600 font-medium mt-1">{selectedUserForHistory.companyName || selectedUserForHistory.email}</p>
              </div>
@@ -453,16 +454,34 @@ export default function Weights() {
               {selectedUserForHistory.accounts.filter(a => a.transactions?.length).length === 0 ? (
                  <div className="text-center py-12 text-secondary-400">Aucune transaction enregistrée pour ce client.</div>
               ) : (
-                 selectedUserForHistory.accounts.filter(a => a.transactions?.length).map(acc => (
+                 selectedUserForHistory.accounts.filter(a => a.transactions?.length).map(acc => {
+                    const transactions = acc.transactions ?? [];
+                    const hasOverflow = transactions.length > VISIBLE_TRANSACTIONS;
+                    return (
                  <div key={acc.id} className="bg-white rounded-xl border border-secondary-200 overflow-hidden shadow-sm">
-                    <div className="px-5 py-3 border-b border-secondary-100 flex justify-between items-center bg-secondary-50/30">
+                    <div className="px-5 py-3 border-b border-secondary-100 flex justify-between items-center bg-secondary-50/30 gap-3">
                        <span className="font-bold text-secondary-900 uppercase tracking-wide text-sm">{baseMetalLabel(acc.metalType)}</span>
-                       <span className={`font-black tracking-tighter ${acc.balance < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
-                          Solde: {formatGrams(acc.balance)} g
-                       </span>
+                       <div className="flex items-center gap-3 shrink-0">
+                          {/* L'API ne renvoie que les 10 derniers mouvements par compte
+                              (voir WeightGauges.tsx) : on annonce « derniers », jamais
+                              un total qui serait faux au-delà. */}
+                          <span className="text-xs font-medium text-secondary-500">
+                             {transactions.length} dernier{transactions.length > 1 ? 's' : ''} mouvement{transactions.length > 1 ? 's' : ''}
+                          </span>
+                          <span className={`font-black tracking-tighter ${acc.balance < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                             Solde: {formatGrams(acc.balance)} g
+                          </span>
+                       </div>
                     </div>
-                    <div className="divide-y divide-secondary-100">
-                       {acc.transactions?.map(tx => (
+                    {/* Même plafond que WeightGauges.tsx : l'encadré défile sur
+                        lui-même au lieu de rallonger indéfiniment la modale. */}
+                    <div
+                       tabIndex={0}
+                       role="region"
+                       aria-label={`Historique des mouvements — ${baseMetalLabel(acc.metalType)}`}
+                       className={`divide-y divide-secondary-100 ${HISTORY_MAX_HEIGHT} overflow-y-auto focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-inset`}
+                    >
+                       {transactions.map(tx => (
                           <div key={tx.id} className="p-4 flex items-center justify-between hover:bg-secondary-50/30 transition-colors">
                              <div className="flex items-center gap-4">
                                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-sm border
@@ -486,8 +505,14 @@ export default function Weights() {
                           </div>
                        ))}
                     </div>
+                    {hasOverflow && (
+                       <p className="px-5 py-2.5 text-xs text-secondary-600 bg-secondary-50/50 border-t border-secondary-100 text-center">
+                          Faites défiler pour voir les mouvements plus anciens
+                       </p>
+                    )}
                  </div>
-                 ))
+                    );
+                 })
               )}
            </div>
          </div>

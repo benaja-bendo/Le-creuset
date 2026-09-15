@@ -263,33 +263,45 @@ export default function UsersManagement() {
                         </div>
                         
                         <div className="flex items-center gap-3 pt-2">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <a 
-                                className="px-3 py-1.5 bg-primary-50 text-sm text-primary-700 rounded-lg hover:bg-primary-100 flex items-center gap-1.5 transition-colors" 
-                                href={resolveUrl(u.kbisFileUrl)} 
-                                target="_blank" 
-                                rel="noreferrer"
-                              >
-                                <FileSignature size={14} /> KBIS
-                              </a>
-                            </TooltipTrigger>
-                            <TooltipContent>Consulter l'extrait KBIS</TooltipContent>
-                          </Tooltip>
+                          {u.kbisFileUrl ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <a
+                                  className="px-3 py-1.5 bg-primary-50 text-sm text-primary-700 rounded-lg hover:bg-primary-100 flex items-center gap-1.5 transition-colors"
+                                  href={resolveUrl(u.kbisFileUrl)}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                >
+                                  <FileSignature size={14} /> KBIS
+                                </a>
+                              </TooltipTrigger>
+                              <TooltipContent>Consulter l'extrait KBIS</TooltipContent>
+                            </Tooltip>
+                          ) : (
+                            <span className="px-3 py-1.5 bg-secondary-100 text-sm text-secondary-400 rounded-lg flex items-center gap-1.5 italic">
+                              <FileSignature size={14} /> KBIS non fourni
+                            </span>
+                          )}
 
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <a 
-                                className="px-3 py-1.5 bg-primary-50 text-sm text-primary-700 rounded-lg hover:bg-primary-100 flex items-center gap-1.5 transition-colors" 
-                                href={resolveUrl(u.customsFileUrl)} 
-                                target="_blank" 
-                                rel="noreferrer"
-                              >
-                                <FileSignature size={14} /> Douanes
-                              </a>
-                            </TooltipTrigger>
-                            <TooltipContent>Consulter l'attestation douane</TooltipContent>
-                          </Tooltip>
+                          {u.customsFileUrl ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <a
+                                  className="px-3 py-1.5 bg-primary-50 text-sm text-primary-700 rounded-lg hover:bg-primary-100 flex items-center gap-1.5 transition-colors"
+                                  href={resolveUrl(u.customsFileUrl)}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                >
+                                  <FileSignature size={14} /> Douanes
+                                </a>
+                              </TooltipTrigger>
+                              <TooltipContent>Consulter l'attestation douane</TooltipContent>
+                            </Tooltip>
+                          ) : (
+                            <span className="px-3 py-1.5 bg-secondary-100 text-sm text-secondary-400 rounded-lg flex items-center gap-1.5 italic">
+                              <FileSignature size={14} /> Douanes non fournies
+                            </span>
+                          )}
                         </div>
                       </div>
                       
