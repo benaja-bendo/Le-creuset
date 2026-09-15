@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { STLLoader } from 'three-stdlib';
 import { OBJLoader } from 'three-stdlib';
-import { OrbitControls, RoomEnvironment } from 'three-stdlib';
+import { OrbitControls } from 'three-stdlib';
 import { Loader2, RotateCcw, ZoomIn, ZoomOut, Maximize2, Shrink, Play } from 'lucide-react';
 
 interface STLViewerProps {
@@ -33,23 +33,103 @@ type MaterialConfig = {
  * en blanc — un albédo plus sombre ne change rien si la lumière qui le porte
  * est elle-même saturante.
  *
- * Ces constantes remplacent les valeurs en dur précédentes, budget réduit
- * d'environ moitié sur chaque multiplicateur indépendant (exposition,
- * intensité d'environnement, `envMapIntensity`, lumières) — l'effet se
- * cumule sur les 4 à la fois. Le laiton (`LAITON`), seule référence validée
- * par le client, sert de repère : il doit rester reconnaissable après la
- * baisse, même s'il n'est plus strictement identique au pixel — geler le
- * budget lumineux global pour lui seul aurait laissé les métaux clairs
- * saturés.
+ * Un premier passage s'est contenté de baisser ces multiplicateurs (~moitié
+ * sur les 4 à la fois). Insuffisant dans l'autre sens : à `metalness: 0.9`
+ * un métal reflète presque exclusivement l'environnement — la baisse
+ * uniforme assombrissait tout au lieu de faire ressortir la couleur, et
+ * `RoomEnvironment` (three-stdlib) baigne l'objet d'une lumière blanche
+ * plate et peu contrastée (panneaux 17 à 100 de la même teinte, un point
+ * light à 900) : bien pour du mobilier, pas pour un bijou qui doit accrocher
+ * la lumière sous plusieurs angles distincts.
+ *
+ * D'où `createJewelryStudioEnvironment()` ci-dessous, qui remplace
+ * `RoomEnvironment` : quelques panneaux à fort contraste, positionnés comme
+ * un studio bijouterie (deux clés à ~45°, un fill zénithal doux, un rim
+ * arrière) plutôt qu'un éclairage plat isotrope — cf. les conventions du
+ * secteur (rendu bijouterie : contraste fort avec lumière neutre, jamais un
+ * flat light). Avec un environnement qui porte déjà le contraste,
+ * l'exposition globale peut remonter sans re-saturer les métaux clairs.
+ *
+ * Le laiton (`LAITON`), seule référence validée par le client, sert de
+ * repère : il doit rester reconnaissable, même s'il n'est plus garanti
+ * identique au pixel — l'ancien réglage ne peut pas survivre tel quel à la
+ * fois pour lui et pour les métaux clairs.
  */
-const TONE_MAPPING_EXPOSURE = 1.6;
-const ENVIRONMENT_INTENSITY = 1.15;
-const MATERIAL_ENV_MAP_INTENSITY = 1.3;
-const AMBIENT_LIGHT_INTENSITY = 0.7;
-const KEY_LIGHT_INTENSITY = 1.8;
-const FILL_LIGHT_INTENSITY = 1.0;
-const BACK_LIGHT_INTENSITY = 1.3;
-const RIM_LIGHT_INTENSITY = 0.9;
+const TONE_MAPPING_EXPOSURE = 1.8;
+const ENVIRONMENT_INTENSITY = 1.3;
+const MATERIAL_ENV_MAP_INTENSITY = 1.5;
+const AMBIENT_LIGHT_INTENSITY = 0.5;
+const KEY_LIGHT_INTENSITY = 1.6;
+const FILL_LIGHT_INTENSITY = 0.9;
+const BACK_LIGHT_INTENSITY = 1.1;
+const RIM_LIGHT_INTENSITY = 0.7;
+
+/**
+ * Environnement de studio dédié, en remplacement de `RoomEnvironment`
+ * (three-stdlib). Même technique — une scène de panneaux émissifs baked en
+ * PMREM via `PMREMGenerator.fromScene()`, cf. la source de `RoomEnvironment`
+ * — mais disposition et contraste pensés pour un petit objet réfléchissant
+ * (bijou) plutôt que pour du mobilier : deux lumières clés à 45° d'intensité
+ * inégale (asymétrie clé/remplissage classique en photo produit) pour que la
+ * courbure de la pièce accroche la lumière à plusieurs endroits distincts au
+ * lieu d'un unique point chaud, un fill zénithal doux, un rim arrière pour
+ * détacher la silhouette, et un léger rebond au sol pour ne pas laisser le
+ * dessous du bijou totalement noir.
+ */
+function createJewelryStudioEnvironment(): THREE.Scene {
+  const scene = new THREE.Scene();
+
+  const geometry = new THREE.BoxGeometry();
+  geometry.deleteAttribute('uv');
+
+  const createPanel = (intensity: number, color = 0xffffff) =>
+    new THREE.MeshLambertMaterial({ color: 0x000000, emissive: color, emissiveIntensity: intensity });
+
+  // Enceinte englobante : sert surtout à donner à l'environnement un
+  // "extérieur" cohérent (murs sombres neutres) pour que les zones hors
+  // panneaux ne soient pas un vide, comme dans RoomEnvironment.
+  const room = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0x1a1a1a, side: THREE.BackSide }));
+  room.scale.set(40, 40, 40);
+  scene.add(room);
+
+  // Clé principale à 45°, avant-gauche-haut — la plus intense, warm-neutre.
+  const key = new THREE.Mesh(geometry, createPanel(90, 0xfff2df));
+  key.position.set(-11, 10, 9);
+  key.scale.set(6, 8, 0.2);
+  key.lookAt(0, 0, 0);
+  scene.add(key);
+
+  // Clé secondaire à 45°, avant-droit-haut — plus faible que la clé
+  // principale (asymétrie clé/remplissage), légèrement plus froide.
+  const fillKey = new THREE.Mesh(geometry, createPanel(55, 0xf3f6ff));
+  fillKey.position.set(11, 8, 9);
+  fillKey.scale.set(6, 7, 0.2);
+  fillKey.lookAt(0, 0, 0);
+  scene.add(fillKey);
+
+  // Fill zénithal doux : adoucit les ombres, évite que le dessus reste noir
+  // entre les deux clés.
+  const topFill = new THREE.Mesh(geometry, createPanel(35, 0xffffff));
+  topFill.position.set(0, 18, 0);
+  topFill.scale.set(14, 0.2, 14);
+  scene.add(topFill);
+
+  // Rim arrière : détache la silhouette de l'objet de l'arrière-plan, un
+  // classique de la photo produit.
+  const rim = new THREE.Mesh(geometry, createPanel(60, 0xf0f4ff));
+  rim.position.set(0, 9, -13);
+  rim.scale.set(10, 8, 0.2);
+  scene.add(rim);
+
+  // Léger rebond au sol, chaud et faible : évite un dessous totalement noir
+  // sans recréer un flat light.
+  const bounce = new THREE.Mesh(geometry, createPanel(12, 0xfff0dd));
+  bounce.position.set(0, -10, 4);
+  bounce.scale.set(10, 0.2, 8);
+  scene.add(bounce);
+
+  return scene;
+}
 
 /**
  * Palette de rendu 3D.
@@ -226,7 +306,7 @@ export default function STLViewer({ fileUrl, fileName, materialType, finishType,
     pmremGenerator.compileEquirectangularShader();
     
     // Environnement pour les reflets métalliques
-    scene.environment = pmremGenerator.fromScene(RoomEnvironment() as unknown as THREE.Scene, 0.04).texture;
+    scene.environment = pmremGenerator.fromScene(createJewelryStudioEnvironment(), 0.04).texture;
     scene.environmentIntensity = ENVIRONMENT_INTENSITY;
 
     // Contrôles OrbitControls
