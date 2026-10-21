@@ -4,6 +4,10 @@ import { postJSON } from '../../api/client';
 import Alert from '../../components/Alert';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 
+// Même minimum que l'inscription et la connexion côté back : un mot de passe
+// plus court serait enregistré puis refusé au login.
+const MIN_PASSWORD_LENGTH = 6;
+
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
@@ -37,6 +41,10 @@ export default function ResetPassword() {
 
   const handleResetSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setError(`Le mot de passe doit contenir au moins ${MIN_PASSWORD_LENGTH} caractères.`);
+      return;
+    }
     if (password !== confirmPassword) {
       setError('Les mots de passe ne correspondent pas.');
       return;
@@ -103,6 +111,7 @@ export default function ResetPassword() {
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full px-3 py-2 rounded-md bg-secondary-950 border border-secondary-800 text-white focus:outline-none focus:ring-2 focus:ring-primary-600 pr-10"
                     placeholder="••••••••"
+                    aria-describedby="new-password-rule"
                     required
                   />
                   <button
@@ -113,6 +122,12 @@ export default function ResetPassword() {
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
+                <p
+                  id="new-password-rule"
+                  className={`mt-2 text-xs ${password.length >= MIN_PASSWORD_LENGTH ? 'text-green-500' : 'text-secondary-400'}`}
+                >
+                  Au moins {MIN_PASSWORD_LENGTH} caractères.
+                </p>
               </div>
               <div>
                 <label className="block text-sm text-secondary-300 mb-2">Confirmer le mot de passe</label>
