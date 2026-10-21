@@ -12,7 +12,6 @@ import {
   Loader2,
   AlertCircle,
   Layers,
-  DollarSign,
   Calendar,
   Truck,
   Flame
@@ -132,7 +131,7 @@ export default function OrderDetail() {
             Commande {orderRef(order)}
           </h1>
           <p className="text-secondary-500 mt-1">
-            Créée le {new Date(order.createdAt).toLocaleDateString('fr-FR', { 
+            Passée le {new Date(order.createdAt).toLocaleDateString('fr-FR', { 
               day: 'numeric', month: 'long', year: 'numeric' 
             })}
           </p>
@@ -268,10 +267,7 @@ export default function OrderDetail() {
                       {new Date(invoice.issueDate).toLocaleDateString('fr-FR')}
                     </span>
                     {invoice.amount && (
-                      <span className="flex items-center gap-1">
-                        <DollarSign size={12} />
-                        {formatAmount(invoice.amount)} €
-                      </span>
+                      <span>{formatAmount(invoice.amount)} €</span>
                     )}
                   </div>
                 </div>

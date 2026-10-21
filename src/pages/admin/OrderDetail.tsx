@@ -12,7 +12,7 @@ import {
   Loader2,
   AlertCircle,
   Layers,
-  DollarSign,
+  Euro,
   Calendar,
   Truck,
   Flame,
@@ -539,7 +539,7 @@ function CloseOrderModal({
               Montant final (€)
             </label>
             <div className="relative">
-              <DollarSign size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary-400" />
+              <Euro size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary-400" />
               <input
                 type="number"
                 step="0.01"
