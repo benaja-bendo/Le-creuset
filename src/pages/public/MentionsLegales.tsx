@@ -1,4 +1,5 @@
-import { LEGAL_LAST_UPDATED } from '../../lib/legal';
+import { EmailLink, PhoneLink } from '../../components/legal/ContactLinks';
+import { LEGAL_LAST_UPDATED, LEGAL_PENDING } from '../../lib/legal';
 
 export default function MentionsLegales() {
   return (
@@ -13,17 +14,11 @@ export default function MentionsLegales() {
             Éditeur du site
           </h2>
           <div className="space-y-2">
-            <p><strong className="text-charbon">Raison sociale :</strong> [NOM DE LA SOCIÉTÉ]</p>
-            <p><strong className="text-charbon">Forme juridique :</strong> [SAS / SARL / Auto-entrepreneur]</p>
-            <p><strong className="text-charbon">Capital social :</strong> [MONTANT] euros</p>
-            <p><strong className="text-charbon">SIRET :</strong> [NUMÉRO SIRET]</p>
-            <p><strong className="text-charbon">N° TVA intracommunautaire :</strong> [NUMÉRO TVA]</p>
-            <p><strong className="text-charbon">Siège social :</strong><br />
-              [ADRESSE COMPLÈTE]<br />
-              [CODE POSTAL] [VILLE]
-            </p>
-            <p><strong className="text-charbon">Téléphone :</strong> [NUMÉRO]</p>
-            <p><strong className="text-charbon">Email :</strong> [EMAIL]</p>
+            <p><strong className="text-charbon">Dénomination :</strong> La Grenaille</p>
+            <p>{LEGAL_PENDING.status}</p>
+            <p><strong className="text-charbon">Siège social :</strong> {LEGAL_PENDING.address}</p>
+            <p><strong className="text-charbon">Téléphone :</strong> <PhoneLink /></p>
+            <p><strong className="text-charbon">Email :</strong> <EmailLink /></p>
           </div>
         </section>
 
@@ -31,7 +26,7 @@ export default function MentionsLegales() {
           <h2 className="text-2xl font-serif font-normal text-charbon mb-4">
             Directeur de publication
           </h2>
-          <p>[NOM DU DIRECTEUR DE PUBLICATION]</p>
+          <p>{LEGAL_PENDING.director}</p>
         </section>
 
         <section>
