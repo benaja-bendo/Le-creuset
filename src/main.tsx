@@ -1,5 +1,12 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+// Polices servies par le site lui-même : aucune requête vers un service tiers.
+import '@fontsource/libre-baskerville/latin-400.css'
+import '@fontsource/libre-baskerville/latin-400-italic.css'
+import '@fontsource/libre-baskerville/latin-700.css'
+import '@fontsource/libre-baskerville/latin-ext-400.css'
+import '@fontsource/libre-baskerville/latin-ext-700.css'
+import '@fontsource-variable/montserrat/wght.css'
 import './index.css'
 import App from './App.tsx'
 import { AuthProvider } from './context/AuthContext.tsx'

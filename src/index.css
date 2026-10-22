@@ -43,7 +43,7 @@
   --color-secondary-900: #121212;
   --color-secondary-950: #000000;
 
-  --font-sans: 'Montserrat', system-ui, sans-serif;
+  --font-sans: 'Montserrat Variable', system-ui, sans-serif;
   --font-serif: 'Libre Baskerville', Georgia, serif;
 
   --ease-luxe: cubic-bezier(0.2, 0.7, 0.2, 1);

@@ -125,7 +125,9 @@ Ces helpers gèrent :
   - fond `ivoire`, sections alternées `lin`, cartes `papier` bordées de `sable` ;
   - **`charbon` réservé à l'en-tête et au pied de page** ;
   - `or` pour les filets et ornements **uniquement**, jamais pour du texte (2,1:1 sur ivoire) ; `bronze` pour les liens et le texte d'accent ;
-  - polices : Libre Baskerville (titres et texte), Montserrat (interface), logo en SVG (`components/brand/Logo.tsx`, couleur héritée de `currentColor`).
+  - polices : Libre Baskerville (titres et texte), Montserrat (interface), logo en SVG (`components/brand/Logo.tsx`, couleur héritée de `currentColor`). Les polices sont **embarquées** avec `@fontsource` (importées dans `main.tsx`) : ne pas rajouter de lien Google Fonts, le site ne doit envoyer aucune requête à un tiers (RGPD, et la politique de confidentialité l'affirme).
+- **Mot de passe** : `src/lib/password.ts`, 8 caractères et rien d'autre, comme côté back. Ne pas ajouter de règle de majuscule ou de chiffre.
+- **Pages légales** : la date « Dernière mise à jour » est `LEGAL_LAST_UPDATED` dans `src/lib/legal.ts`, à changer à la main quand un texte légal change.
   - Référence visuelle : le canevas « La Grenaille — Charte & maquette ».
 - Palette de l'espace connecté : `primary-*` (accent, réaligné en 2026-10 sur l'or de la charte, mêmes niveaux de clarté qu'avant) et `secondary-*` (gris). Fond des zones connectées `bg-secondary-50`, cartes `bg-white rounded-xl border border-secondary-200 shadow-sm`.
 - **Photos de la vitrine** : uniquement via `PHOTOS` de [`src/lib/photos.ts`](../src/lib/photos.ts). `provisional: true` affiche le badge « Photo provisoire ». Les visuels actuels sont des images d'attente générées par IA. Quand une vraie photo arrive, on remplace le fichier et on passe le drapeau à `false`. Les emplacements sans photo du tout utilisent `PhotoPlaceholder`.

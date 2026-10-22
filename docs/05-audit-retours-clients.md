@@ -31,6 +31,20 @@ Thème sombre remplacé par la charte des cartes de visite : fond ivoire, **char
 - les **réseaux sociaux** n'ont pas d'adresse (icônes sans lien) : `src/lib/site.ts` ;
 - les **mentions légales et la politique de confidentialité** contiennent encore des `[CHAMPS À REMPLIR]` : informations à obtenir du client.
 
+### ✅ Une seule règle de mot de passe : 8 caractères
+
+Le formulaire de reset exigeait 6 caractères, le changement de mot de passe du profil 8 avec majuscule et chiffre, l'inscription n'avait aucun contrôle côté front. Désormais **8 caractères, rien d'autre** : `src/lib/password.ts` (aligné sur `src/auth/password-policy.ts` côté back) pour le reset, l'inscription et le profil. Les comptes existants se connectent comme avant : la connexion ne contrôle pas la longueur.
+
+### ✅ Pages légales : hébergeur, cookies et contenu alignés sur la réalité
+
+- Mentions légales : l'hébergeur annoncé était « GitHub Pages » ; le site est chez **Infomaniak Network SA** (Suisse), adresse reprise de leur page officielle de mentions légales.
+- Politique de confidentialité : elle annonçait des « cookies analytiques », une newsletter, un service de paiement et le « Personnel du Creuset » (ancien nom). Rien de cela n'existe : **le site ne dépose aucun cookie** (seul le jeton de session, dans le stockage local, supprimé à la déconnexion). Texte corrigé, hébergeur et Suisse ajoutés.
+- « Dernière mise à jour » affichait la date du jour à chaque visite sur les trois pages : désormais fixe (`src/lib/legal.ts`, à mettre à jour à la main).
+
+### ✅ Polices servies par le site
+
+Libre Baskerville et Montserrat étaient chargées depuis Google Fonts (adresse IP du visiteur transmise à Google, non mentionné dans la politique). Elles sont maintenant embarquées (`@fontsource`), le site n'envoie plus aucune requête à un service tiers.
+
 ### ✅ Formulaire de contact — branché sur l'API
 
 Les coordonnées affichées étaient fausses (Paris, adresse de démonstration) et le formulaire n'envoyait rien. Il poste maintenant vers `POST /contact` (back), avec états d'envoi, de succès et d'erreur, et garde le `mailto:` pré-rempli en secours.
