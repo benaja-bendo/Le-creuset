@@ -151,21 +151,24 @@ function createJewelryStudioEnvironment(): THREE.Scene {
  * sur `metalness` — mais les valeurs reproduisent exactement celles que
  * l'ancienne formule produisait (0.15 pour les métaux, 0.05 pour les services).
  */
+// Les `density` des six métaux du devis (or jaune 750/375, or gris palladié,
+// platine, argent, laiton) sont celles du client (22/10/2026) : `lib/quote.ts`
+// s'en sert pour le prix, et `quote.test.ts` vérifie qu'elles restent égales.
 const MATERIAL_CONFIG: Record<string, MaterialConfig> = {
-  'OR_JAUNE_375': { color: 0xc9a86a, metalness: 0.9, roughness: 0.15, density: 11.0 },
-  'OR_JAUNE_750': { color: 0xd4a72c, metalness: 0.9, roughness: 0.15, density: 15.0 },
+  'OR_JAUNE_375': { color: 0xc9a86a, metalness: 0.9, roughness: 0.15, density: 12 },
+  'OR_JAUNE_750': { color: 0xd4a72c, metalness: 0.9, roughness: 0.15, density: 15.35 },
   'OR_ROSE_375': { color: 0xc99177, metalness: 0.9, roughness: 0.15, density: 11.0 },
   'OR_ROSE_750': { color: 0xc48a72, metalness: 0.9, roughness: 0.15, density: 15.0 },
   'OR_GRIS_375': { color: 0xb3b5b8, metalness: 0.9, roughness: 0.15, density: 11.0 },
   'OR_GRIS_750': { color: 0xc2c4c6, metalness: 0.9, roughness: 0.15, density: 15.0 },
-  'OR_GRIS_750_PALLADIE_13': { color: 0xc8cacb, metalness: 0.9, roughness: 0.15, density: 15.5 },
+  'OR_GRIS_750_PALLADIE_13': { color: 0xc8cacb, metalness: 0.9, roughness: 0.15, density: 15.8 },
   'OR_ROUGE_750': { color: 0xb06a52, metalness: 0.9, roughness: 0.15, density: 15.0 },
-  'PLATINE_950': { color: 0xb8b4ac, metalness: 0.9, roughness: 0.15, density: 21.0 },
+  'PLATINE_950': { color: 0xb8b4ac, metalness: 0.9, roughness: 0.15, density: 20.3 },
   'PALLADIUM': { color: 0xa8adb2, metalness: 0.9, roughness: 0.15, density: 12.0 },
-  'ARGENT_925': { color: 0xcfd2d4, metalness: 0.9, roughness: 0.15, density: 10.4 },
+  'ARGENT_925': { color: 0xcfd2d4, metalness: 0.9, roughness: 0.15, density: 10.35 },
   // Référence validée par le client : ces trois valeurs rendent exactement
   // comme avant la refonte. Ne pas les modifier sans nouvelle validation.
-  'LAITON': { color: 0xb5a642, metalness: 0.9, roughness: 0.15, density: 8.5 },
+  'LAITON': { color: 0xb5a642, metalness: 0.9, roughness: 0.15, density: 8.4 },
   'PROTO_VISUEL': { color: 0x3b82f6, metalness: 0.0, roughness: 0.05, density: 1.2, isService: true },
   'IMPRESSION_CIRE': { color: 0xff5733, metalness: 0.0, roughness: 0.05, density: 1.0, isService: true },
 };

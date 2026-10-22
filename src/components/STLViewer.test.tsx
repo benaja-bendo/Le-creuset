@@ -26,7 +26,7 @@ function buildCubeGeometry(size: number): THREE.BufferGeometry {
 
 describe('resolveMaterial', () => {
   it('returns the config for a known material id', () => {
-    expect(resolveMaterial('ARGENT_925').density).toBeCloseTo(10.4);
+    expect(resolveMaterial('ARGENT_925').density).toBeCloseTo(10.35);
   });
 
   it('maps the admin order nomenclature to the STLViewer vocabulary', () => {

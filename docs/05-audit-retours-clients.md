@@ -73,6 +73,16 @@ Les coordonnées affichées étaient fausses (Paris, adresse de démonstration) 
 
 Le site entier, espace client et three.js compris, était livré en un seul fichier. Les pages client, admin, légales, inscription et mot de passe sont maintenant chargées à la demande. Un garde-fou de build (`keepThreeOutOfEntry`, `vite.config.ts`) échoue si three.js revient dans le chunk d'entrée.
 
+### ✅ Devis automatique : formule du client (22/10/2026)
+
+Le devis STL (`client/Quote.tsx`) comptait un forfait main-d'œuvre de 50 € et un prix du métal au gramme (60 €/g pour l'or 750…). Le client a transmis son principe : **impression = volume × 50 €/cm³** ; **fonte = volume × densité × prix de fonte au gramme** ; **+10 %** sur le total ; **résine « sur devis »**, sans prix automatique. Les règles sont maintenant dans [`src/lib/quote.ts`](../src/lib/quote.ts) (testé : [`quote.test.ts`](../src/lib/quote.test.ts), [`client/Quote.test.tsx`](../src/pages/client/Quote.test.tsx)) et la page ne fait plus qu'afficher.
+
+À savoir :
+- les densités du client remplacent celles de `STLViewer` pour les six métaux du devis (or 750 : 15,35 ; or 375 : 12 ; or gris palladié : 15,8 ; platine : 20,3 ; argent : 10,35 ; laiton : 8,4), pour que la « masse estimée » de l'aperçu 3D soit celle du devis ; un test échoue si elles divergent ;
+- le prix s'affiche au centime (`formatAmount`), plus arrondi à l'euro ;
+- `pages/public/Quote.tsx`, une page de démonstration jamais routée qui portait une troisième série de prix, est supprimée ;
+- l'aperçu de la vitrine (`ProPreview`) annonçait « Impression cire », option qui n'existe pas dans l'outil : remplacée par « Laiton ».
+
 ---
 
 ## Retours de septembre 2026
