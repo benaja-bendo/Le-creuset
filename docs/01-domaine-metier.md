@@ -118,6 +118,8 @@ Le back mappe l'alliage vers le métal pur au moment du débit ; le front n'a ja
 
 Le client peut uploader un STL sur la page *Devis STL* pour le visualiser, mais ce fichier n'entre pas dans sa bibliothèque.
 
+Le prix indicatif de cette page est calculé **dans le navigateur** (aucun endpoint) par `src/lib/quote.ts` : `(volume × 50 + volume × densité × prix de fonte au gramme) × 1,10`, par pièce, arrondi au centime, puis × la quantité. Les prix de fonte au gramme sont ceux du client (or 750 : 2,2 ; or 375 : 3,9 ; or gris palladié : 3,6 ; platine : 5,8 ; argent : 1,7 ; laiton : 1,3). La résine n'a pas de prix automatique : « Sur devis ».
+
 ### Pas de commande dans l'app
 
 Les commandes se passent **par email à `contact@lagrenaille.fr`**. Les boutons « Passer commande » ont été retirés ; les pages *Devis STL* et *Mes Commandes* affichent une bannière de contact. Ne pas les réintroduire.

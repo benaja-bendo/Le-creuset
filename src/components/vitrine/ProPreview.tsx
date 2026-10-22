@@ -70,7 +70,7 @@ export function OrderTrackingPreview() {
   );
 }
 
-const QUOTE_OPTIONS = ['Or jaune 750', 'Argent 925', 'Platine 950', 'Impression cire', 'Prototype résine'];
+const QUOTE_OPTIONS = ['Or jaune 750', 'Argent 925', 'Platine 950', 'Laiton', 'Prototype résine'];
 
 export function QuotePreview() {
   return (
