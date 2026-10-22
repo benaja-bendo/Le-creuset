@@ -98,6 +98,7 @@ Ces helpers gèrent l'en-tête `Authorization`, la purge du token sur `401` et l
 - `pnpm build` fait `tsc -b && vite build` : **un import ou une variable inutilisée casse le build**. Nettoyer les imports en supprimant du code.
 - `VITE_API_URL` doit inclure le suffixe **`/api`** (`http://localhost:3000/api`). Sans lui, tout part en 404.
 - Le type `UserStatus` de `AuthContext.tsx` est `'PENDING' | 'ACTIVE' | 'REJECTED'` — **il manque `SUSPENDED`**, présent côté back.
+- **CSP stricte dans nginx** (`nginx-security-headers.conf`) : tout service tiers ou nouvelle origine (API, CDN, police, cadre) doit y être déclaré, sinon il est bloqué en prod sans erreur visible en dev. Aucun journal d'accès nginx : ne pas en remettre sans mettre à jour la politique de confidentialité.
 - **Aucun composant `Modal` partagé** : 15 modales sont écrites en dur dans 11 fichiers, avec des overlays divergents.
 - Tests front : Vitest + Testing Library (`pnpm test`), sans e2e.
 

@@ -20,6 +20,8 @@ import { Suspense, useEffect, useState } from 'react';
 import { clsx } from 'clsx';
 import { TooltipProvider } from '../components/ui/tooltip';
 import { useAuth } from '../context/AuthContext';
+import { CLIENT_AREA_META } from '../lib/seo';
+import { usePageMeta } from '../lib/usePageMeta';
 
 /** Attente du chunk d'une page : le même indicateur que le chargement des données qui suit. */
 function PageLoading() {
@@ -40,6 +42,7 @@ export default function ClientLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, isAdmin, isActive, logout } = useAuth();
+  usePageMeta(CLIENT_AREA_META, null);
 
   const isPathActive = (path: string) => location.pathname === path || 
     (path !== '/client' && location.pathname.startsWith(path));

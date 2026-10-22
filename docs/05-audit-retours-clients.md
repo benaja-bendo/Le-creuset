@@ -45,6 +45,18 @@ Le formulaire de reset exigeait 6 caractères, le changement de mot de passe du 
 
 Libre Baskerville et Montserrat étaient chargées depuis Google Fonts (adresse IP du visiteur transmise à Google, non mentionné dans la politique). Elles sont maintenant embarquées (`@fontsource`), le site n'envoie plus aucune requête à un service tiers.
 
+### ✅ Référencement, partage et en-têtes de sécurité
+
+Audit de la prod : même titre sur toutes les pages, `robots.txt` et `sitemap.xml` qui renvoyaient la page d'accueil, aucune image de partage, aucun en-tête de sécurité, `www.lagrenaille.fr` sans réponse (le DNS existait, mais Traefik n'avait pas de routeur pour ce nom). Corrigé : titres et descriptions par page, `robots.txt` et `sitemap.xml` réels, `og-image.jpg`, en-têtes et CSP dans nginx (testés sur l'image Docker avec l'espace connecté et le visualiseur 3D), redirection `www` → domaine principal. Détails dans [`02-frontend.md`](02-frontend.md#conventions-ui).
+
+### ✅ Journaux : plus de journal d'accès, rotation des journaux Docker
+
+nginx écrivait un journal d'accès (adresses IP des visiteurs) dans les journaux Docker, qui n'avaient aucune rotation et grossissaient sans limite. Journal d'accès supprimé, rotation 10 Mo × 3 sur les conteneurs front et back. La politique de confidentialité décrit désormais cette situation.
+
+### ✅ Crédits des mentions légales
+
+Une seule ligne : « Conception et réalisation : Benaja Bendo ». Les mentions « Photographies » et « Icônes » sont retirées (non obligatoires, et les photos actuelles sont provisoires).
+
 ### ✅ Formulaire de contact — branché sur l'API
 
 Les coordonnées affichées étaient fausses (Paris, adresse de démonstration) et le formulaire n'envoyait rien. Il poste maintenant vers `POST /contact` (back), avec états d'envoi, de succès et d'erreur, et garde le `mailto:` pré-rempli en secours.
