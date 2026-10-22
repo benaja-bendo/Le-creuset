@@ -1,364 +1,110 @@
-import { useRef } from 'react';
-import { Link } from 'react-router-dom';
-import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { useGSAP } from '@gsap/react';
-import { 
-  Flame, 
-  Printer, 
-  Layers, 
-  ArrowRight, 
-  CheckCircle2, 
-  Clock, 
-  Award,
-  Users,
-  Target,
-  Sparkles,
-  type LucideIcon
-} from 'lucide-react';
+import { Award, CircleCheck, Clock, Users } from 'lucide-react';
+import ActionLink from '../../components/vitrine/ActionLink';
+import { Container, SectionHeading } from '../../components/vitrine/Layout';
+import PageHero from '../../components/vitrine/PageHero';
+import Reveal from '../../components/vitrine/Reveal';
+import ServiceCards from '../../components/vitrine/ServiceCards';
+import { PHOTOS } from '../../lib/photos';
 
-// Import Assets
-import fonteImg from '../../assets/fonte.png';
-import impressionImg from '../../assets/impression-3d.png';
-import moulageImg from '../../assets/moulage.png';
+const ENGAGEMENTS = [
+  { icon: Award, title: 'Technologie de pointe', text: 'Machine de dernière génération, de qualité joaillerie.' },
+  { icon: Clock, title: 'Délais respectés', text: 'Engagement sur les délais, avec un suivi en temps réel.' },
+  { icon: CircleCheck, title: 'Espace personnalisé', text: 'Un suivi de vos comptes-poids, factures et commandes.' },
+  { icon: Users, title: 'Accompagnement personnalisé', text: 'Un suivi personnalisé à toutes les étapes de vos créations.' },
+];
 
-// Register GSAP plugins
-gsap.registerPlugin(ScrollTrigger, useGSAP);
-
-const ServiceCard = ({ 
-  title, 
-  description, 
-  icon: Icon, 
-  image, 
-  link, 
-  index 
-}: { 
-  title: string; 
-  description: string; 
-  icon: LucideIcon; 
-  image: string; 
-  link: string;
-  index: number;
-}) => {
-  const cardRef = useRef(null);
-
-  useGSAP(() => {
-    gsap.from(cardRef.current, {
-      y: 50,
-      opacity: 0,
-      duration: 0.8,
-      delay: index * 0.2,
-      ease: "power3.out",
-      scrollTrigger: {
-        trigger: cardRef.current,
-        start: "top bottom-=100",
-      }
-    });
-  }, { scope: cardRef });
-
-  return (
-    <div ref={cardRef} className="group relative overflow-hidden rounded-lg bg-secondary-900 border border-secondary-800 hover:border-primary-600 transition-all duration-500">
-      {/* Image Background with Overlay */}
-      <div className="absolute inset-0 z-0">
-        <img 
-          src={image} 
-          alt={title} 
-          className="w-full h-full object-cover opacity-40 group-hover:scale-105 transition-transform duration-700"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-secondary-950 via-secondary-950/80 to-transparent" />
-      </div>
-
-      {/* Content */}
-      <div className="relative z-10 p-8 h-full flex flex-col justify-end min-h-[400px]">
-        <div className="mb-4 w-12 h-12 bg-primary-600/20 rounded-lg flex items-center justify-center text-primary-500 group-hover:bg-primary-600 group-hover:text-white transition-colors duration-300">
-          <Icon size={24} />
-        </div>
-        
-        <h3 className="text-2xl font-serif font-bold text-white mb-3 group-hover:text-primary-500 transition-colors">
-          {title}
-        </h3>
-        
-        <p className="text-secondary-400 mb-6 line-clamp-3 group-hover:text-secondary-300 transition-colors">
-          {description}
-        </p>
-
-        <Link 
-          to={link}
-          className="inline-flex items-center gap-2 text-primary-500 font-medium tracking-wide uppercase text-xs hover:text-white transition-colors"
-        >
-          En savoir plus <ArrowRight size={14} />
-        </Link>
-      </div>
-    </div>
-  );
-};
-
-const ProcessStep = ({ number, title, description, index }: { number: string; title: string; description: string; index: number }) => {
-  const stepRef = useRef(null);
-
-  useGSAP(() => {
-    gsap.from(stepRef.current, {
-      x: index % 2 === 0 ? -50 : 50,
-      opacity: 0,
-      duration: 0.8,
-      scrollTrigger: {
-        trigger: stepRef.current,
-        start: "top bottom-=50",
-      }
-    });
-  }, { scope: stepRef });
-
-  return (
-    <div ref={stepRef} className="relative">
-      <div className="flex items-start gap-6">
-        <div className="flex-shrink-0 w-16 h-16 rounded-full bg-gradient-to-br from-primary-600 to-primary-700 flex items-center justify-center text-2xl font-bold text-white shadow-lg shadow-primary-600/30">
-          {number}
-        </div>
-        <div className="flex-1 pt-2">
-          <h3 className="text-xl font-serif font-bold text-white mb-2">{title}</h3>
-          <p className="text-secondary-400 leading-relaxed">{description}</p>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const Benefit = ({ icon: Icon, title, description, index }: { icon: LucideIcon; title: string; description: string; index: number }) => {
-  const benefitRef = useRef(null);
-
-  useGSAP(() => {
-    gsap.from(benefitRef.current, {
-      y: 30,
-      opacity: 0,
-      duration: 0.6,
-      delay: index * 0.1,
-      scrollTrigger: {
-        trigger: benefitRef.current,
-        start: "top bottom-=50",
-      }
-    });
-  }, { scope: benefitRef });
-
-  return (
-    <div ref={benefitRef} className="flex items-start gap-4 p-6 rounded-lg bg-secondary-900/50 border border-secondary-800 hover:border-primary-600/50 transition-all">
-      <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary-600/20 flex items-center justify-center text-primary-500">
-        <Icon size={20} />
-      </div>
-      <div>
-        <h4 className="text-white font-medium mb-1">{title}</h4>
-        <p className="text-sm text-secondary-500">{description}</p>
-      </div>
-    </div>
-  );
-};
+const PARCOURS = [
+  { title: 'Croquis ou fichier', text: 'Vous nous confiez un dessin, une cire sculptée ou un fichier CAO.' },
+  { title: 'Modélisation 3D', text: 'Sur 3Design et Rhino, pensée pour le sertissage et la joaillerie.' },
+  { title: 'Cire ou moule', text: 'Impression en cire 3D Systems, ou tirage de cires depuis vos moules.' },
+  { title: 'Fonte', text: 'Coulée sur machine Galloni, de l’or 375 au platine 950.' },
+  { title: 'Suivi en ligne', text: 'Statut de commande, compte-poids et factures dans votre espace pro.' },
+];
 
 export default function Services() {
-  const containerRef = useRef(null);
-  const titleRef = useRef(null);
-  const processRef = useRef(null);
-  const whyUsRef = useRef(null);
-
-  useGSAP(() => {
-    gsap.from(titleRef.current, {
-      y: -30,
-      opacity: 0,
-      duration: 1,
-      ease: "power3.out"
-    });
-
-    gsap.from(processRef.current, {
-      opacity: 0,
-      duration: 0.8,
-      scrollTrigger: {
-        trigger: processRef.current,
-        start: "top center+=100",
-      }
-    });
-
-    gsap.from(whyUsRef.current, {
-      opacity: 0,
-      duration: 0.8,
-      scrollTrigger: {
-        trigger: whyUsRef.current,
-        start: "top center+=100",
-      }
-    });
-  }, { scope: containerRef });
-
-  const services = [
-    {
-      title: "Fonte à Cire Perdue",
-      description: "L'alchimie entre tradition millénaire et technologies modernes. Nous garantissons une qualité de surface exceptionnelle pour vos métaux précieux.",
-      icon: Flame,
-      image: fonteImg,
-      link: "/fonte"
-    },
-    {
-      title: "Impression 3D",
-      description: "La précision du numérique au service de votre créativité. Transformation de vos fichiers CAD en objets physiques avec nos résines calcinables.",
-      icon: Printer,
-      image: impressionImg,
-      link: "/impression"
-    },
-    {
-      title: "Moulage",
-      description: "Dupliquer l'unique pour créer la série. Moules en silicone ou caoutchouc réalisés avec une découpe experte.",
-      icon: Layers,
-      image: moulageImg,
-      link: "/moulage"
-    }
-  ];
-
-  const processSteps = [
-    {
-      number: "01",
-      title: "Consultation & Analyse",
-      description: "Nous étudions vos besoins, analysons vos fichiers ou vos pièces modèles, et vous conseillons sur la meilleure approche technique."
-    },
-    {
-      number: "02",
-      title: "Préparation & Prototypage",
-      description: "Impression 3D de vos modèles en résine calcinable ou création de moules selon votre projet. Validation avant production."
-    },
-    {
-      number: "03",
-      title: "Production",
-      description: "Fonte à cire perdue de vos pièces en métaux précieux ou communs avec un contrôle qualité rigoureux à chaque étape."
-    },
-    {
-      number: "04",
-      title: "Finition & Livraison",
-      description: "Ébavurage, polissage et finitions selon vos spécifications. Livraison sécurisée de vos pièces finalisées."
-    }
-  ];
-
-  const benefits = [
-    {
-      icon: Award,
-      title: "Excellence Artisanale",
-      description: "Savoir-faire ancestral combiné aux technologies de pointe"
-    },
-    {
-      icon: Clock,
-      title: "Délais Respectés",
-      description: "Engagement sur les délais avec suivi en temps réel"
-    },
-    {
-      icon: CheckCircle2,
-      title: "Qualité Garantie",
-      description: "Contrôle qualité à chaque étape de production"
-    },
-    {
-      icon: Users,
-      title: "Accompagnement Personnalisé",
-      description: "Conseil expert du design à la réalisation"
-    },
-    {
-      icon: Target,
-      title: "Précision Maximale",
-      description: "Tolérances serrées et respect des spécifications"
-    },
-    {
-      icon: Sparkles,
-      title: "Innovation Continue",
-      description: "Veille technologique et amélioration constante"
-    }
-  ];
-
   return (
-    <div ref={containerRef} className="min-h-screen pt-24 pb-20">
-      {/* Hero Section */}
-      <div className="container mx-auto px-6">
-        <div ref={titleRef} className="text-center max-w-3xl mx-auto mb-20">
-          <h1 className="text-4xl md:text-5xl font-serif font-bold text-white mb-6">
-            Nos Savoir-Faire
-          </h1>
-          <p className="text-lg text-secondary-400 leading-relaxed">
-            De la conception numérique à la réalisation physique, nous maîtrisons chaque étape 
-            de la chaîne de production pour donner vie à vos créations les plus ambitieuses.
-          </p>
-        </div>
+    <>
+      <PageHero
+        photo={PHOTOS.moulage}
+        title="Nos services"
+        lead="Fonte, conception 3D et moulage : toutes les étapes de vos pièces, réunies dans un même atelier à Bordeaux."
+        breadcrumb={[{ label: 'Accueil', to: '/' }, { label: 'Nos services' }]}
+      />
 
-        {/* Services Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-32">
-          {services.map((service, index) => (
-            <ServiceCard 
-              key={index}
-              {...service}
-              index={index}
-            />
-          ))}
-        </div>
-      </div>
+      <section aria-label="Nos services" className="py-20 md:py-28">
+        <Container>
+          <ServiceCards headingLevel="h2" />
+        </Container>
+      </section>
 
-      {/* Process Section */}
-      <div className="bg-secondary-900/30 py-20 mb-32">
-        <div className="container mx-auto px-6">
-          <div ref={processRef}>
-            <div className="text-center max-w-2xl mx-auto mb-16">
-              <h2 className="text-3xl md:text-4xl font-serif font-bold text-white mb-4">
-                Notre Processus
-              </h2>
-              <p className="text-secondary-400">
-                De votre idée à l'objet final, un parcours maîtrisé en 4 étapes
-              </p>
-            </div>
-
-            <div className="max-w-4xl mx-auto space-y-12">
-              {processSteps.map((step, index) => (
-                <ProcessStep key={index} {...step} index={index} />
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Why Choose Us Section */}
-      <div className="container mx-auto px-6 mb-32">
-        <div ref={whyUsRef}>
-          <div className="text-center max-w-2xl mx-auto mb-16">
-            <h2 className="text-3xl md:text-4xl font-serif font-bold text-white mb-4">
-              Pourquoi Nous Choisir
-            </h2>
-            <p className="text-secondary-400">
-              L'engagement La Grenaille pour votre réussite
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {benefits.map((benefit, index) => (
-              <Benefit key={index} {...benefit} index={index} />
+      <section aria-labelledby="engagements" className="pb-20 md:pb-28">
+        <Container className="flex flex-col items-center gap-12 md:gap-14">
+          <SectionHeading
+            title={<span id="engagements">Pourquoi nous choisir</span>}
+            lead="L’engagement La Grenaille pour votre réussite"
+            divider
+          />
+          <ul className="grid w-full gap-5 md:grid-cols-2">
+            {ENGAGEMENTS.map(({ icon: Icon, title, text }, i) => (
+              <li key={title} className="flex">
+                <Reveal delay={(i % 2) * 120} className="flex w-full items-start gap-5 border border-sable bg-papier p-7 sm:p-8">
+                  <span className="flex size-[52px] shrink-0 items-center justify-center rounded-full bg-lin">
+                    <Icon size={22} strokeWidth={1.4} className="text-bronze" aria-hidden="true" />
+                  </span>
+                  <div className="flex flex-col gap-2">
+                    <h3 className="text-[19px] font-bold">{title}</h3>
+                    <p className="font-serif text-[15px] leading-[1.7] text-pierre">{text}</p>
+                  </div>
+                </Reveal>
+              </li>
             ))}
-          </div>
-        </div>
-      </div>
+          </ul>
+        </Container>
+      </section>
 
-      {/* CTA Section */}
-      <div className="container mx-auto px-6">
-        <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-2xl p-12 text-center">
-          <h2 className="text-3xl font-serif font-bold text-white mb-4">
-            Prêt à Concrétiser Votre Projet ?
-          </h2>
-          <p className="text-primary-100 mb-8 max-w-2xl mx-auto">
-            Que vous soyez créateur de bijoux, designer d'objets d'art ou industriel, 
-            nous avons la solution pour transformer vos idées en réalité.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link 
-              to="/client" 
-              className="px-8 py-3 rounded-full bg-white text-primary-600 font-medium hover:bg-secondary-100 transition-colors inline-block"
-            >
-              Demander un devis (Espace client)
-            </Link>
-            <Link 
-              to="/contact" 
-              className="px-8 py-3 rounded-full border-2 border-white text-white font-medium hover:bg-white hover:text-primary-600 transition-all inline-block"
-            >
-              Nous contacter
-            </Link>
-          </div>
-        </div>
-      </div>
-    </div>
+      <section aria-labelledby="parcours" className="bg-lin py-20 md:py-28">
+        <Container className="flex flex-col gap-12 md:gap-14">
+          <SectionHeading
+            align="start"
+            eyebrow="Le parcours d’une pièce"
+            title={<span id="parcours">Du croquis à la pièce finie</span>}
+          />
+          <ol className="grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-5">
+            {PARCOURS.map((step, i) => (
+              <li key={step.title}>
+                <Reveal delay={i * 90} className="flex flex-col gap-3.5 border-t border-charbon pt-5">
+                  <span className="font-serif text-3xl text-bronze" aria-hidden="true">
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                  <h3 className="text-lg font-bold">{step.title}</h3>
+                  <p className="font-serif text-[15px] leading-[1.7] text-pierre">{step.text}</p>
+                </Reveal>
+              </li>
+            ))}
+          </ol>
+        </Container>
+      </section>
+
+      <section aria-labelledby="projet" className="py-20 md:py-28">
+        <Container>
+          <Reveal className="mx-auto max-w-[980px] border border-or p-2">
+            <div className="flex flex-col items-center gap-6 border border-or px-6 py-14 text-center sm:px-10 sm:py-16">
+              <h2 id="projet" className="text-[clamp(1.75rem,1.3rem+1.6vw,2.4rem)] font-normal">
+                Prêt à concrétiser votre projet ?
+              </h2>
+              <p className="max-w-xl font-serif text-[17px] leading-[1.78] text-pierre">
+                Que vous soyez bijoutier, designer ou grossiste, nous avons la solution pour donner vie à vos idées.
+              </p>
+              <div className="mt-2 flex w-full flex-col gap-3.5 sm:w-auto sm:flex-row">
+                <ActionLink to="/register">Créer un compte</ActionLink>
+                <ActionLink to="/contact" variant="outline">
+                  Nous contacter
+                </ActionLink>
+              </div>
+            </div>
+          </Reveal>
+        </Container>
+      </section>
+    </>
   );
 }

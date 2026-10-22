@@ -1,48 +1,116 @@
 @import "tailwindcss";
 
+/*
+ * Charte La Grenaille, tirée des cartes de visite : ivoire dominant, charbon
+ * réservé aux barres du haut et du bas, or en filets uniquement.
+ */
 @theme {
-  /* Gold Colors from Demo */
-  --color-primary-50: #fbf7e6;
-  --color-primary-100: #f5ebc3;
-  --color-primary-200: #ebd68a;
-  --color-primary-300: #e0c052;
-  --color-primary-400: #d4af37; /* Base Gold #D4AF37 */
-  --color-primary-500: #b59020; /* Hover Gold */
-  --color-primary-600: #967315;
-  --color-primary-700: #785a12;
-  --color-primary-800: #634915;
-  --color-primary-900: #553e16;
-  --color-primary-950: #312108;
+  --color-ivoire: #f6f3ec;
+  --color-lin: #eee8dc;
+  --color-papier: #fbf9f4;
+  --color-sable: #e4dccb; /* bordures des cartes */
+  --color-grege: #d6ccb8; /* bordures des champs et séparateurs */
+  --color-charbon: #2b2928;
+  --color-charbon-doux: #3a3735;
+  --color-pierre: #5e5853;
+  --color-gris-carte: #7a746e; /* 4,2:1 sur ivoire : 22 px minimum */
+  --color-or: #c6a36b; /* 2,1:1 sur ivoire : filets et ornements, jamais du texte */
+  --color-or-clair: #d9bc8a;
+  --color-bronze: #86622f; /* texte d'accent sur fond clair, 5:1 sur ivoire */
 
-  /* Dark Backgrounds from Demo */
+  /* Accent de l'espace client, réaligné sur l'or de la charte (même échelle de clarté qu'avant). */
+  --color-primary-50: #faf6ee;
+  --color-primary-100: #f2e9d6;
+  --color-primary-200: #e6d5b2;
+  --color-primary-300: #d7bd8c;
+  --color-primary-400: #c6a36b;
+  --color-primary-500: #a8834a;
+  --color-primary-600: #86622f;
+  --color-primary-700: #6b4e26;
+  --color-primary-800: #573f20;
+  --color-primary-900: #48351d;
+  --color-primary-950: #2a1e10;
+
   --color-secondary-50: #f6f6f6;
   --color-secondary-100: #e7e7e7;
   --color-secondary-200: #d1d1d1;
   --color-secondary-300: #b0b0b0;
-  --color-secondary-400: #a0a0a0; /* Muted Text */
+  --color-secondary-400: #a0a0a0;
   --color-secondary-500: #6e6e6e;
   --color-secondary-600: #5d5d5d;
   --color-secondary-700: #4f4f4f;
-  --color-secondary-800: #1e1e1e; /* Card BG */
-  --color-secondary-900: #121212; /* Main BG */
+  --color-secondary-800: #1e1e1e;
+  --color-secondary-900: #121212;
   --color-secondary-950: #000000;
 
-  --font-sans: 'Montserrat', sans-serif;
-  --font-serif: 'Playfair Display', serif;
+  --font-sans: 'Montserrat', system-ui, sans-serif;
+  --font-serif: 'Libre Baskerville', Georgia, serif;
+
+  --ease-luxe: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+  --animate-hero-zoom: hero-zoom 9s var(--ease-luxe) both;
+
+  @keyframes hero-zoom {
+    from {
+      transform: scale(1.06);
+    }
+    to {
+      transform: scale(1);
+    }
+  }
 }
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+  }
   body {
-    @apply bg-secondary-900 text-secondary-50 antialiased font-sans;
+    @apply bg-ivoire text-charbon antialiased font-sans;
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-serif;
+    text-wrap: balance;
   }
   input, select, textarea {
     @apply text-secondary-900;
   }
-  /* Ensure inputs on dark backgrounds still work if they have specific classes */
   .bg-secondary-950 input, .bg-secondary-900 input {
     @apply text-white;
+  }
+  ::selection {
+    @apply bg-primary-200 text-charbon;
+  }
+}
+
+@layer components {
+  .vitrine :focus-visible {
+    outline: 2px solid var(--color-bronze);
+    outline-offset: 3px;
+  }
+
+  .reveal {
+    opacity: 0;
+    transform: translateY(18px);
+    transition:
+      opacity 0.9s var(--ease-luxe),
+      transform 0.9s var(--ease-luxe);
+  }
+  .reveal[data-visible='true'] {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .animate-hero-zoom {
+    animation: none;
   }
 }
