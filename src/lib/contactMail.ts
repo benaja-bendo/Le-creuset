@@ -9,8 +9,8 @@ export type ContactFields = {
 
 /**
  * Lien `mailto:` pré-rempli avec la demande du formulaire de contact.
- * Le site n'a pas encore de route d'envoi côté API : c'est la messagerie du
- * visiteur qui envoie le message à l'atelier.
+ * Solution de secours quand `POST /contact` échoue : le visiteur envoie le
+ * message depuis sa messagerie sans avoir à le retaper.
  */
 export function buildContactMailto({ name, company, email, message }: ContactFields): string {
   const from = company.trim() || name.trim();

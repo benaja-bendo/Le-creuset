@@ -13,7 +13,7 @@ src/
 ├── lib/
 │   ├── site.ts         coordonnées, réseaux sociaux, liens des services
 │   ├── photos.ts       registre des photos de la vitrine
-│   └── …               orders, format, contactMail
+│   └── …               orders, format, contactMail (mailto de secours du formulaire de contact)
 ├── context/
 │   └── AuthContext.tsx session, login/logout, restauration au boot
 ├── layouts/
@@ -149,6 +149,8 @@ Trois tables y cohabitent :
 Garde-fous mobiles présents : `setPixelRatio(Math.min(devicePixelRatio, 2))` et `touchAction: 'none'`. Manquent : détection de perte de contexte WebGL, limite de taille de fichier, dégradation de l'antialiasing sur GPU faible.
 
 **`vitrine/RingShowcase.tsx`** — section « De la cire au métal » de l'accueil : une bague granulée en 3D (three.js, rendu PBR avec `RoomEnvironment`) et 8 matières, de la résine au platine. La scène (`vitrine/ring/RingScene.tsx`) est chargée à l'approche de la section, mise en pause hors écran et sans rotation automatique si `prefers-reduced-motion`. Sans WebGL, elle bascule sur un visuel statique (test : `RingShowcase.test.tsx`). Ce pipeline est indépendant de celui du `STLViewer` : ses couleurs sont des réflectances physiques et ne doivent pas être recopiées dans `MATERIAL_CONFIG`.
+
+**`vitrine/ContactSection.tsx`** — formulaire de contact de l'accueil et de `/contact`. Il poste vers `POST /contact` (back, route publique limitée à 5 envois/min par IP) et affiche l'envoi, la confirmation ou l'erreur. En cas d'échec, il propose un `mailto:` pré-rempli (`buildContactMailto` de `src/lib/contactMail.ts`) pour que le visiteur ne retape pas son message. Le champ caché `website` est un pot de miel : le back ignore silencieusement tout message où il est rempli. Tests : `ContactSection.test.tsx`.
 
 **`ImageViewerModal.tsx`** — lightbox pour les photos de moules. Utilisé dans `admin/Library.tsx` et `client/Molds.tsx`.
 
