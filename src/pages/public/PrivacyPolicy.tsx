@@ -1,4 +1,5 @@
-import { LEGAL_LAST_UPDATED } from '../../lib/legal';
+import { EmailLink, PhoneLink } from '../../components/legal/ContactLinks';
+import { LEGAL_LAST_UPDATED, LEGAL_PENDING } from '../../lib/legal';
 
 export default function PrivacyPolicy() {
   return (
@@ -22,10 +23,10 @@ export default function PrivacyPolicy() {
             1. Responsable du traitement
           </h2>
           <div className="space-y-2">
-            <p><strong className="text-charbon">Responsable :</strong> [NOM DE LA SOCIÉTÉ]</p>
-            <p><strong className="text-charbon">Adresse :</strong> [ADRESSE COMPLÈTE]</p>
-            <p><strong className="text-charbon">Email :</strong> [EMAIL DE CONTACT]</p>
-            <p><strong className="text-charbon">Téléphone :</strong> [NUMÉRO]</p>
+            <p><strong className="text-charbon">Responsable :</strong> La Grenaille (société en cours d’immatriculation)</p>
+            <p><strong className="text-charbon">Adresse :</strong> {LEGAL_PENDING.address}</p>
+            <p><strong className="text-charbon">Email :</strong> <EmailLink /></p>
+            <p><strong className="text-charbon">Téléphone :</strong> <PhoneLink /></p>
           </div>
         </section>
 
@@ -150,7 +151,7 @@ export default function PrivacyPolicy() {
             <li><strong className="text-charbon">Droit de retirer votre consentement :</strong> à tout moment</li>
           </ul>
           <p className="mt-4">
-            Pour exercer ces droits, contactez-nous à : <strong className="text-charbon">[EMAIL]</strong>
+            Pour exercer ces droits, contactez-nous à : <EmailLink />
           </p>
           <p className="mt-4">
             Nous nous engageons à répondre dans un délai d'un mois. Vous disposez également du droit 
@@ -207,9 +208,9 @@ export default function PrivacyPolicy() {
             données personnelles, contactez-nous :
           </p>
           <div className="space-y-2 mt-4">
-            <p><strong className="text-charbon">Email :</strong> [EMAIL]</p>
-            <p><strong className="text-charbon">Téléphone :</strong> [NUMÉRO]</p>
-            <p><strong className="text-charbon">Courrier :</strong> [ADRESSE COMPLÈTE]</p>
+            <p><strong className="text-charbon">Email :</strong> <EmailLink /></p>
+            <p><strong className="text-charbon">Téléphone :</strong> <PhoneLink /></p>
+            <p><strong className="text-charbon">Courrier :</strong> {LEGAL_PENDING.address}</p>
           </div>
         </section>
       </div>

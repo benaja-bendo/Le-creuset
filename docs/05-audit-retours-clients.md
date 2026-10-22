@@ -16,7 +16,7 @@ Après relecture de la vitrine, le client demande :
 
 - **Page Conception & Impression 3D** : retrait des trois tags « 3Design », « Rhino », « Sertissage » (`Impression.tsx`). Le paragraphe qui cite les logiciels reste.
 - **CGV** (`CGV.tsx`) : plus d'acompte (art. 2.2 et 3.2 — le règlement est dû à réception de la facture, formulation à valider avec lui), réclamation sous **3 jours** au lieu de 7 (art. 6.1), phrase sur les chutes de métaux précieux supprimée (art. 8). Conservés tels quels car validés : devis valable 30 jours, pénalités de retard, délais de fabrication.
-- **Mentions légales** : les informations manquantes (SIRET, etc.) arrivent la semaine suivante ; l'atelier s'affiche « Bordeaux », sans adresse complète.
+- **Mentions légales** : l'atelier s'affiche « Bordeaux », sans adresse complète. La société est **en cours d'immatriculation** : pas de SIRET, de forme juridique, d'adresse de siège ni de directeur de publication pour l'instant. Au lieu de champs entre crochets visibles du public, les pages affichent une mention transitoire (`LEGAL_PENDING` dans `src/lib/legal.ts`), et le téléphone et l'email réels (`CONTACT`). **Quand le client transmet ses informations** : les saisir dans `MentionsLegales.tsx` et `PrivacyPolicy.tsx`, supprimer `LEGAL_PENDING`, changer `LEGAL_LAST_UPDATED`. `legal.test.tsx` échoue si un champ entre crochets réapparaît.
 
 ### ✅ « Créée » signalé comme coquille dans le détail d'une commande — reformulé
 
@@ -37,7 +37,7 @@ Thème sombre remplacé par la charte des cartes de visite : fond ivoire, **char
 À savoir :
 - les **photos sont provisoires** (images d'attente générées par IA, badge « Photo provisoire ») : `src/lib/photos.ts` ;
 - les **réseaux sociaux** n'ont pas d'adresse (icônes sans lien) : `src/lib/site.ts` ;
-- les **mentions légales et la politique de confidentialité** contiennent encore des `[CHAMPS À REMPLIR]` : informations à obtenir du client.
+- les **mentions légales et la politique de confidentialité** affichent une mention transitoire (« société en cours d'immatriculation ») à la place du SIRET, de la forme juridique, de l'adresse du siège et du directeur de publication : informations à obtenir du client, voir ci-dessous.
 
 ### ✅ Une seule règle de mot de passe : 8 caractères
 
