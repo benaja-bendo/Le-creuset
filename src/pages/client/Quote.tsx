@@ -2,6 +2,8 @@ import { useState, useRef, useCallback, type ButtonHTMLAttributes, type ReactNod
 import { Upload, X, AlertCircle, Loader2 } from 'lucide-react';
 import { uploadFile, BASE_URL } from '../../api/client';
 import STLViewer from '../../components/STLViewer';
+import { formatAmount } from '../../lib/format';
+import { QUOTE_MATERIALS, computeQuote } from '../../lib/quote';
 
 // Composant bouton (client)
 type ButtonVariant = 'primary' | 'outline' | 'ghost' | 'success';
@@ -36,24 +38,6 @@ const SectionTitle = ({ title, subtitle }: { title: string, subtitle: string }) 
     </h2>
   </div>
 );
-
-/**
- * Catalogue proposé au devis instantané.
- *
- * Restreint aux 7 matériaux réellement commercialisés (validé client, août 2026).
- * `swatch` reprend volontairement l'hexadécimal de MATERIAL_CONFIG dans
- * STLViewer : la pastille du sélecteur et l'aperçu 3D doivent montrer la même
- * teinte. Toute modification ici doit être reportée là-bas, et inversement.
- */
-const MATERIALS = [
-  { id: 'OR_JAUNE_750', label: 'Or Jaune 750 (18k)', swatch: '#d4a72c', pricePerGram: 60, density: 15.0, isService: false },
-  { id: 'OR_JAUNE_375', label: 'Or Jaune 375 (9k)', swatch: '#c9a86a', pricePerGram: 25, density: 11.0, isService: false },
-  { id: 'OR_GRIS_750_PALLADIE_13', label: 'Or Gris 750 (Palladié 13%)', swatch: '#c8cacb', pricePerGram: 70, density: 15.5, isService: false },
-  { id: 'PLATINE_950', label: 'Platine 950', swatch: '#b8b4ac', pricePerGram: 45, density: 21.0, isService: false },
-  { id: 'ARGENT_925', label: 'Argent 925', swatch: '#cfd2d4', pricePerGram: 1.5, density: 10.4, isService: false },
-  { id: 'LAITON', label: 'Laiton', swatch: '#b5a642', pricePerGram: 0.5, density: 8.5, isService: false },
-  { id: 'IMPRESSION_CIRE', label: 'Prototype Résine', swatch: '#ff5733', pricePerGram: 0, density: 1.0, isService: true },
-];
 
 export default function Quote() {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -98,29 +82,10 @@ export default function Quote() {
     setModelDimensions(dimensions);
   }, []);
 
-  const calculatePrice = () => {
-    const mat = MATERIALS.find(m => m.id === material);
-    if (!mat || !modelVolume) return null;
-
-    if (mat.isService) {
-        // Forfait de base par pièce pour le prototypage, majoré selon le volume
-        const serviceBasePrice = 40;
-        return Math.round(serviceBasePrice * quantity + (modelVolume * 2));
-    }
-
-    const weight = modelVolume * mat.density; // grammes
-    const materialCost = weight * mat.pricePerGram;
-    const laborCost = 50; // Forfait main d'œuvre
-    
-    return Math.round((materialCost + laborCost) * quantity);
-  };
-
-  const getEstimatedWeight = () => {
-    const mat = MATERIALS.find(m => m.id === material);
-    if (!mat || !modelVolume || mat.isService) return null;
-    return (modelVolume * mat.density).toFixed(1);
-  };
-
+  const selected = QUOTE_MATERIALS.find((m) => m.id === material);
+  const quote = selected && modelVolume ? computeQuote(selected, modelVolume, quantity) : null;
+  // La résine n'a pas de prix automatique : une fois le fichier déposé, on l'annonce « sur devis ».
+  const onRequest = step !== 1 && selected?.pricing === null;
 
   const handleRemoveFile = () => {
     setStep(1);
@@ -129,9 +94,6 @@ export default function Quote() {
     setModelDimensions(null);
   };
 
-
-  const price = calculatePrice();
-  const weight = getEstimatedWeight();
 
   return (
     <div className="space-y-6">
@@ -208,7 +170,7 @@ export default function Quote() {
             <div className="mb-6">
               <label className="block text-xs font-bold text-secondary-500 uppercase tracking-wider mb-3">Matériau / Service</label>
               <div className="grid grid-cols-1 gap-2">
-                {MATERIALS.map((m) => (
+                {QUOTE_MATERIALS.map((m) => (
                   <button
                     key={m.id}
                     onClick={() => setMaterial(m.id)}
@@ -252,10 +214,10 @@ export default function Quote() {
                     <span className="text-secondary-500">Volume:</span>
                     <span className="font-medium text-secondary-900">{modelVolume.toFixed(2)} cm³</span>
                   </div>
-                  {weight && (
+                  {quote && (
                     <div className="flex justify-between">
                       <span className="text-secondary-500">Masse estimée:</span>
-                      <span className="font-medium text-secondary-900">~{weight}g</span>
+                      <span className="font-medium text-secondary-900">~{quote.weight.toFixed(1)}g</span>
                     </div>
                   )}
                   {modelDimensions && (
@@ -275,15 +237,26 @@ export default function Quote() {
             <div className="flex justify-between items-end mb-4">
               <div className="text-secondary-500 text-[10px] font-bold uppercase tracking-widest">Estimation HT</div>
               <div className="text-4xl font-serif text-secondary-900 flex items-baseline gap-1">
-                {step === 1 || price === null ? (
-                  <span className="text-secondary-200">--,--</span>
+                {onRequest ? (
+                  <span className="animate-in fade-in slide-in-from-bottom-1 whitespace-nowrap text-2xl font-bold">Sur devis</span>
                 ) : (
-                  <span className="animate-in fade-in slide-in-from-bottom-1 font-bold">{price},00</span>
+                  <>
+                    {quote ? (
+                      <span className="animate-in fade-in slide-in-from-bottom-1 font-bold">{formatAmount(quote.total)}</span>
+                    ) : (
+                      <span className="text-secondary-200">--,--</span>
+                    )}
+                    <span className="text-sm font-sans font-medium text-secondary-400">€</span>
+                  </>
                 )}
-                <span className="text-sm font-sans font-medium text-secondary-400">€</span>
               </div>
             </div>
-            {price !== null && step !== 1 && (
+            {onRequest && (
+              <p className="text-[10px] text-secondary-400 italic mb-4 leading-snug">
+                Le prototype en résine n’a pas de prix automatique : il est chiffré sur devis.
+              </p>
+            )}
+            {quote && (
               <p className="text-[10px] text-secondary-400 italic mb-4 leading-snug">
                 Les prix mentionnés sont purement informatifs et n’ont pas de valeur contractuelle.
               </p>

@@ -10,6 +10,14 @@ Audit initial réalisé le **9 août 2026** sur `develop` (`79369cb`). Ce docume
 
 Retour du 22/10/2026 : direction visuelle donnée par le client (cartes de visite, maquettes) et trois bugs. Verbatim et décorticage dans `sites/retours-clients/2026-10-22-refonte-vitrine.md`.
 
+### ✅ CGV sans acompte, tags de la page Conception retirés (22/10/2026)
+
+Après relecture de la vitrine, le client demande :
+
+- **Page Conception & Impression 3D** : retrait des trois tags « 3Design », « Rhino », « Sertissage » (`Impression.tsx`). Le paragraphe qui cite les logiciels reste.
+- **CGV** (`CGV.tsx`) : plus d'acompte (art. 2.2 et 3.2 — le règlement est dû à réception de la facture, formulation à valider avec lui), réclamation sous **3 jours** au lieu de 7 (art. 6.1), phrase sur les chutes de métaux précieux supprimée (art. 8). Conservés tels quels car validés : devis valable 30 jours, pénalités de retard, délais de fabrication.
+- **Mentions légales** : l'atelier s'affiche « Bordeaux », sans adresse complète. La société est **en cours d'immatriculation** : pas de SIRET, de forme juridique, d'adresse de siège ni de directeur de publication pour l'instant. Au lieu de champs entre crochets visibles du public, les pages affichent une mention transitoire (`LEGAL_PENDING` dans `src/lib/legal.ts`), et le téléphone et l'email réels (`CONTACT`). **Quand le client transmet ses informations** : les saisir dans `MentionsLegales.tsx` et `PrivacyPolicy.tsx`, supprimer `LEGAL_PENDING`, changer `LEGAL_LAST_UPDATED`. `legal.test.tsx` échoue si un champ entre crochets réapparaît.
+
 ### ✅ « Créée » signalé comme coquille dans le détail d'une commande — reformulé
 
 `client/OrderDetail.tsx` affichait « Créée le … ». C'était correct (« la commande » est féminin), mais le triple « e » faisait coquille à l'œil. Remplacé par « Passée le … ».
@@ -29,7 +37,7 @@ Thème sombre remplacé par la charte des cartes de visite : fond ivoire, **char
 À savoir :
 - les **photos sont provisoires** (images d'attente générées par IA, badge « Photo provisoire ») : `src/lib/photos.ts` ;
 - les **réseaux sociaux** n'ont pas d'adresse (icônes sans lien) : `src/lib/site.ts` ;
-- les **mentions légales et la politique de confidentialité** contiennent encore des `[CHAMPS À REMPLIR]` : informations à obtenir du client.
+- les **mentions légales et la politique de confidentialité** affichent une mention transitoire (« société en cours d'immatriculation ») à la place du SIRET, de la forme juridique, de l'adresse du siège et du directeur de publication : informations à obtenir du client, voir ci-dessous.
 
 ### ✅ Une seule règle de mot de passe : 8 caractères
 
@@ -64,6 +72,16 @@ Les coordonnées affichées étaient fausses (Paris, adresse de démonstration) 
 ### ✅ Chargement : 1 228 Ko → 368 Ko pour la vitrine
 
 Le site entier, espace client et three.js compris, était livré en un seul fichier. Les pages client, admin, légales, inscription et mot de passe sont maintenant chargées à la demande. Un garde-fou de build (`keepThreeOutOfEntry`, `vite.config.ts`) échoue si three.js revient dans le chunk d'entrée.
+
+### ✅ Devis automatique : formule du client (22/10/2026)
+
+Le devis STL (`client/Quote.tsx`) comptait un forfait main-d'œuvre de 50 € et un prix du métal au gramme (60 €/g pour l'or 750…). Le client a transmis son principe : **impression = volume × 50 €/cm³** ; **fonte = volume × densité × prix de fonte au gramme** ; **+10 %** sur le total ; **résine « sur devis »**, sans prix automatique. Les règles sont maintenant dans [`src/lib/quote.ts`](../src/lib/quote.ts) (testé : [`quote.test.ts`](../src/lib/quote.test.ts), [`client/Quote.test.tsx`](../src/pages/client/Quote.test.tsx)) et la page ne fait plus qu'afficher.
+
+À savoir :
+- les densités du client remplacent celles de `STLViewer` pour les six métaux du devis (or 750 : 15,35 ; or 375 : 12 ; or gris palladié : 15,8 ; platine : 20,3 ; argent : 10,35 ; laiton : 8,4), pour que la « masse estimée » de l'aperçu 3D soit celle du devis ; un test échoue si elles divergent ;
+- le prix s'affiche au centime (`formatAmount`), plus arrondi à l'euro ;
+- `pages/public/Quote.tsx`, une page de démonstration jamais routée qui portait une troisième série de prix, est supprimée ;
+- l'aperçu de la vitrine (`ProPreview`) annonçait « Impression cire », option qui n'existe pas dans l'outil : remplacée par « Laiton ».
 
 ---
 
