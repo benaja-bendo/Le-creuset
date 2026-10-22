@@ -1,3 +1,5 @@
+import { LEGAL_LAST_UPDATED } from '../../lib/legal';
+
 export default function CGV() {
   return (
     <div className="max-w-none">
@@ -189,11 +191,7 @@ export default function CGV() {
 
       <div className="mt-12 pt-6 border-t border-sable">
         <p className="text-sm text-pierre">
-          Dernière mise à jour : {new Date().toLocaleDateString('fr-FR', { 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-          })}
+          Dernière mise à jour : {LEGAL_LAST_UPDATED}
         </p>
       </div>
     </div>

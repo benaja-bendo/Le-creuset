@@ -1,3 +1,5 @@
+import { LEGAL_LAST_UPDATED } from '../../lib/legal';
+
 export default function MentionsLegales() {
   return (
     <div className="max-w-none">
@@ -38,11 +40,20 @@ export default function MentionsLegales() {
           </h2>
           <p>Ce site est hébergé par :</p>
           <div className="space-y-2">
-            <p><strong className="text-charbon">GitHub Pages</strong></p>
-            <p>GitHub, Inc.<br />
-            88 Colin P Kelly Jr St<br />
-            San Francisco, CA 94107<br />
-            United States</p>
+            <p><strong className="text-charbon">Infomaniak Network SA</strong></p>
+            <p>Rue Eugène Marziano 25<br />
+            1227 Les Acacias (Genève)<br />
+            Suisse</p>
+            <p>
+              <a
+                href="https://www.infomaniak.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-bronze underline decoration-or underline-offset-4 hover:text-charbon"
+              >
+                www.infomaniak.com
+              </a>
+            </p>
           </div>
         </section>
 
@@ -124,11 +135,7 @@ export default function MentionsLegales() {
 
       <div className="mt-12 pt-6 border-t border-sable">
         <p className="text-sm text-pierre">
-          Dernière mise à jour : {new Date().toLocaleDateString('fr-FR', { 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-          })}
+          Dernière mise à jour : {LEGAL_LAST_UPDATED}
         </p>
       </div>
     </div>

@@ -1,3 +1,5 @@
+import { LEGAL_LAST_UPDATED } from '../../lib/legal';
+
 export default function PrivacyPolicy() {
   return (
     <div className="max-w-none">
@@ -41,6 +43,8 @@ export default function PrivacyPolicy() {
             <li>Adresse email</li>
             <li>Numéro de téléphone</li>
             <li>SIRET (pour les professionnels)</li>
+            <li>Documents transmis à l'inscription (extrait Kbis, déclaration douanes)</li>
+            <li>Mot de passe, conservé sous forme chiffrée</li>
           </ul>
 
           <h3 className="text-xl font-serif font-bold text-charbon mb-3 mt-6">2.2 Données de commande</h3>
@@ -53,8 +57,8 @@ export default function PrivacyPolicy() {
 
           <h3 className="text-xl font-serif font-bold text-charbon mb-3 mt-6">2.3 Données de navigation</h3>
           <p>
-            Ce site utilise des technologies standard (cookies, logs) pour améliorer votre expérience. 
-            Ces données incluent :
+            Comme tout serveur web, celui de ce site enregistre des journaux techniques, nécessaires à sa
+            sécurité et à son bon fonctionnement. Ces données incluent :
           </p>
           <ul className="list-disc pl-6 space-y-2 mt-4">
             <li>Adresse IP</li>
@@ -73,7 +77,7 @@ export default function PrivacyPolicy() {
             <li><strong className="text-charbon">Gestion des commandes :</strong> traitement, fabrication, livraison</li>
             <li><strong className="text-charbon">Communication :</strong> réponses à vos demandes, suivi de projet</li>
             <li><strong className="text-charbon">Facturation :</strong> établissement des devis et factures</li>
-            <li><strong className="text-charbon">Amélioration des services :</strong> statistiques anonymisées</li>
+            <li><strong className="text-charbon">Sécurité :</strong> prévention des abus et protection de votre espace professionnel</li>
             <li><strong className="text-charbon">Obligations légales :</strong> comptabilité, fiscalité</li>
           </ul>
         </section>
@@ -85,9 +89,8 @@ export default function PrivacyPolicy() {
           <p>Le traitement de vos données repose sur :</p>
           <ul className="list-disc pl-6 space-y-2 mt-4">
             <li><strong className="text-charbon">Contrat :</strong> exécution de la relation commerciale</li>
-            <li><strong className="text-charbon">Intérêt légitime :</strong> amélioration de nos services</li>
+            <li><strong className="text-charbon">Intérêt légitime :</strong> sécurité du site et prévention des abus</li>
             <li><strong className="text-charbon">Obligation légale :</strong> conservation des factures (10 ans)</li>
-            <li><strong className="text-charbon">Consentement :</strong> newsletter et communications marketing</li>
           </ul>
         </section>
 
@@ -97,12 +100,15 @@ export default function PrivacyPolicy() {
           </h2>
           <p>Vos données peuvent être partagées avec :</p>
           <ul className="list-disc pl-6 space-y-2 mt-4">
-            <li><strong className="text-charbon">Personnel du Creuset :</strong> équipe de production et administrative</li>
-            <li><strong className="text-charbon">Prestataires :</strong> transporteurs, service de paiement</li>
+            <li><strong className="text-charbon">Personnel de La Grenaille :</strong> équipe de production et administrative</li>
+            <li><strong className="text-charbon">Hébergeur :</strong> Infomaniak Network SA (Suisse), qui héberge le site, ses données et sa messagerie</li>
+            <li><strong className="text-charbon">Transporteurs :</strong> pour la livraison de vos pièces</li>
             <li><strong className="text-charbon">Autorités :</strong> sur demande légale uniquement</li>
           </ul>
           <p className="mt-4">
             Nous ne vendons ni ne louons vos données personnelles à des tiers à des fins commerciales.
+            Vos données sont hébergées en Suisse, pays reconnu par la Commission européenne comme offrant
+            un niveau de protection adéquat.
           </p>
         </section>
 
@@ -114,7 +120,7 @@ export default function PrivacyPolicy() {
             <p><strong className="text-charbon">Données clients :</strong> durée de la relation commerciale + 3 ans</p>
             <p><strong className="text-charbon">Factures :</strong> 10 ans (obligation légale)</p>
             <p><strong className="text-charbon">Fichiers et projets :</strong> 5 ans sauf demande de suppression</p>
-            <p><strong className="text-charbon">Cookies :</strong> 13 mois maximum</p>
+            <p><strong className="text-charbon">Journaux techniques du serveur :</strong> le temps nécessaire à la sécurité du service</p>
           </div>
         </section>
 
@@ -170,19 +176,19 @@ export default function PrivacyPolicy() {
             9. Cookies
           </h2>
           <p>
-            Ce site utilise des cookies pour améliorer votre expérience de navigation. Les cookies sont 
-            de petits fichiers texte stockés sur votre appareil.
+            Ce site ne dépose aucun cookie et n'utilise aucun outil de mesure d'audience, de publicité
+            ou de suivi. Il n'y a donc aucun bandeau de consentement à accepter.
           </p>
-          
-          <h3 className="text-xl font-serif font-bold text-charbon mb-3 mt-6">Types de cookies utilisés</h3>
-          <ul className="list-disc pl-6 space-y-2">
-            <li><strong className="text-charbon">Cookies essentiels :</strong> nécessaires au fonctionnement du site</li>
-            <li><strong className="text-charbon">Cookies analytiques :</strong> statistiques de fréquentation anonymes</li>
-          </ul>
-          
+
+          <h3 className="text-xl font-serif font-bold text-charbon mb-3 mt-6">Ce qui est conservé dans votre navigateur</h3>
+          <p>
+            Lorsque vous vous connectez à votre espace professionnel, votre navigateur conserve un jeton de
+            session dans son stockage local. Il est strictement nécessaire à la connexion et supprimé
+            lorsque vous vous déconnectez.
+          </p>
           <p className="mt-4">
-            Vous pouvez paramétrer votre navigateur pour refuser les cookies, mais certaines 
-            fonctionnalités du site pourraient être limitées.
+            Les polices de caractères sont servies par le site lui-même : aucune requête n'est envoyée à
+            un service tiers lors de votre visite.
           </p>
         </section>
 
@@ -215,11 +221,7 @@ export default function PrivacyPolicy() {
 
       <div className="mt-12 pt-6 border-t border-sable">
         <p className="text-sm text-pierre">
-          Dernière mise à jour : {new Date().toLocaleDateString('fr-FR', { 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-          })}
+          Dernière mise à jour : {LEGAL_LAST_UPDATED}
         </p>
       </div>
     </div>

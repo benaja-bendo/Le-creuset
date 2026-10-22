@@ -32,28 +32,28 @@ describe('ResetPassword', () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByText('Au moins 6 caractères.')).toBeInTheDocument();
+    expect(screen.getByText('Au moins 8 caractères.')).toBeInTheDocument();
   });
 
   // Le back refusait déjà ce mot de passe à la connexion : il ne doit pas
   // pouvoir être enregistré au reset.
-  it('refuses a password shorter than 6 characters without calling the API', () => {
-    submitNewPassword('12345');
+  it('refuses a password shorter than 8 characters without calling the API', () => {
+    submitNewPassword('1234567');
 
     expect(
-      screen.getByText('Le mot de passe doit contenir au moins 6 caractères.')
+      screen.getByText('Le mot de passe doit contenir au moins 8 caractères.')
     ).toBeInTheDocument();
     expect(postJSON).not.toHaveBeenCalled();
   });
 
-  it('sends a 6-character password to the API', () => {
+  it('sends an 8-character password to the API, with no uppercase letter or digit required', () => {
     vi.mocked(postJSON).mockResolvedValue({ message: 'ok' });
 
-    submitNewPassword('123456');
+    submitNewPassword('abcdefgh');
 
     expect(postJSON).toHaveBeenCalledWith('/auth/reset-password', {
       token: 'reset-token',
-      newPassword: '123456',
+      newPassword: 'abcdefgh',
     });
   });
 });

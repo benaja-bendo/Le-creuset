@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { getJSON, patchJSON, resolveUrl } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
+import { isPasswordLongEnough, PASSWORD_RULE_HINT, PASSWORD_TOO_SHORT_MESSAGE } from '../../lib/password';
 
 // Button component
 type ButtonVariant = 'primary' | 'outline' | 'danger' | 'ghost';
@@ -187,6 +188,10 @@ export default function Profile() {
 
   // Change password
   const handleChangePassword = async () => {
+    if (!isPasswordLongEnough(newPassword)) {
+      showAlert('error', PASSWORD_TOO_SHORT_MESSAGE);
+      return;
+    }
     if (newPassword !== confirmPassword) {
       showAlert('error', 'Les mots de passe ne correspondent pas');
       return;
@@ -354,7 +359,7 @@ export default function Profile() {
                 onChange={setNewPassword} 
                 type="password"
                 icon={Lock}
-                placeholder="Minimum 8 caractères avec 1 majuscule et 1 chiffre"
+                placeholder="Au moins 8 caractères"
               />
               
               <InputField 
@@ -376,23 +381,10 @@ export default function Profile() {
                 </Button>
               </div>
 
-              <div className="mt-8 p-4 bg-secondary-50 rounded-lg border border-secondary-200">
-                <h5 className="font-medium text-secondary-900 mb-2">Exigences du mot de passe</h5>
-                <ul className="text-sm text-secondary-600 space-y-1">
-                  <li className="flex items-center gap-2">
-                    <span className={newPassword.length >= 8 ? 'text-green-500' : 'text-secondary-400'}>✓</span>
-                    Au moins 8 caractères
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className={/[A-Z]/.test(newPassword) ? 'text-green-500' : 'text-secondary-400'}>✓</span>
-                    Au moins une lettre majuscule
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className={/[0-9]/.test(newPassword) ? 'text-green-500' : 'text-secondary-400'}>✓</span>
-                    Au moins un chiffre
-                  </li>
-                </ul>
-              </div>
+              <p className="mt-4 text-sm flex items-center gap-2 text-secondary-600">
+                <span className={isPasswordLongEnough(newPassword) ? 'text-green-500' : 'text-secondary-400'}>✓</span>
+                {PASSWORD_RULE_HINT}
+              </p>
             </div>
           )}
 

@@ -6,6 +6,7 @@ import Alert from '../../components/Alert';
 import AuthShell, { ProAside } from '../../components/vitrine/AuthShell';
 import PasswordField from '../../components/vitrine/PasswordField';
 import { fieldInput, fieldLabel, submitButton, textLink } from '../../components/vitrine/styles';
+import { isPasswordLongEnough, PASSWORD_RULE_HINT, PASSWORD_TOO_SHORT_MESSAGE } from '../../lib/password';
 
 const fileInput = `${fieldInput} py-2.5 text-sm text-pierre file:mr-4 file:cursor-pointer file:border-0 file:bg-lin file:px-3 file:py-1.5 file:font-sans file:text-xs file:font-semibold file:text-charbon hover:file:bg-sable`;
 
@@ -50,6 +51,9 @@ export default function Register() {
     setLoading(true);
 
     try {
+      if (!isPasswordLongEnough(form.password)) {
+        throw new Error(PASSWORD_TOO_SHORT_MESSAGE);
+      }
       if (form.password !== confirmPassword) {
         throw new Error('Les mots de passe ne correspondent pas');
       }
@@ -105,6 +109,12 @@ export default function Register() {
             value={form.password}
             onChange={onChange}
             autoComplete="new-password"
+            describedBy="register-password-rule"
+            hint={
+              <p id="register-password-rule" className="font-sans text-xs text-pierre">
+                {PASSWORD_RULE_HINT}
+              </p>
+            }
           />
           <PasswordField
             id="register-password-confirm"
