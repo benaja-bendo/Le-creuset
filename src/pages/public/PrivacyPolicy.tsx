@@ -57,15 +57,11 @@ export default function PrivacyPolicy() {
 
           <h3 className="text-xl font-serif font-bold text-charbon mb-3 mt-6">2.3 Données de navigation</h3>
           <p>
-            Comme tout serveur web, celui de ce site enregistre des journaux techniques, nécessaires à sa
-            sécurité et à son bon fonctionnement. Ces données incluent :
+            Ce site n'enregistre pas les pages que vous consultez et n'utilise aucun outil de mesure
+            d'audience. Pour vous protéger des abus (tentatives répétées de connexion, envois de
+            formulaire en rafale), le nombre de requêtes envoyées par une même adresse IP est compté
+            pendant une minute, en mémoire seulement : cette adresse n'est pas conservée.
           </p>
-          <ul className="list-disc pl-6 space-y-2 mt-4">
-            <li>Adresse IP</li>
-            <li>Type de navigateur</li>
-            <li>Pages visitées</li>
-            <li>Date et heure de visite</li>
-          </ul>
         </section>
 
         <section>
@@ -120,7 +116,7 @@ export default function PrivacyPolicy() {
             <p><strong className="text-charbon">Données clients :</strong> durée de la relation commerciale + 3 ans</p>
             <p><strong className="text-charbon">Factures :</strong> 10 ans (obligation légale)</p>
             <p><strong className="text-charbon">Fichiers et projets :</strong> 5 ans sauf demande de suppression</p>
-            <p><strong className="text-charbon">Journaux techniques du serveur :</strong> le temps nécessaire à la sécurité du service</p>
+            <p><strong className="text-charbon">Journaux d'erreurs du serveur :</strong> rotation automatique, les plus anciens sont supprimés au fil de l'eau</p>
           </div>
         </section>
 
@@ -135,7 +131,6 @@ export default function PrivacyPolicy() {
           <ul className="list-disc pl-6 space-y-2 mt-4">
             <li>Accès restreint aux données (personnel autorisé uniquement)</li>
             <li>Connexions sécurisées (HTTPS)</li>
-            <li>Sauvegardes régulières</li>
             <li>Mots de passe sécurisés</li>
           </ul>
         </section>

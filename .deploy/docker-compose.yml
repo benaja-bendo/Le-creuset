@@ -7,12 +7,30 @@ services:
       - .env
     networks:
       - proxy
+    # Rotation des journaux Docker : sans elle ils grossissent sans limite
+    # jusqu'à remplir le disque du VPS.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.front-prod.rule=Host(`${VITE_DOMAIN_NAME:-lagrenaille.fr}`)"
       - "traefik.http.routers.front-prod.entrypoints=websecure"
       - "traefik.http.routers.front-prod.tls.certresolver=myresolver"
       - "traefik.http.services.front-prod.loadbalancer.server.port=80"
+      # www.lagrenaille.fr : le DNS existe déjà, mais sans routeur Traefik le
+      # visiteur n'obtenait ni certificat ni page. On redirige vers le domaine
+      # principal (301), qui reste l'adresse canonique du site.
+      - "traefik.http.routers.front-www.rule=Host(`www.${VITE_DOMAIN_NAME:-lagrenaille.fr}`)"
+      - "traefik.http.routers.front-www.entrypoints=websecure"
+      - "traefik.http.routers.front-www.tls.certresolver=myresolver"
+      - "traefik.http.routers.front-www.service=front-prod"
+      - "traefik.http.routers.front-www.middlewares=front-www-redirect"
+      - "traefik.http.middlewares.front-www-redirect.redirectregex.regex=^https://www\\.(.*)"
+      - "traefik.http.middlewares.front-www-redirect.redirectregex.replacement=https://$${1}"
+      - "traefik.http.middlewares.front-www-redirect.redirectregex.permanent=true"
 
 networks:
   proxy:

@@ -3,9 +3,13 @@ import { Outlet, useLocation } from 'react-router-dom';
 import PageFallback from '../components/vitrine/PageFallback';
 import SiteFooter from '../components/vitrine/SiteFooter';
 import SiteHeader from '../components/vitrine/SiteHeader';
+import { metaForPath } from '../lib/seo';
+import { usePageMeta } from '../lib/usePageMeta';
 
 export default function PublicLayout() {
   const { pathname } = useLocation();
+  const meta = metaForPath(pathname);
+  usePageMeta(meta, meta.noindex ? null : pathname);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
