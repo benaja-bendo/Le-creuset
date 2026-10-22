@@ -8,8 +8,12 @@ SPA React 19 + Vite + Tailwind 4. Une seule application sert la vitrine publique
 src/
 ├── App.tsx             toutes les routes (createBrowserRouter)
 ├── main.tsx            point d'entrée
-├── index.css           Tailwind + variables de thème
+├── index.css           Tailwind + charte (couleurs, polices, animations)
 ├── api/client.ts       couche HTTP unique
+├── lib/
+│   ├── site.ts         coordonnées, réseaux sociaux, liens des services
+│   ├── photos.ts       registre des photos de la vitrine
+│   └── …               orders, format, contactMail
 ├── context/
 │   └── AuthContext.tsx session, login/logout, restauration au boot
 ├── layouts/
@@ -22,16 +26,19 @@ src/
 │   ├── ImageViewerModal.tsx
 │   ├── WeightGauges.tsx    jauges de compte poids
 │   ├── Alert.tsx
-│   └── ui/tooltip.tsx      (Radix)
+│   ├── ui/tooltip.tsx      (Radix)
+│   ├── brand/Logo.tsx      mot-logo « La Grenaille » en SVG
+│   └── vitrine/            composants de la vitrine (en-tête, pied de page,
+│                           héros, cartes, bague 3D, formulaire de contact…)
 ├── pages/
-│   ├── public/    Home, Services, ServiceDetail, Contact, Login, Register,
+│   ├── public/    Home, Services, Fonte, Impression, Moulage, Contact, Login, Register,
 │   │              ResetPassword, WaitingApproval, CGV, MentionsLegales,
 │   │              PrivacyPolicy, Quote, ErrorPage
 │   ├── client/    Dashboard, WeightAccount, Quote, Orders, OrderDetail,
 │   │              MyInvoices, Molds, Profile
 │   └── admin/     UsersPending, UserProfile, Weights, Orders, OrderDetail,
 │                  Invoices, CreateInvoice, Library
-└── assets/
+└── assets/photos/      photos de la vitrine en WebP (1408 px + 768 px)
 ```
 
 ## Routing
@@ -41,7 +48,7 @@ Tout est déclaré dans [`src/App.tsx`](../src/App.tsx), en un seul `createBrows
 ### Vitrine — `PublicLayout`
 `/` · `/login` · `/register` · `/reset` · `/waiting-approval` · `/services` · `/fonte` · `/impression` · `/moulage` · `/contact`
 
-Les trois pages de service réutilisent le composant `ServiceDetail` avec **le contenu éditorial passé en props directement dans `App.tsx`** (titre, description, image, liste de détails). Pour modifier un texte de service, c'est là qu'il faut aller — pas dans le composant.
+Chaque page de service a son propre fichier (`Fonte.tsx`, `Impression.tsx`, `Moulage.tsx`) : **les textes sont dans la page**, assemblés à partir des composants de `src/components/vitrine/`. Les textes viennent des maquettes du client (retour du 2026-10-22).
 
 ### Légal — `LegalLayout`
 `/legal/mentions-legales` · `/legal/cgv` · `/legal/privacy`
@@ -112,7 +119,15 @@ Ces helpers gèrent :
 ## Conventions UI
 
 - **Tailwind v4** via le plugin Vite `@tailwindcss/vite`. Il n'y a **pas de `tailwind.config.js`** : le thème est déclaré en CSS dans `src/index.css`.
-- Palette : `primary-*` (accent chaud) et `secondary-*` (gris/anthracite). Fond des zones connectées `bg-secondary-50`, cartes `bg-white rounded-xl border border-secondary-200 shadow-sm`.
+- **Charte de la vitrine**, tirée des cartes de visite du client :
+  - fond `ivoire`, sections alternées `lin`, cartes `papier` bordées de `sable` ;
+  - **`charbon` réservé à l'en-tête et au pied de page** ;
+  - `or` pour les filets et ornements **uniquement**, jamais pour du texte (2,1:1 sur ivoire) ; `bronze` pour les liens et le texte d'accent ;
+  - polices : Libre Baskerville (titres et texte), Montserrat (interface), logo en SVG (`components/brand/Logo.tsx`, couleur héritée de `currentColor`).
+  - Référence visuelle : le canevas « La Grenaille — Charte & maquette ».
+- Palette de l'espace connecté : `primary-*` (accent, réaligné en 2026-10 sur l'or de la charte, mêmes niveaux de clarté qu'avant) et `secondary-*` (gris). Fond des zones connectées `bg-secondary-50`, cartes `bg-white rounded-xl border border-secondary-200 shadow-sm`.
+- **Photos de la vitrine** : uniquement via `PHOTOS` de [`src/lib/photos.ts`](../src/lib/photos.ts). `provisional: true` affiche le badge « Photo provisoire ». Les visuels actuels sont des images d'attente générées par IA. Quand une vraie photo arrive, on remplace le fichier et on passe le drapeau à `false`. Les emplacements sans photo du tout utilisent `PhotoPlaceholder`.
+- **Coordonnées et réseaux sociaux** : uniquement via [`src/lib/site.ts`](../src/lib/site.ts). Un réseau dont `href` vaut `null` affiche son icône sans lien.
 - Icônes **lucide-react** exclusivement — 14–18 px dans les tableaux, 40–48 px dans les états vides.
 - Textes, labels et messages d'erreur **en français**. Dates via `toLocaleDateString('fr-FR')`.
 - Pas de librairie de formulaire ni de state : `useState` par champ, `useEffect` au montage pour charger, `loading` / `error` locaux.
@@ -133,6 +148,8 @@ Trois tables y cohabitent :
 
 Garde-fous mobiles présents : `setPixelRatio(Math.min(devicePixelRatio, 2))` et `touchAction: 'none'`. Manquent : détection de perte de contexte WebGL, limite de taille de fichier, dégradation de l'antialiasing sur GPU faible.
 
+**`vitrine/RingShowcase.tsx`** — section « De la cire au métal » de l'accueil : une bague granulée en 3D (three.js, rendu PBR avec `RoomEnvironment`) et 8 matières, de la résine au platine. La scène (`vitrine/ring/RingScene.tsx`) est chargée à l'approche de la section, mise en pause hors écran et sans rotation automatique si `prefers-reduced-motion`. Sans WebGL, elle bascule sur un visuel statique (test : `RingShowcase.test.tsx`). Ce pipeline est indépendant de celui du `STLViewer` : ses couleurs sont des réflectances physiques et ne doivent pas être recopiées dans `MATERIAL_CONFIG`.
+
 **`ImageViewerModal.tsx`** — lightbox pour les photos de moules. Utilisé dans `admin/Library.tsx` et `client/Molds.tsx`.
 
 **`WeightGauges.tsx`** — jauges de solde des comptes poids.
@@ -141,7 +158,7 @@ Garde-fous mobiles présents : `setPixelRatio(Math.min(devicePixelRatio, 2))` et
 
 - **Aucun composant `Modal` partagé.** 15 modales sont écrites en dur dans 11 fichiers, avec des overlays divergents — parfois dans le même fichier : `admin/Library.tsx` utilise `bg-black/70` pour l'une et `bg-secondary-950/40 backdrop-blur-sm` pour l'autre.
 - **Pages volumineuses** : `admin/Orders.tsx` 722 l., `admin/UsersPending.tsx` 664 l., `admin/OrderDetail.tsx` 614 l. Logique métier, appels API et markup mélangés, sans hook extrait.
-- **Aucun test.** Ni unitaire, ni composant, ni e2e.
+- **Peu de tests** : Vitest + Testing Library (`pnpm test`) couvrent le `STLViewer`, l'`ErrorBoundary`, le mot de passe oublié, la bague 3D, l'en-tête et le formulaire de contact. Aucun test e2e.
 - `alert()` / `confirm()` natifs utilisés pour les retours utilisateur dans les pages admin, alors qu'un composant `Alert.tsx` existe.
 
 ## Build
