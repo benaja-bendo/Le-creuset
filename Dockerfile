@@ -28,6 +28,7 @@ FROM nginx:1.27-alpine
 
 # Copie de la configuration Nginx optimisée
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx-security-headers.conf /etc/nginx/snippets/security-headers.conf
 
 # Copie des fichiers statiques depuis l'étape de build
 COPY --from=build /app/dist /usr/share/nginx/html

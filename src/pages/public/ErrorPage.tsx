@@ -3,6 +3,8 @@ import { Home, RotateCcw } from 'lucide-react';
 import Logo from '../../components/brand/Logo';
 import { GoldRule } from '../../components/vitrine/Ornaments';
 import { buttonBase, goldFiletFill } from '../../components/vitrine/styles';
+import { NOT_FOUND_META, DEFAULT_META } from '../../lib/seo';
+import { usePageMeta } from '../../lib/usePageMeta';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -22,6 +24,10 @@ export default function ErrorPage() {
           : "Erreur système inconnue";
 
   const notFound = isRouteErrorResponse(error) && error.status === 404;
+  usePageMeta(
+    notFound ? NOT_FOUND_META : { title: 'Une erreur est survenue | La Grenaille', description: DEFAULT_META.description, noindex: true },
+    null,
+  );
 
   return (
     <div className="vitrine flex min-h-screen items-center justify-center bg-ivoire p-6 text-center text-charbon">

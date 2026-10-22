@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /client/
+Disallow: /login
+Disallow: /register
+Disallow: /reset
+Disallow: /waiting-approval
+
+Sitemap: https://lagrenaille.fr/sitemap.xml

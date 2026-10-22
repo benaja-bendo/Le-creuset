@@ -76,9 +76,7 @@ export default function MentionsLegales() {
           <h2 className="text-2xl font-serif font-normal text-charbon mb-4">
             Crédits
           </h2>
-          <p><strong className="text-charbon">Conception et réalisation :</strong> [NOM]</p>
-          <p><strong className="text-charbon">Photographies :</strong> [SOURCES DES IMAGES]</p>
-          <p><strong className="text-charbon">Icônes :</strong> Lucide Icons</p>
+          <p><strong className="text-charbon">Conception et réalisation :</strong> Benaja Bendo</p>
         </section>
 
         <section>
