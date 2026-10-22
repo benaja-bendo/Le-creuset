@@ -6,6 +6,41 @@ Audit initial réalisé le **9 août 2026** sur `develop` (`79369cb`). Ce docume
 
 ---
 
+## Retours d'octobre 2026
+
+Retour du 22/10/2026 : direction visuelle donnée par le client (cartes de visite, maquettes) et trois bugs. Verbatim et décorticage dans `sites/retours-clients/2026-10-22-refonte-vitrine.md`.
+
+### ✅ « Créée » signalé comme coquille dans le détail d'une commande — reformulé
+
+`client/OrderDetail.tsx` affichait « Créée le … ». C'était correct (« la commande » est féminin), mais le triple « e » faisait coquille à l'œil. Remplacé par « Passée le … ».
+
+### ✅ Symbole `$` devant les montants en euros — retiré
+
+`DollarSign` (lucide) devant `{formatAmount(invoice.amount)} €` dans « Factures associées » (`client/OrderDetail.tsx`). Retiré ; côté admin (`admin/OrderDetail.tsx`, champ prix) l'icône est remplacée par `Euro`.
+
+### ✅ Mot de passe oublié : un mot de passe trop court était validé — fait
+
+`ResetPassword.tsx` ne vérifiait que la correspondance des deux champs. Il refuse maintenant moins de 6 caractères avant l'envoi, avec la règle affichée sous le champ (même minimum que l'inscription et la connexion). La cause était côté back, voir son audit.
+
+### ✅ Refonte visuelle de la vitrine publique
+
+Thème sombre remplacé par la charte des cartes de visite : fond ivoire, **charbon réservé à l'en-tête et au pied de page**, or en filets, Libre Baskerville + Montserrat, logo « La Grenaille » en SVG (police Distant Stroke), un héros photo par page. Pages refaites : Accueil, Nos services, Fonte, Impression 3D, Moules, Contact, connexion, inscription, mot de passe, attente de validation, pages légales, erreur (404 comprise). Bague granulée en 3D sur l'accueil. Voir [`02-frontend.md`](02-frontend.md#conventions-ui).
+
+À savoir :
+- les **photos sont provisoires** (images d'attente générées par IA, badge « Photo provisoire ») : `src/lib/photos.ts` ;
+- les **réseaux sociaux** n'ont pas d'adresse (icônes sans lien) : `src/lib/site.ts` ;
+- les **mentions légales et la politique de confidentialité** contiennent encore des `[CHAMPS À REMPLIR]` : informations à obtenir du client.
+
+### ✅ Formulaire de contact — branché sur l'API
+
+Les coordonnées affichées étaient fausses (Paris, adresse de démonstration) et le formulaire n'envoyait rien. Il poste maintenant vers `POST /contact` (back), avec états d'envoi, de succès et d'erreur, et garde le `mailto:` pré-rempli en secours.
+
+### ✅ Chargement : 1 228 Ko → 368 Ko pour la vitrine
+
+Le site entier, espace client et three.js compris, était livré en un seul fichier. Les pages client, admin, légales, inscription et mot de passe sont maintenant chargées à la demande. Un garde-fou de build (`keepThreeOutOfEntry`, `vite.config.ts`) échoue si three.js revient dans le chunk d'entrée.
+
+---
+
 ## Retours de septembre 2026
 
 Retour du 15/09 après mise à jour de la dev pour test client. Verbatim et

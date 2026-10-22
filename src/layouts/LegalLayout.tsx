@@ -1,122 +1,63 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { FileText, Scale, Shield, ChevronRight } from 'lucide-react';
+import { ChevronRight, FileText, Scale, Shield } from 'lucide-react';
 import { clsx } from 'clsx';
+import { Container } from '../components/vitrine/Layout';
+import { textLink } from '../components/vitrine/styles';
 
-import { useEffect } from 'react';
+const LEGAL_PAGES = [
+  { name: 'Mentions légales', path: '/legal/mentions-legales', icon: FileText, description: 'Informations légales' },
+  { name: 'CGV', path: '/legal/cgv', icon: Scale, description: 'Conditions générales de vente' },
+  { name: 'Politique de confidentialité', path: '/legal/privacy', icon: Shield, description: 'Protection des données' },
+];
 
 export default function LegalLayout() {
-  const location = useLocation();
-
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [location.pathname]);
-
-  const legalPages = [
-    { 
-      name: 'Mentions Légales', 
-      path: '/legal/mentions-legales',
-      icon: FileText,
-      description: 'Informations légales'
-    },
-    { 
-      name: 'CGV', 
-      path: '/legal/cgv',
-      icon: Scale,
-      description: 'Conditions générales de vente'
-    },
-    { 
-      name: 'Politique de confidentialité', 
-      path: '/legal/privacy',
-      icon: Shield,
-      description: 'Protection des données'
-    },
-  ];
-
-  const isActive = (path: string) => location.pathname === path;
+  const { pathname } = useLocation();
 
   return (
-    <div className="min-h-screen pt-24 pb-20 bg-secondary-950">
-      <div className="container mx-auto px-6">
-        <div className="flex flex-col lg:flex-row gap-12">
-          {/* Sidebar Navigation */}
-          <aside className="lg:w-80 flex-shrink-0">
-            <div className="sticky top-28">
-              <h2 className="text-2xl font-serif font-bold text-white mb-6">
-                Informations Légales
-              </h2>
-              <nav className="space-y-2">
-                {legalPages.map((page) => {
-                  const Icon = page.icon;
-                  return (
-                    <Link
-                      key={page.path}
-                      to={page.path}
-                      className={clsx(
-                        "block p-4 rounded-lg border transition-all group",
-                        isActive(page.path)
-                          ? "bg-primary-600 border-primary-600 text-white"
-                          : "bg-secondary-900 border-secondary-800 text-secondary-300 hover:border-primary-600 hover:text-white"
-                      )}
-                    >
-                      <div className="flex items-center gap-3">
-                        <Icon 
-                          size={20} 
-                          className={clsx(
-                            isActive(page.path) 
-                              ? "text-white" 
-                              : "text-primary-500 group-hover:text-primary-400"
-                          )} 
-                        />
-                        <div className="flex-1">
-                          <div className="font-medium">{page.name}</div>
-                          <div className={clsx(
-                            "text-xs mt-0.5",
-                            isActive(page.path) 
-                              ? "text-primary-100" 
-                              : "text-secondary-500"
-                          )}>
-                            {page.description}
-                          </div>
-                        </div>
-                        <ChevronRight 
-                          size={16} 
-                          className={clsx(
-                            "transition-transform",
-                            isActive(page.path) && "translate-x-1"
-                          )} 
-                        />
-                      </div>
-                    </Link>
-                  );
-                })}
-              </nav>
-
-              {/* Contact Section */}
-              <div className="mt-8 p-6 rounded-lg bg-secondary-900 border border-secondary-800">
-                <h3 className="text-white font-serif font-bold mb-2">
-                  Questions ?
-                </h3>
-                <p className="text-secondary-400 text-sm mb-4">
-                  Notre équipe est à votre disposition pour toute question juridique.
-                </p>
-                <Link 
-                  to="/contact"
-                  className="text-primary-500 hover:text-primary-400 text-sm font-medium inline-flex items-center gap-2"
-                >
-                  Nous contacter <ChevronRight size={14} />
-                </Link>
-              </div>
+    <section className="py-14 md:py-20">
+      <Container className="flex flex-col gap-10 lg:flex-row lg:gap-14">
+        <aside className="lg:w-80 lg:shrink-0">
+          <div className="flex flex-col gap-6 lg:sticky lg:top-32">
+            <h2 className="text-2xl font-normal">Informations légales</h2>
+            <nav aria-label="Pages légales" className="flex flex-col gap-2">
+              {LEGAL_PAGES.map(({ name, path, icon: Icon, description }) => {
+                const active = pathname === path;
+                return (
+                  <Link
+                    key={path}
+                    to={path}
+                    aria-current={active ? 'page' : undefined}
+                    className={clsx(
+                      'group flex items-center gap-3 border p-4 transition-colors',
+                      active ? 'border-charbon bg-charbon text-ivoire' : 'border-sable bg-papier hover:border-or',
+                    )}
+                  >
+                    <Icon size={20} strokeWidth={1.4} className={active ? 'text-or-clair' : 'text-bronze'} aria-hidden="true" />
+                    <span className="flex flex-1 flex-col">
+                      <span className="font-sans text-[15px] font-medium">{name}</span>
+                      <span className={clsx('mt-0.5 font-sans text-xs', active ? 'text-ivoire/75' : 'text-pierre')}>
+                        {description}
+                      </span>
+                    </span>
+                    <ChevronRight size={16} aria-hidden="true" className={clsx('transition-transform', active && 'translate-x-1')} />
+                  </Link>
+                );
+              })}
+            </nav>
+            <div className="flex flex-col gap-2 border border-sable bg-lin p-6">
+              <h3 className="text-lg font-bold">Une question ?</h3>
+              <p className="font-serif text-sm leading-relaxed text-pierre">Notre équipe est à votre disposition.</p>
+              <Link to="/contact" className={`${textLink} self-start font-sans text-sm`}>
+                Nous contacter
+              </Link>
             </div>
-          </aside>
+          </div>
+        </aside>
 
-          {/* Main Content */}
-          <main className="flex-1 min-w-0">
-            <div className="bg-secondary-900 border border-secondary-800 rounded-lg p-8 lg:p-12">
-              <Outlet />
-            </div>
-          </main>
+        <div className="legal-content min-w-0 flex-1 border border-sable bg-papier p-6 sm:p-10 lg:p-12">
+          <Outlet />
         </div>
-      </div>
-    </div>
+      </Container>
+    </section>
   );
 }
