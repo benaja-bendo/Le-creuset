@@ -10,6 +10,14 @@ Audit initial réalisé le **9 août 2026** sur `develop` (`79369cb`). Ce docume
 
 Retour du 22/10/2026 : direction visuelle donnée par le client (cartes de visite, maquettes) et trois bugs. Verbatim et décorticage dans `sites/retours-clients/2026-10-22-refonte-vitrine.md`.
 
+### ✅ CGV sans acompte, tags de la page Conception retirés (22/10/2026)
+
+Après relecture de la vitrine, le client demande :
+
+- **Page Conception & Impression 3D** : retrait des trois tags « 3Design », « Rhino », « Sertissage » (`Impression.tsx`). Le paragraphe qui cite les logiciels reste.
+- **CGV** (`CGV.tsx`) : plus d'acompte (art. 2.2 et 3.2 — le règlement est dû à réception de la facture, formulation à valider avec lui), réclamation sous **3 jours** au lieu de 7 (art. 6.1), phrase sur les chutes de métaux précieux supprimée (art. 8). Conservés tels quels car validés : devis valable 30 jours, pénalités de retard, délais de fabrication.
+- **Mentions légales** : les informations manquantes (SIRET, etc.) arrivent la semaine suivante ; l'atelier s'affiche « Bordeaux », sans adresse complète.
+
 ### ✅ « Créée » signalé comme coquille dans le détail d'une commande — reformulé
 
 `client/OrderDetail.tsx` affichait « Créée le … ». C'était correct (« la commande » est féminin), mais le triple « e » faisait coquille à l'œil. Remplacé par « Passée le … ».

@@ -1,5 +1,5 @@
 import ActionLink from '../../components/vitrine/ActionLink';
-import { BlockTitle, Paragraph, Split, TagList } from '../../components/vitrine/Layout';
+import { BlockTitle, Paragraph, Split } from '../../components/vitrine/Layout';
 import { GRAINS } from '../../components/vitrine/grains';
 import MailCta from '../../components/vitrine/MailCta';
 import PageHero from '../../components/vitrine/PageHero';
@@ -34,7 +34,6 @@ export default function Impression() {
             Notre expérience en atelier de bijouterie et en sertissage garantit une modélisation pensée spécifiquement
             pour les pièces de joaillerie.
           </Paragraph>
-          <TagList items={['3Design', 'Rhino', 'Sertissage']} />
         </Split>
       </section>
 

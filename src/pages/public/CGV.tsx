@@ -43,7 +43,6 @@ export default function CGV() {
           </p>
           <ul className="list-disc pl-6 space-y-2 mt-4">
             <li>Signature du devis par le client</li>
-            <li>Réception de l'acompte demandé (généralement 50% du montant total)</li>
             <li>Réception des fichiers, cires, ou pièces modèles nécessaires</li>
           </ul>
         </section>
@@ -61,13 +60,11 @@ export default function CGV() {
           
           <h3 className="text-xl font-serif font-bold text-charbon mb-3 mt-6">3.2 Modalités de paiement</h3>
           <p>
-            Le règlement s'effectue selon les modalités suivantes :
+            Aucun acompte n'est demandé : le règlement du montant total s'effectue à réception de la facture.
           </p>
-          <ul className="list-disc pl-6 space-y-2 mt-4">
-            <li><strong className="text-charbon">Acompte :</strong> 50% à la commande</li>
-            <li><strong className="text-charbon">Solde :</strong> 50% à la livraison</li>
-            <li><strong className="text-charbon">Moyens de paiement :</strong> Virement bancaire, chèque, espèces (dans la limite légale)</li>
-          </ul>
+          <p className="mt-4">
+            <strong className="text-charbon">Moyens de paiement :</strong> virement bancaire, chèque, espèces (dans la limite légale).
+          </p>
 
           <h3 className="text-xl font-serif font-bold text-charbon mb-3 mt-6">3.3 Retard de paiement</h3>
           <p>
@@ -117,7 +114,7 @@ export default function CGV() {
           <h3 className="text-xl font-serif font-bold text-charbon mb-3 mt-6">6.1 Garantie</h3>
           <p>
             La Grenaille garantit la conformité des pièces réalisées par rapport aux spécifications validées. 
-            Toute réclamation devra être formulée par écrit dans les 7 jours suivant la réception.
+            Toute réclamation devra être formulée par écrit dans les 3 jours suivant la réception.
           </p>
           
           <h3 className="text-xl font-serif font-bold text-charbon mb-3 mt-6">6.2 Limites de responsabilité</h3>
@@ -155,10 +152,6 @@ export default function CGV() {
             <li><strong className="text-charbon">Option 1 :</strong> Fournir ses propres métaux (or, argent)</li>
             <li><strong className="text-charbon">Option 2 :</strong> Acheter le métal via La Grenaille au cours du jour</li>
           </ul>
-          <p className="mt-4">
-            Les chutes de métaux précieux sont restituées au client ou déduites du prix de la prestation, 
-            selon accord préalable.
-          </p>
         </section>
 
         <section>
