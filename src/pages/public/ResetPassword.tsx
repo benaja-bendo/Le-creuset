@@ -7,10 +7,7 @@ import Alert from '../../components/Alert';
 import AuthShell from '../../components/vitrine/AuthShell';
 import PasswordField from '../../components/vitrine/PasswordField';
 import { fieldInput, fieldLabel, submitButton, textLink } from '../../components/vitrine/styles';
-
-// Même minimum que l'inscription et la connexion côté back : un mot de passe
-// plus court serait enregistré puis refusé au login.
-const MIN_PASSWORD_LENGTH = 6;
+import { isPasswordLongEnough, PASSWORD_RULE_HINT, PASSWORD_TOO_SHORT_MESSAGE } from '../../lib/password';
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
@@ -42,8 +39,8 @@ export default function ResetPassword() {
 
   const handleResetSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password.length < MIN_PASSWORD_LENGTH) {
-      setError(`Le mot de passe doit contenir au moins ${MIN_PASSWORD_LENGTH} caractères.`);
+    if (!isPasswordLongEnough(password)) {
+      setError(PASSWORD_TOO_SHORT_MESSAGE);
       return;
     }
     if (password !== confirmPassword) {
@@ -113,10 +110,10 @@ export default function ResetPassword() {
                 id="new-password-rule"
                 className={clsx(
                   'font-sans text-xs transition-colors',
-                  password.length >= MIN_PASSWORD_LENGTH ? 'text-green-700' : 'text-pierre',
+                  isPasswordLongEnough(password) ? 'text-green-700' : 'text-pierre',
                 )}
               >
-                Au moins {MIN_PASSWORD_LENGTH} caractères.
+                {PASSWORD_RULE_HINT}
               </p>
             }
           />
