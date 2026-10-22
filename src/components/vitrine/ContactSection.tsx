@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useLayoutEffect, useRef, useState, type FormEvent } from 'react';
 import { AlertCircle, Check, Loader2, Mail, MapPin, Phone } from 'lucide-react';
 import { postJSON } from '../../api/client';
 import { buildContactMailto, type ContactFields } from '../../lib/contactMail';
@@ -28,9 +28,10 @@ export default function ContactSection({ id }: { id?: string }) {
 
   // Le bouton désactivé pendant l'envoi perd le focus, et le formulaire et la
   // confirmation se remplacent : le focus suit, sinon il retombe en haut de
-  // page. Le défilement passe par le panneau, dont le scroll-margin dégage
-  // l'en-tête.
-  useEffect(() => {
+  // page. Layout effect : le focus est posé dans le même commit que le
+  // changement d'écran. Le défilement passe par le panneau, dont le
+  // scroll-margin dégage l'en-tête.
+  useLayoutEffect(() => {
     if (status === 'sent') {
       sentHeading.current?.focus({ preventScroll: true });
       sentPanel.current?.scrollIntoView({ block: 'nearest' });
