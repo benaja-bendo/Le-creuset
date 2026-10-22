@@ -1,6 +1,6 @@
+import { lazy, Suspense } from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import PublicLayout from './layouts/PublicLayout';
-import ClientLayout from './layouts/ClientLayout';
 import LegalLayout from './layouts/LegalLayout';
 import Home from './pages/public/Home';
 import Contact from './pages/public/Contact';
@@ -8,31 +8,41 @@ import Fonte from './pages/public/Fonte';
 import Impression from './pages/public/Impression';
 import Moulage from './pages/public/Moulage';
 import Services from './pages/public/Services';
-import MentionsLegales from './pages/public/MentionsLegales';
-import CGV from './pages/public/CGV';
-import PrivacyPolicy from './pages/public/PrivacyPolicy';
 import Login from './pages/public/Login';
-import Register from './pages/public/Register';
-import ResetPassword from './pages/public/ResetPassword';
 import WaitingApproval from './pages/public/WaitingApproval';
 import ErrorPage from './pages/public/ErrorPage';
-import Dashboard from './pages/client/Dashboard';
-import ClientQuote from './pages/client/Quote';
-import Orders from './pages/client/Orders';
-import Molds from './pages/client/Molds';
-import Profile from './pages/client/Profile';
-import UsersPending from './pages/admin/UsersPending';
-import Weights from './pages/admin/Weights';
-import AdminOrders from './pages/admin/Orders';
-import AdminInvoices from './pages/admin/Invoices';
-import AdminCreateInvoice from './pages/admin/CreateInvoice';
-import AdminOrderDetail from './pages/admin/OrderDetail';
-import MyInvoices from './pages/client/MyInvoices';
-import OrderDetail from './pages/client/OrderDetail';
-import WeightAccount from './pages/client/WeightAccount';
-import AdminUserProfile from './pages/admin/UserProfile';
-import AdminLibrary from './pages/admin/Library';
-import ProtectedRoute from './components/ProtectedRoute';
+import ProtectedRoute, { ClientLoading } from './components/ProtectedRoute';
+
+// Le chunk d'entrée ne porte que la vitrine et la connexion. Le reste est
+// téléchargé à la première visite de la page, cf. docs/02-frontend.md#découpage-du-bundle.
+
+// Pages publiques rarement ouvertes : textes légaux, inscription, lien de réinitialisation.
+// LegalLayout reste dans l'entrée (1 Ko) : différé, il retarderait d'autant sa page.
+const MentionsLegales = lazy(() => import('./pages/public/MentionsLegales'));
+const CGV = lazy(() => import('./pages/public/CGV'));
+const PrivacyPolicy = lazy(() => import('./pages/public/PrivacyPolicy'));
+const Register = lazy(() => import('./pages/public/Register'));
+const ResetPassword = lazy(() => import('./pages/public/ResetPassword'));
+
+// Espace client et admin, layout compris. Leurs pages sont les seules à importer
+// STLViewer, donc three.js.
+const ClientLayout = lazy(() => import('./layouts/ClientLayout'));
+const Dashboard = lazy(() => import('./pages/client/Dashboard'));
+const ClientQuote = lazy(() => import('./pages/client/Quote'));
+const Orders = lazy(() => import('./pages/client/Orders'));
+const OrderDetail = lazy(() => import('./pages/client/OrderDetail'));
+const Molds = lazy(() => import('./pages/client/Molds'));
+const Profile = lazy(() => import('./pages/client/Profile'));
+const MyInvoices = lazy(() => import('./pages/client/MyInvoices'));
+const WeightAccount = lazy(() => import('./pages/client/WeightAccount'));
+const UsersPending = lazy(() => import('./pages/admin/UsersPending'));
+const AdminUserProfile = lazy(() => import('./pages/admin/UserProfile'));
+const Weights = lazy(() => import('./pages/admin/Weights'));
+const AdminOrders = lazy(() => import('./pages/admin/Orders'));
+const AdminOrderDetail = lazy(() => import('./pages/admin/OrderDetail'));
+const AdminInvoices = lazy(() => import('./pages/admin/Invoices'));
+const AdminCreateInvoice = lazy(() => import('./pages/admin/CreateInvoice'));
+const AdminLibrary = lazy(() => import('./pages/admin/Library'));
 
 const router = createBrowserRouter([
   {
@@ -211,13 +221,16 @@ const router = createBrowserRouter([
   basename: import.meta.env.BASE_URL
 });
 
-import { TooltipProvider } from './components/ui/tooltip';
-
+// Chaque layout met ses pages sous Suspense ; cette frontière-ci ne rattrape que
+// ClientLayout. À la racine, elle est déjà affichée quand on navigue vers
+// l'espace client : la navigation (une transition) garde la page courante à
+// l'écran le temps du téléchargement. Sur un chargement direct, elle prend le
+// relais de l'écran de restauration de session, à l'identique.
 function App() {
   return (
-    <TooltipProvider>
+    <Suspense fallback={<ClientLoading />}>
       <RouterProvider router={router} />
-    </TooltipProvider>
+    </Suspense>
   );
 }
 

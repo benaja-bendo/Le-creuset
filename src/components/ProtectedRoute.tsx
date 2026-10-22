@@ -7,16 +7,21 @@ type ProtectedRouteProps = {
   allowedRoles?: UserRole[];
 };
 
+/** Écran d'attente de l'espace client : restauration de la session, puis chargement de ClientLayout. */
+export function ClientLoading() {
+  return (
+    <div className="min-h-screen bg-secondary-950 flex items-center justify-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary-500"></div>
+    </div>
+  );
+}
+
 export default function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
   const { user, loading } = useAuth();
   const location = useLocation();
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-secondary-950 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary-500"></div>
-      </div>
-    );
+    return <ClientLoading />;
   }
 
   if (!user) {

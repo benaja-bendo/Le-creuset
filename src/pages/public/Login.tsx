@@ -21,10 +21,12 @@ export default function Login() {
     setLoading(true);
     try {
       await login(email, password);
+      // Le bouton reste en attente jusqu'à l'affichage de l'espace client, dont
+      // le chunk peut mettre un instant à arriver : la page de connexion reste
+      // à l'écran pendant ce temps.
       navigate('/client');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur de connexion');
-    } finally {
       setLoading(false);
     }
   };

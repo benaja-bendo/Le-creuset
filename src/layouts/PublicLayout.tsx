@@ -1,5 +1,6 @@
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
+import PageFallback from '../components/vitrine/PageFallback';
 import SiteFooter from '../components/vitrine/SiteFooter';
 import SiteHeader from '../components/vitrine/SiteHeader';
 
@@ -20,7 +21,9 @@ export default function PublicLayout() {
       </a>
       <SiteHeader />
       <main id="contenu" className="flex-grow">
-        <Outlet />
+        <Suspense fallback={<PageFallback />}>
+          <Outlet />
+        </Suspense>
       </main>
       <SiteFooter />
     </div>

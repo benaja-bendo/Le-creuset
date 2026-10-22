@@ -26,7 +26,7 @@ src/
 │   ├── ImageViewerModal.tsx
 │   ├── WeightGauges.tsx    jauges de compte poids
 │   ├── Alert.tsx
-│   ├── ui/tooltip.tsx      (Radix)
+│   ├── ui/tooltip.tsx      (Radix ; provider dans ClientLayout)
 │   ├── brand/Logo.tsx      mot-logo « La Grenaille » en SVG
 │   └── vitrine/            composants de la vitrine (en-tête, pied de page,
 │                           héros, cartes, bague 3D, formulaire de contact…)
@@ -65,9 +65,11 @@ Chaque page de service a son propre fichier (`Fonte.tsx`, `Impression.tsx`, `Mou
 | `/client/molds` — Ma Bibliothèque | `/client/admin/invoices/new` — dépôt de facture |
 | `/client/settings` | `/client/admin/library` |
 
-> Les routes admin sont **imbriquées sous `/client`**, pas sous un préfixe `/admin`. Une nouvelle page admin va dans les `children` de `/client`, avec `path: 'admin/…'` et une double protection :
+> Les routes admin sont **imbriquées sous `/client`**, pas sous un préfixe `/admin`. Une nouvelle page admin va dans les `children` de `/client`, avec `path: 'admin/…'` et une double protection. Comme toute page hors vitrine, elle est importée en `lazy()` (voir [Build](#build)) :
 
 ```tsx
+const MaPage = lazy(() => import('./pages/admin/MaPage'));
+
 {
   path: 'admin/ma-page',
   element: (
@@ -158,7 +160,7 @@ Garde-fous mobiles présents : `setPixelRatio(Math.min(devicePixelRatio, 2))` et
 
 - **Aucun composant `Modal` partagé.** 15 modales sont écrites en dur dans 11 fichiers, avec des overlays divergents — parfois dans le même fichier : `admin/Library.tsx` utilise `bg-black/70` pour l'une et `bg-secondary-950/40 backdrop-blur-sm` pour l'autre.
 - **Pages volumineuses** : `admin/Orders.tsx` 722 l., `admin/UsersPending.tsx` 664 l., `admin/OrderDetail.tsx` 614 l. Logique métier, appels API et markup mélangés, sans hook extrait.
-- **Peu de tests** : Vitest + Testing Library (`pnpm test`) couvrent le `STLViewer`, l'`ErrorBoundary`, le mot de passe oublié, la bague 3D, l'en-tête et le formulaire de contact. Aucun test e2e.
+- **Peu de tests** : Vitest + Testing Library (`pnpm test`) couvrent le `STLViewer`, l'`ErrorBoundary`, le mot de passe oublié, la bague 3D, l'en-tête, le formulaire de contact et le provider d'infobulles de `ClientLayout`. Aucun test e2e.
 - `alert()` / `confirm()` natifs utilisés pour les retours utilisateur dans les pages admin, alors qu'un composant `Alert.tsx` existe.
 
 ## Build
@@ -177,3 +179,30 @@ pnpm lint
 
 > ⚠️ `pnpm build` fait `tsc -b` **avant** le bundle : un import ou une variable inutilisée fait échouer le build. Penser à nettoyer les imports en supprimant du code.
 > `vite` est surchargé par **`rolldown-vite`** via un `pnpm.overrides` dans `package.json`. Si un plugin Vite se comporte bizarrement, c'est la première piste.
+
+### Découpage du bundle
+
+Le chunk d'entrée (`index-*.js`) ne porte que la vitrine et la connexion : un visiteur de l'accueil télécharge **116 Ko gzip** de JS (366 Ko minifiés), contre 326 Ko gzip (1,2 Mo) avant le découpage d'octobre 2026. Le reste passe par `lazy()` dans [`App.tsx`](../src/App.tsx) et n'est téléchargé qu'à la première visite :
+
+| Chargé à la demande | Pourquoi |
+|---|---|
+| `ClientLayout` et chaque page de `/client/*` et `/client/admin/*` (un chunk par page) | `STLViewer` et three.js (132 Ko gzip) ne viennent qu'avec les pages qui affichent un modèle 3D |
+| Radix Tooltip (24 Ko gzip) | son `TooltipProvider` est dans `ClientLayout`, plus à la racine de l'app : c'est lui qui l'attirait dans l'entrée |
+| CGV, mentions légales, confidentialité, inscription, réinitialisation du mot de passe | pages longues ou rarement ouvertes |
+| La scène 3D de la bague (`RingScene`) | à l'approche de sa section |
+
+Restent dans l'entrée, pour une navigation immédiate : l'accueil, les pages de services, le contact, la connexion, `WaitingApproval`, `ErrorPage` et `LegalLayout` (1 Ko : différé, il retarderait sa page d'un aller-retour réseau).
+
+**Une nouvelle page hors vitrine s'importe en `lazy()`**, jamais par un `import` statique dans `App.tsx` : sinon elle et ses dépendances reviennent dans l'entrée.
+
+**États de chargement**
+- Pendant une navigation, React Router passe par une transition : la page courante **reste affichée** le temps du téléchargement, aucun fallback ne clignote.
+- Sur un chargement direct (lien partagé, rechargement), les `Suspense` prennent le relais : [`PageFallback`](../src/components/vitrine/PageFallback.tsx) dans `PublicLayout` (filet grenaille en fondu, invisible les 300 premières ms) et le spinner habituel des pages dans `ClientLayout`. La frontière de `App.tsx` ne rattrape que `ClientLayout` lui-même, avec l'écran d'attente de `ProtectedRoute`.
+- Le bouton de `Login` reste sur « Connexion… » jusqu'à l'affichage de l'espace client.
+
+**Garde-fous**
+- `vite.config.ts` **fait échouer le build** si three.js se retrouve dans l'entrée ou dans un chunk qu'elle importe statiquement (plugin `keepThreeOutOfEntry`).
+- Chaque déploiement remplace l'image nginx : les chunks de la version précédente disparaissent. `main.tsx` écoute `vite:preloadError` et recharge la page pour récupérer le nouvel `index.html`, au plus une fois toutes les 10 s ; au-delà, `ErrorPage` s'affiche.
+
+> Le build avertit encore « Some chunks are larger than 500 kB » : c'est `three.module-*.js` (520 Ko), chargé à la demande, pas l'entrée.
+> Rolldown isole chaque icône lucide partagée entre plusieurs pages dans un micro-chunk (0,1 à 0,5 Ko). Ils sont préchargés en parallèle avec leur page (`modulepreload`), sans cascade.

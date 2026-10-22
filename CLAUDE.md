@@ -38,7 +38,7 @@ Le modèle de données et les règles métier sont documentés côté back (`Le-
 
 | Je veux… | Fichiers |
 |---|---|
-| ajouter une page | `src/pages/{public,client,admin}/` **+** la route dans `src/App.tsx` |
+| ajouter une page | `src/pages/{public,client,admin}/` **+** la route dans `src/App.tsx`, en **`lazy()`** hors vitrine ([découpage du bundle](docs/02-frontend.md#découpage-du-bundle)) |
 | changer la navigation | `src/layouts/ClientLayout.tsx` → `clientMenuItems` / `adminMenuItems` |
 | appeler l'API | helpers de `src/api/client.ts` — **jamais de `fetch` brut** |
 | afficher une commande | `orderRef()` / `orderStatusLabel()` de `src/lib/orders.ts` — **jamais l'`id` technique** |
@@ -54,6 +54,8 @@ Le modèle de données et les règles métier sont documentés côté back (`Le-
 ## Ajouter une route admin
 
 ```tsx
+const MaPage = lazy(() => import('./pages/admin/MaPage')); // jamais d'import statique
+
 // dans les children de '/client', pas à la racine
 {
   path: 'admin/ma-page',

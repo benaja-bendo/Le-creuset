@@ -13,11 +13,23 @@ import {
   Scale,
   ShoppingCart,
   Layers,
-  Building2
+  Building2,
+  Loader2
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { clsx } from 'clsx';
+import { TooltipProvider } from '../components/ui/tooltip';
 import { useAuth } from '../context/AuthContext';
+
+/** Attente du chunk d'une page : le même indicateur que le chargement des données qui suit. */
+function PageLoading() {
+  return (
+    <div role="status" className="flex items-center justify-center p-12">
+      <Loader2 className="animate-spin text-primary-500" size={40} aria-hidden="true" />
+      <span className="sr-only">Chargement de la page…</span>
+    </div>
+  );
+}
 
 /**
  * Mise en page principale de l'espace client avec menu latéral,
@@ -243,7 +255,13 @@ export default function ClientLayout() {
                 </p>
               </div>
             ) : (
-              <Outlet />
+              <Suspense fallback={<PageLoading />}>
+                {/* Provider des infobulles des pages admin : ici plutôt qu'à la racine
+                    de l'app, Radix reste hors du chunk d'entrée de la vitrine. */}
+                <TooltipProvider>
+                  <Outlet />
+                </TooltipProvider>
+              </Suspense>
             )}
           </div>
         </main>
