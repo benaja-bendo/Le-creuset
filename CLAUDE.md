@@ -43,9 +43,13 @@ Le modèle de données et les règles métier sont documentés côté back (`Le-
 | appeler l'API | helpers de `src/api/client.ts` — **jamais de `fetch` brut** |
 | afficher une commande | `orderRef()` / `orderStatusLabel()` de `src/lib/orders.ts` — **jamais l'`id` technique** |
 | toucher à la session | `src/context/AuthContext.tsx`, garde dans `src/components/ProtectedRoute.tsx` |
-| modifier un texte de service | **`src/App.tsx`** — le contenu de `/fonte`, `/impression`, `/moulage` est passé en props à `ServiceDetail` directement dans le routeur, pas dans le composant |
+| modifier un texte de la vitrine | la page elle-même : `src/pages/public/{Home,Services,Fonte,Impression,Moulage}.tsx` |
+| changer une photo de la vitrine | **`src/lib/photos.ts`** (point unique, drapeau `provisional` pour le badge « Photo provisoire ») |
+| changer les coordonnées ou un réseau social | **`src/lib/site.ts`** |
+| composant de la vitrine (en-tête, héros, cartes, bague 3D…) | `src/components/vitrine/` — logo : `src/components/brand/Logo.tsx` |
 | toucher au rendu 3D | `src/components/STLViewer.tsx` |
 | changer le thème | `src/index.css` — Tailwind v4, **il n'y a pas de `tailwind.config.js`** |
+| toucher à la bague 3D de l'accueil | `src/components/vitrine/RingShowcase.tsx` + `ring/` |
 
 ## Ajouter une route admin
 
@@ -63,7 +67,8 @@ Le modèle de données et les règles métier sont documentés côté back (`Le-
 
 ## Conventions
 
-- **Tailwind v4** via le plugin Vite `@tailwindcss/vite`. Thème déclaré en CSS dans `src/index.css`. Palettes `primary-*` (accent chaud) et `secondary-*` (gris/anthracite).
+- **Tailwind v4** via le plugin Vite `@tailwindcss/vite`. Thème déclaré en CSS dans `src/index.css`. Palettes `primary-*` (accent, aligné sur l'or de la charte) et `secondary-*` (gris/anthracite).
+- **Charte de la vitrine** (cartes de visite du client) : fond `ivoire`/`lin`/`papier`, **`charbon` seulement pour l'en-tête et le pied de page**, `or` pour les filets uniquement (jamais du texte : 2,1:1), `bronze` pour les liens. Libre Baskerville + Montserrat, logo en SVG. Détails : [`docs/02-frontend.md`](docs/02-frontend.md#conventions-ui).
 - Cartes : `bg-white rounded-xl border border-secondary-200 shadow-sm`. Fond des zones connectées : `bg-secondary-50`.
 - Icônes **lucide-react** exclusivement — 14–18 px dans les tableaux, 40–48 px dans les états vides.
 - **Français** pour tous les textes visibles. Dates via `toLocaleDateString('fr-FR')`.
@@ -92,7 +97,7 @@ Ces helpers gèrent l'en-tête `Authorization`, la purge du token sur `401` et l
 - `VITE_API_URL` doit inclure le suffixe **`/api`** (`http://localhost:3000/api`). Sans lui, tout part en 404.
 - Le type `UserStatus` de `AuthContext.tsx` est `'PENDING' | 'ACTIVE' | 'REJECTED'` — **il manque `SUSPENDED`**, présent côté back.
 - **Aucun composant `Modal` partagé** : 15 modales sont écrites en dur dans 11 fichiers, avec des overlays divergents.
-- **Aucun test front**, d'aucune sorte.
+- Tests front : Vitest + Testing Library (`pnpm test`), sans e2e.
 
 ## Dettes ouvertes
 

@@ -1,13 +1,13 @@
 export default function CGV() {
   return (
-    <div className="prose prose-invert max-w-none">
-      <h1 className="text-3xl md:text-4xl font-serif font-bold text-white mb-8">
+    <div className="max-w-none">
+      <h1 className="text-3xl md:text-4xl font-serif font-normal text-charbon mb-8">
         Conditions Générales de Vente
       </h1>
 
-      <div className="space-y-8 text-secondary-300">
+      <div className="space-y-8 font-serif text-base leading-[1.8] text-charbon">
         <section>
-          <h2 className="text-2xl font-serif font-bold text-white mb-4">
+          <h2 className="text-2xl font-serif font-normal text-charbon mb-4">
             Article 1 - Champ d'application
           </h2>
           <p>
@@ -26,16 +26,16 @@ export default function CGV() {
         </section>
 
         <section>
-          <h2 className="text-2xl font-serif font-bold text-white mb-4">
+          <h2 className="text-2xl font-serif font-normal text-charbon mb-4">
             Article 2 - Devis et commandes
           </h2>
-          <h3 className="text-xl font-serif font-bold text-white mb-3 mt-6">2.1 Devis</h3>
+          <h3 className="text-xl font-serif font-bold text-charbon mb-3 mt-6">2.1 Devis</h3>
           <p>
             Tout devis est valable 30 jours à compter de sa date d'émission. Passé ce délai, les prix et 
             délais indiqués pourront être révisés.
           </p>
           
-          <h3 className="text-xl font-serif font-bold text-white mb-3 mt-6">2.2 Commande</h3>
+          <h3 className="text-xl font-serif font-bold text-charbon mb-3 mt-6">2.2 Commande</h3>
           <p>
             La commande sera considérée comme ferme et définitive après :
           </p>
@@ -47,27 +47,27 @@ export default function CGV() {
         </section>
 
         <section>
-          <h2 className="text-2xl font-serif font-bold text-white mb-4">
+          <h2 className="text-2xl font-serif font-normal text-charbon mb-4">
             Article 3 - Tarifs et paiement
           </h2>
-          <h3 className="text-xl font-serif font-bold text-white mb-3 mt-6">3.1 Prix</h3>
+          <h3 className="text-xl font-serif font-bold text-charbon mb-3 mt-6">3.1 Prix</h3>
           <p>
             Les prix sont indiqués en euros hors taxes (HT). La TVA applicable est celle en vigueur au 
             jour de la facturation. Les prix tiennent compte du cours des métaux au moment du devis. 
             En cas de variations importantes, un réajustement pourra être proposé.
           </p>
           
-          <h3 className="text-xl font-serif font-bold text-white mb-3 mt-6">3.2 Modalités de paiement</h3>
+          <h3 className="text-xl font-serif font-bold text-charbon mb-3 mt-6">3.2 Modalités de paiement</h3>
           <p>
             Le règlement s'effectue selon les modalités suivantes :
           </p>
           <ul className="list-disc pl-6 space-y-2 mt-4">
-            <li><strong className="text-white">Acompte :</strong> 50% à la commande</li>
-            <li><strong className="text-white">Solde :</strong> 50% à la livraison</li>
-            <li><strong className="text-white">Moyens de paiement :</strong> Virement bancaire, chèque, espèces (dans la limite légale)</li>
+            <li><strong className="text-charbon">Acompte :</strong> 50% à la commande</li>
+            <li><strong className="text-charbon">Solde :</strong> 50% à la livraison</li>
+            <li><strong className="text-charbon">Moyens de paiement :</strong> Virement bancaire, chèque, espèces (dans la limite légale)</li>
           </ul>
 
-          <h3 className="text-xl font-serif font-bold text-white mb-3 mt-6">3.3 Retard de paiement</h3>
+          <h3 className="text-xl font-serif font-bold text-charbon mb-3 mt-6">3.3 Retard de paiement</h3>
           <p>
             En cas de retard de paiement, des pénalités de retard égales à trois fois le taux d'intérêt légal 
             seront appliquées. Une indemnité forfaitaire de 40€ pour frais de recouvrement sera également due.
@@ -75,7 +75,7 @@ export default function CGV() {
         </section>
 
         <section>
-          <h2 className="text-2xl font-serif font-bold text-white mb-4">
+          <h2 className="text-2xl font-serif font-normal text-charbon mb-4">
             Article 4 - Délais de fabrication
           </h2>
           <p>
@@ -94,7 +94,7 @@ export default function CGV() {
         </section>
 
         <section>
-          <h2 className="text-2xl font-serif font-bold text-white mb-4">
+          <h2 className="text-2xl font-serif font-normal text-charbon mb-4">
             Article 5 - Livraison
           </h2>
           <p>
@@ -109,16 +109,16 @@ export default function CGV() {
         </section>
 
         <section>
-          <h2 className="text-2xl font-serif font-bold text-white mb-4">
+          <h2 className="text-2xl font-serif font-normal text-charbon mb-4">
             Article 6 - Garantie et responsabilité
           </h2>
-          <h3 className="text-xl font-serif font-bold text-white mb-3 mt-6">6.1 Garantie</h3>
+          <h3 className="text-xl font-serif font-bold text-charbon mb-3 mt-6">6.1 Garantie</h3>
           <p>
             La Grenaille garantit la conformité des pièces réalisées par rapport aux spécifications validées. 
             Toute réclamation devra être formulée par écrit dans les 7 jours suivant la réception.
           </p>
           
-          <h3 className="text-xl font-serif font-bold text-white mb-3 mt-6">6.2 Limites de responsabilité</h3>
+          <h3 className="text-xl font-serif font-bold text-charbon mb-3 mt-6">6.2 Limites de responsabilité</h3>
           <p>
             La Grenaille ne saurait être tenu responsable :
           </p>
@@ -131,7 +131,7 @@ export default function CGV() {
         </section>
 
         <section>
-          <h2 className="text-2xl font-serif font-bold text-white mb-4">
+          <h2 className="text-2xl font-serif font-normal text-charbon mb-4">
             Article 7 - Propriété intellectuelle
           </h2>
           <p>
@@ -143,15 +143,15 @@ export default function CGV() {
         </section>
 
         <section>
-          <h2 className="text-2xl font-serif font-bold text-white mb-4">
+          <h2 className="text-2xl font-serif font-normal text-charbon mb-4">
             Article 8 - Métaux précieux
           </h2>
           <p>
             Pour les travaux en métaux précieux, le client peut :
           </p>
           <ul className="list-disc pl-6 space-y-2 mt-4">
-            <li><strong className="text-white">Option 1 :</strong> Fournir ses propres métaux (or, argent)</li>
-            <li><strong className="text-white">Option 2 :</strong> Acheter le métal via La Grenaille au cours du jour</li>
+            <li><strong className="text-charbon">Option 1 :</strong> Fournir ses propres métaux (or, argent)</li>
+            <li><strong className="text-charbon">Option 2 :</strong> Acheter le métal via La Grenaille au cours du jour</li>
           </ul>
           <p className="mt-4">
             Les chutes de métaux précieux sont restituées au client ou déduites du prix de la prestation, 
@@ -160,7 +160,7 @@ export default function CGV() {
         </section>
 
         <section>
-          <h2 className="text-2xl font-serif font-bold text-white mb-4">
+          <h2 className="text-2xl font-serif font-normal text-charbon mb-4">
             Article 9 - Annulation
           </h2>
           <p>
@@ -176,7 +176,7 @@ export default function CGV() {
         </section>
 
         <section>
-          <h2 className="text-2xl font-serif font-bold text-white mb-4">
+          <h2 className="text-2xl font-serif font-normal text-charbon mb-4">
             Article 10 - Droit applicable et litiges
           </h2>
           <p>
@@ -187,8 +187,8 @@ export default function CGV() {
         </section>
       </div>
 
-      <div className="mt-12 pt-6 border-t border-secondary-800">
-        <p className="text-sm text-secondary-500">
+      <div className="mt-12 pt-6 border-t border-sable">
+        <p className="text-sm text-pierre">
           Dernière mise à jour : {new Date().toLocaleDateString('fr-FR', { 
             year: 'numeric', 
             month: 'long', 

@@ -1,44 +1,44 @@
 export default function MentionsLegales() {
   return (
-    <div className="prose prose-invert max-w-none">
-      <h1 className="text-3xl md:text-4xl font-serif font-bold text-white mb-8">
+    <div className="max-w-none">
+      <h1 className="text-3xl md:text-4xl font-serif font-normal text-charbon mb-8">
         Mentions Légales
       </h1>
 
-      <div className="space-y-8 text-secondary-300">
+      <div className="space-y-8 font-serif text-base leading-[1.8] text-charbon">
         <section>
-          <h2 className="text-2xl font-serif font-bold text-white mb-4">
+          <h2 className="text-2xl font-serif font-normal text-charbon mb-4">
             Éditeur du site
           </h2>
           <div className="space-y-2">
-            <p><strong className="text-white">Raison sociale :</strong> [NOM DE LA SOCIÉTÉ]</p>
-            <p><strong className="text-white">Forme juridique :</strong> [SAS / SARL / Auto-entrepreneur]</p>
-            <p><strong className="text-white">Capital social :</strong> [MONTANT] euros</p>
-            <p><strong className="text-white">SIRET :</strong> [NUMÉRO SIRET]</p>
-            <p><strong className="text-white">N° TVA intracommunautaire :</strong> [NUMÉRO TVA]</p>
-            <p><strong className="text-white">Siège social :</strong><br />
+            <p><strong className="text-charbon">Raison sociale :</strong> [NOM DE LA SOCIÉTÉ]</p>
+            <p><strong className="text-charbon">Forme juridique :</strong> [SAS / SARL / Auto-entrepreneur]</p>
+            <p><strong className="text-charbon">Capital social :</strong> [MONTANT] euros</p>
+            <p><strong className="text-charbon">SIRET :</strong> [NUMÉRO SIRET]</p>
+            <p><strong className="text-charbon">N° TVA intracommunautaire :</strong> [NUMÉRO TVA]</p>
+            <p><strong className="text-charbon">Siège social :</strong><br />
               [ADRESSE COMPLÈTE]<br />
               [CODE POSTAL] [VILLE]
             </p>
-            <p><strong className="text-white">Téléphone :</strong> [NUMÉRO]</p>
-            <p><strong className="text-white">Email :</strong> [EMAIL]</p>
+            <p><strong className="text-charbon">Téléphone :</strong> [NUMÉRO]</p>
+            <p><strong className="text-charbon">Email :</strong> [EMAIL]</p>
           </div>
         </section>
 
         <section>
-          <h2 className="text-2xl font-serif font-bold text-white mb-4">
+          <h2 className="text-2xl font-serif font-normal text-charbon mb-4">
             Directeur de publication
           </h2>
           <p>[NOM DU DIRECTEUR DE PUBLICATION]</p>
         </section>
 
         <section>
-          <h2 className="text-2xl font-serif font-bold text-white mb-4">
+          <h2 className="text-2xl font-serif font-normal text-charbon mb-4">
             Hébergement
           </h2>
           <p>Ce site est hébergé par :</p>
           <div className="space-y-2">
-            <p><strong className="text-white">GitHub Pages</strong></p>
+            <p><strong className="text-charbon">GitHub Pages</strong></p>
             <p>GitHub, Inc.<br />
             88 Colin P Kelly Jr St<br />
             San Francisco, CA 94107<br />
@@ -47,7 +47,7 @@ export default function MentionsLegales() {
         </section>
 
         <section>
-          <h2 className="text-2xl font-serif font-bold text-white mb-4">
+          <h2 className="text-2xl font-serif font-normal text-charbon mb-4">
             Propriété intellectuelle
           </h2>
           <p>
@@ -62,16 +62,16 @@ export default function MentionsLegales() {
         </section>
 
         <section>
-          <h2 className="text-2xl font-serif font-bold text-white mb-4">
+          <h2 className="text-2xl font-serif font-normal text-charbon mb-4">
             Crédits
           </h2>
-          <p><strong className="text-white">Conception et réalisation :</strong> [NOM]</p>
-          <p><strong className="text-white">Photographies :</strong> [SOURCES DES IMAGES]</p>
-          <p><strong className="text-white">Icônes :</strong> Lucide Icons</p>
+          <p><strong className="text-charbon">Conception et réalisation :</strong> [NOM]</p>
+          <p><strong className="text-charbon">Photographies :</strong> [SOURCES DES IMAGES]</p>
+          <p><strong className="text-charbon">Icônes :</strong> Lucide Icons</p>
         </section>
 
         <section>
-          <h2 className="text-2xl font-serif font-bold text-white mb-4">
+          <h2 className="text-2xl font-serif font-normal text-charbon mb-4">
             Responsabilité
           </h2>
           <p>
@@ -87,7 +87,7 @@ export default function MentionsLegales() {
         </section>
 
         <section>
-          <h2 className="text-2xl font-serif font-bold text-white mb-4">
+          <h2 className="text-2xl font-serif font-normal text-charbon mb-4">
             Liens hypertextes
           </h2>
           <p>
@@ -97,7 +97,7 @@ export default function MentionsLegales() {
         </section>
 
         <section>
-          <h2 className="text-2xl font-serif font-bold text-white mb-4">
+          <h2 className="text-2xl font-serif font-normal text-charbon mb-4">
             Litiges
           </h2>
           <p>
@@ -109,21 +109,21 @@ export default function MentionsLegales() {
         </section>
 
         <section>
-          <h2 className="text-2xl font-serif font-bold text-white mb-4">
+          <h2 className="text-2xl font-serif font-normal text-charbon mb-4">
             Données personnelles
           </h2>
           <p>
             De manière générale, vous n'êtes pas tenu de nous communiquer vos données personnelles lorsque 
             vous visitez notre site Internet. Pour plus d'informations, consultez notre{' '}
-            <a href="/legal/privacy" className="text-primary-500 hover:text-primary-400 underline">
+            <a href="/legal/privacy" className="text-bronze underline decoration-or underline-offset-4 hover:text-charbon">
               Politique de confidentialité
             </a>.
           </p>
         </section>
       </div>
 
-      <div className="mt-12 pt-6 border-t border-secondary-800">
-        <p className="text-sm text-secondary-500">
+      <div className="mt-12 pt-6 border-t border-sable">
+        <p className="text-sm text-pierre">
           Dernière mise à jour : {new Date().toLocaleDateString('fr-FR', { 
             year: 'numeric', 
             month: 'long', 
