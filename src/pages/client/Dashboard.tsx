@@ -17,7 +17,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getJSON } from '../../api/client';
 import { orderRef, orderStatusLabel } from '../../lib/orders';
-import { formatGrams } from '../../lib/format';
+import { formatGrams, baseMetalLabel, metalAccountColor } from '../../lib/format';
 
 type MetalAccount = {
   id: string;
@@ -164,12 +164,11 @@ function ClientDashboard() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {weights.map((account) => {
               const isNegative = account.balance < 0;
-              const formattedName = account.metalType.replace(/_/g, ' ');
               return (
               <div key={account.id} className={`p-6 rounded-xl text-white shadow-lg overflow-hidden relative border border-transparent transition-all
-                 ${isNegative ? 'bg-gradient-to-br from-red-800 to-red-900 border-red-700' : 'bg-gradient-to-br from-secondary-800 to-secondary-900'}`}>
+                 ${metalAccountColor(account.metalType, isNegative)}`}>
                 <div className="relative z-10 flex flex-col h-full justify-between">
-                  <p className="text-secondary-300 text-xs font-bold uppercase tracking-wider mb-2">{formattedName}</p>
+                  <p className="text-secondary-300 text-xs font-bold uppercase tracking-wider mb-2">{baseMetalLabel(account.metalType)}</p>
                   <div className="flex items-baseline gap-1 mt-auto">
                      <p className={`text-4xl font-black tracking-tighter ${isNegative ? 'text-red-100' : 'text-white'}`}>
                        {formatGrams(account.balance)}

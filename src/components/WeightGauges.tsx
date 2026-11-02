@@ -6,7 +6,7 @@ import {
   TrendingUp,
   AlertCircle
 } from 'lucide-react';
-import { formatGrams, toNumber, baseMetalLabel } from '../lib/format';
+import { formatGrams, toNumber, baseMetalLabel, metalAccountColor } from '../lib/format';
 
 type Transaction = {
   id: string;
@@ -45,17 +45,6 @@ export const VISIBLE_TRANSACTIONS = 4;
 export const HISTORY_MAX_HEIGHT = 'max-h-[19rem]';
 
 export default function WeightGauges({ accounts }: WeightGaugesProps) {
-  const getMetalColor = (type: string, isNegative: boolean) => {
-    if (isNegative) return 'bg-gradient-to-br from-red-800 to-red-900 border-red-700';
-    
-    if (type.includes('OR')) return 'bg-gradient-to-br from-amber-600 to-amber-700 border-amber-600';
-    if (type.includes('ARGENT')) return 'bg-gradient-to-br from-slate-400 to-slate-500 border-slate-400';
-    if (type.includes('PLATINE') || type.includes('PALLADIUM')) return 'bg-gradient-to-br from-zinc-600 to-zinc-700 border-zinc-500';
-    
-    return 'bg-gradient-to-br from-secondary-800 to-secondary-900 border-secondary-800';
-  };
-
-
   return (
     <div className="space-y-12">
       {/* Summary Cards Grid */}
@@ -66,7 +55,7 @@ export default function WeightGauges({ accounts }: WeightGaugesProps) {
             <div 
               key={acc.id} 
               className={`p-6 rounded-2xl text-white shadow-lg overflow-hidden relative border border-transparent transition-all min-h-[160px]
-                 ${getMetalColor(acc.metalType, isNegative)}`}
+                 ${metalAccountColor(acc.metalType, isNegative)}`}
             >
               <div className="relative z-10 flex flex-col h-full justify-between">
                 <div className="flex justify-between items-start">

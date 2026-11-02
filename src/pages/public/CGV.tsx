@@ -60,7 +60,7 @@ export default function CGV() {
           
           <h3 className="text-xl font-serif font-bold text-charbon mb-3 mt-6">3.2 Modalités de paiement</h3>
           <p>
-            Aucun acompte n'est demandé : le règlement du montant total s'effectue à réception de la facture.
+            Aucun acompte n'est demandé : le règlement du montant total s'effectue dans les 30 jours suivant la livraison.
           </p>
           <p className="mt-4">
             <strong className="text-charbon">Moyens de paiement :</strong> virement bancaire, chèque, espèces (dans la limite légale).
