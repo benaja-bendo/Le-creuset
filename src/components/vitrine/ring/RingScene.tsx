@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
-import { createBandGeometry, granuleCenters, RING } from './geometry';
+import { loadRingGeometry, RING_RADIUS } from './geometry';
 import type { RingMaterial } from './materials';
 
 type RingSceneProps = {
@@ -80,25 +80,32 @@ export default function RingScene({ material, onError }: RingSceneProps) {
     });
 
     const ring = new THREE.Group();
-    const bandGeometry = createBandGeometry();
-    ring.add(new THREE.Mesh(bandGeometry, ringMaterial));
-
-    const centers = granuleCenters();
-    const granuleGeometry = new THREE.SphereGeometry(RING.granuleRadius, 24, 16);
-    const granules = new THREE.InstancedMesh(granuleGeometry, ringMaterial, centers.length);
-    const matrix = new THREE.Matrix4();
-    centers.forEach((center, i) => granules.setMatrixAt(i, matrix.makeTranslation(center)));
-    ring.add(granules);
     scene.add(ring);
+    let ringGeometry: THREE.BufferGeometry | null = null;
+    let cancelled = false;
 
     const shadowTexture = contactShadowTexture();
     const shadowMaterial = new THREE.MeshBasicMaterial({ map: shadowTexture, transparent: true, depthWrite: false });
     const shadowGeometry = new THREE.PlaneGeometry(3.6, 3.6);
     const shadow = new THREE.Mesh(shadowGeometry, shadowMaterial);
     shadow.rotation.x = -Math.PI / 2;
-    shadow.position.y = -(RING.radius + RING.halfThickness + RING.granuleRadius * 2) - 0.02;
+    shadow.position.y = -RING_RADIUS - 0.2;
     shadow.scale.set(1, 0.55, 1);
     scene.add(shadow);
+
+    loadRingGeometry()
+      .then((geometry) => {
+        if (cancelled) {
+          geometry.dispose();
+          return;
+        }
+        ringGeometry = geometry;
+        ring.add(new THREE.Mesh(geometry, ringMaterial));
+        shadow.position.y = geometry.boundingBox!.min.y - 0.02;
+      })
+      .catch((error) => {
+        if (!cancelled) onErrorRef.current(error);
+      });
 
     const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
     const targetColor = new THREE.Color();
@@ -194,6 +201,7 @@ export default function RingScene({ material, onError }: RingSceneProps) {
     schedule();
 
     return () => {
+      cancelled = true;
       stop();
       resizeObserver.disconnect();
       visibilityObserver.disconnect();
@@ -202,9 +210,7 @@ export default function RingScene({ material, onError }: RingSceneProps) {
       canvas.removeEventListener('pointerup', onPointerUp);
       canvas.removeEventListener('pointercancel', onPointerUp);
       document.removeEventListener('visibilitychange', onVisibility);
-      bandGeometry.dispose();
-      granuleGeometry.dispose();
-      granules.dispose();
+      ringGeometry?.dispose();
       ringMaterial.dispose();
       shadowGeometry.dispose();
       shadowMaterial.dispose();
@@ -219,7 +225,7 @@ export default function RingScene({ material, onError }: RingSceneProps) {
     <canvas
       ref={canvasRef}
       role="img"
-      aria-label={`Bague granulée en 3D, en ${material.label.toLowerCase()}`}
+      aria-label={`Bague en 3D, en ${material.label.toLowerCase()}`}
       className="absolute inset-0 size-full cursor-grab touch-pan-y active:cursor-grabbing"
     />
   );
