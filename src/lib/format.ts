@@ -57,3 +57,19 @@ const BASE_METAL_LABELS: Record<string, string> = {
 export function baseMetalLabel(type: string): string {
   return BASE_METAL_LABELS[type] ?? type.replace(/_/g, ' ');
 }
+
+/**
+ * Classes Tailwind du dégradé d'une carte de compte poids, par métal.
+ * Remplace le dégradé gris fixe dupliqué dans `Dashboard.tsx`, qui rendait
+ * tous les comptes identiques (hors solde négatif) alors que `WeightGauges.tsx`
+ * les distinguait déjà par métal.
+ */
+export function metalAccountColor(type: string, isNegative: boolean): string {
+  if (isNegative) return 'bg-gradient-to-br from-red-800 to-red-900 border-red-700';
+
+  if (type.includes('OR')) return 'bg-gradient-to-br from-amber-600 to-amber-700 border-amber-600';
+  if (type.includes('ARGENT')) return 'bg-gradient-to-br from-slate-400 to-slate-500 border-slate-400';
+  if (type.includes('PLATINE') || type.includes('PALLADIUM')) return 'bg-gradient-to-br from-zinc-600 to-zinc-700 border-zinc-500';
+
+  return 'bg-gradient-to-br from-secondary-800 to-secondary-900 border-secondary-800';
+}
