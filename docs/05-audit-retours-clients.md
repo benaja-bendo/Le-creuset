@@ -93,7 +93,7 @@ Retour du 11/11/2026 : le client transmet les informations légales réelles (im
 
 `LEGAL_PENDING` (mention transitoire « société en cours d'immatriculation ») remplacé par `LEGAL_ENTITY` dans `src/lib/legal.ts` : dénomination (« La Grenaille SARL »), forme juridique, capital, immatriculation, numéro de TVA, siège social et directeurs de publication. `MentionsLegales.tsx` et `PrivacyPolicy.tsx` consomment désormais `LEGAL_ENTITY` ; `legal.test.tsx` passe toujours.
 
-**Point de terminologie** : le numéro transmis par le client comme « SIRET » (`132 501 677 R.C.S Bordeaux`) ne fait que 9 chiffres — c'est en réalité le **SIREN** (un SIRET en compte 14 : SIREN + 5 chiffres d'établissement), confirmé par le numéro de TVA (`FR13 132501677` = FR + clé + SIREN). Affiché comme `RCS Bordeaux 132 501 677` plutôt que mal étiqueté « SIRET ». PR : [Le-creuset#37](https://github.com/benaja-bendo/Le-creuset/pull/37).
+**Point de terminologie** : le numéro transmis par le client comme « SIRET » (`132 501 677 R.C.S Bordeaux`) ne fait que 9 chiffres — c'est en réalité le **SIREN** (un SIRET en compte 14 : SIREN + 5 chiffres d'établissement), confirmé par le numéro de TVA (`FR13 132501677` = FR + clé + SIREN). Affiché comme `RCS Bordeaux 132 501 677` plutôt que mal étiqueté « SIRET » — confirmé par le client le 11/11/2026. Déployé en prod, vérifié sur lagrenaille.fr. PR : [Le-creuset#37](https://github.com/benaja-bendo/Le-creuset/pull/37) (develop), [Le-creuset#38](https://github.com/benaja-bendo/Le-creuset/pull/38) (prod).
 
 ## Retours de septembre 2026
 
