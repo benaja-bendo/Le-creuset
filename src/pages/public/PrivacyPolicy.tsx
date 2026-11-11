@@ -1,5 +1,5 @@
 import { EmailLink, PhoneLink } from '../../components/legal/ContactLinks';
-import { LEGAL_LAST_UPDATED, LEGAL_PENDING } from '../../lib/legal';
+import { LEGAL_LAST_UPDATED, LEGAL_ENTITY } from '../../lib/legal';
 
 export default function PrivacyPolicy() {
   return (
@@ -23,8 +23,8 @@ export default function PrivacyPolicy() {
             1. Responsable du traitement
           </h2>
           <div className="space-y-2">
-            <p><strong className="text-charbon">Responsable :</strong> La Grenaille (société en cours d’immatriculation)</p>
-            <p><strong className="text-charbon">Adresse :</strong> {LEGAL_PENDING.address}</p>
+            <p><strong className="text-charbon">Responsable :</strong> {LEGAL_ENTITY.legalName}</p>
+            <p><strong className="text-charbon">Adresse :</strong> {LEGAL_ENTITY.address}</p>
             <p><strong className="text-charbon">Email :</strong> <EmailLink /></p>
             <p><strong className="text-charbon">Téléphone :</strong> <PhoneLink /></p>
           </div>
@@ -210,7 +210,7 @@ export default function PrivacyPolicy() {
           <div className="space-y-2 mt-4">
             <p><strong className="text-charbon">Email :</strong> <EmailLink /></p>
             <p><strong className="text-charbon">Téléphone :</strong> <PhoneLink /></p>
-            <p><strong className="text-charbon">Courrier :</strong> {LEGAL_PENDING.address}</p>
+            <p><strong className="text-charbon">Courrier :</strong> {LEGAL_ENTITY.address}</p>
           </div>
         </section>
       </div>

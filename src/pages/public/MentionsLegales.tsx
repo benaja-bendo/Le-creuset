@@ -1,5 +1,5 @@
 import { EmailLink, PhoneLink } from '../../components/legal/ContactLinks';
-import { LEGAL_LAST_UPDATED, LEGAL_PENDING } from '../../lib/legal';
+import { LEGAL_LAST_UPDATED, LEGAL_ENTITY } from '../../lib/legal';
 
 export default function MentionsLegales() {
   return (
@@ -14,9 +14,11 @@ export default function MentionsLegales() {
             Éditeur du site
           </h2>
           <div className="space-y-2">
-            <p><strong className="text-charbon">Dénomination :</strong> La Grenaille</p>
-            <p>{LEGAL_PENDING.status}</p>
-            <p><strong className="text-charbon">Siège social :</strong> {LEGAL_PENDING.address}</p>
+            <p><strong className="text-charbon">Dénomination :</strong> {LEGAL_ENTITY.legalName}</p>
+            <p><strong className="text-charbon">Forme juridique :</strong> {LEGAL_ENTITY.legalForm} au capital de {LEGAL_ENTITY.capital}</p>
+            <p><strong className="text-charbon">Immatriculation :</strong> {LEGAL_ENTITY.rcs}</p>
+            <p><strong className="text-charbon">Numéro de TVA intracommunautaire :</strong> {LEGAL_ENTITY.vat}</p>
+            <p><strong className="text-charbon">Siège social :</strong> {LEGAL_ENTITY.address}</p>
             <p><strong className="text-charbon">Téléphone :</strong> <PhoneLink /></p>
             <p><strong className="text-charbon">Email :</strong> <EmailLink /></p>
           </div>
@@ -26,7 +28,7 @@ export default function MentionsLegales() {
           <h2 className="text-2xl font-serif font-normal text-charbon mb-4">
             Directeur de publication
           </h2>
-          <p>{LEGAL_PENDING.director}</p>
+          <p>{LEGAL_ENTITY.directors.join(' et ')}</p>
         </section>
 
         <section>
