@@ -85,6 +85,16 @@ Le devis STL (`client/Quote.tsx`) comptait un forfait main-d'œuvre de 50 € et
 
 ---
 
+## Retours de novembre 2026
+
+Retour du 11/11/2026 : le client transmet les informations légales réelles (immatriculation effectuée). Verbatim et décorticage dans `sites/retours-clients/2026-11-11-informations-legales.md`.
+
+### ✅ Mentions légales : informations réelles post-immatriculation (11/11/2026)
+
+`LEGAL_PENDING` (mention transitoire « société en cours d'immatriculation ») remplacé par `LEGAL_ENTITY` dans `src/lib/legal.ts` : dénomination (« La Grenaille SARL »), forme juridique, capital, immatriculation, numéro de TVA, siège social et directeurs de publication. `MentionsLegales.tsx` et `PrivacyPolicy.tsx` consomment désormais `LEGAL_ENTITY` ; `legal.test.tsx` passe toujours.
+
+**Point de terminologie** : le numéro transmis par le client comme « SIRET » (`132 501 677 R.C.S Bordeaux`) ne fait que 9 chiffres — c'est en réalité le **SIREN** (un SIRET en compte 14 : SIREN + 5 chiffres d'établissement), confirmé par le numéro de TVA (`FR13 132501677` = FR + clé + SIREN). Affiché comme `RCS Bordeaux 132 501 677` plutôt que mal étiqueté « SIRET ». PR : [Le-creuset#37](https://github.com/benaja-bendo/Le-creuset/pull/37).
+
 ## Retours de septembre 2026
 
 Retour du 15/09 après mise à jour de la dev pour test client. Verbatim et
